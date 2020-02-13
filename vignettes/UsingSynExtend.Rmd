@@ -1,0 +1,100 @@
+---
+title: "Using SynExtend"
+author: "Nicholas Cooley"
+date: "`r doc_date()`"
+package: "`r pkg_ver('SynExtend')`"
+output: BiocStyle::pdf_document
+vignette: >
+  %\VignetteIndexEntry{Using SynExtend}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# Introduction
+
+`SynExtend` is a package of tools built to work with objects of class `Synteny` built from the package `DECIPHER`'s function `FindSynteny()`.
+
+Synteny maps provide a powerful tool for quantifying and visualizing where pairs of genomes share order. Typically these maps are built from predictions of orthologous pairs, where groups of pairs that provide contiguous and sequential blocks in their both genomes are deemed a 'syntenic block'. That designation of synteny can then used to further interogate the predicted orthologs themselves, or query topics like genomic rearrangements or ancestor genome reconstruction.
+
+# Package Structure
+
+Currently `SynExtend` contains only one set of functions, but will likely expand in the future.
+
+# Installation
+
+1. Install the latest version of R using [CRAN](https://cran.r-project.org/).
+2. Install `SynExtend` in R by running the following commands:
+
+```{r}
+if (!requireNamespace("BiocManager",
+                      quietly = TRUE)) {
+  install.packages("BiocManager")
+}
+BiocManager::install("SynExtend")
+```
+
+# Usage
+
+Using the `FindSynteny` function in `DECIPHER` build an object of class `Synteny`.
+
+```{r}
+DBPATH <- system.file("extdata",
+                      "VignetteSeqs.sqlite",
+                      package = "SynExtend")
+
+Syn <- FindSynteny(dbFile = DBPATH)
+```
+
+Next, GFF annotations for the associated genomes are parsed to provide gene calls in a use-able format. GFFs are not the only possible source of appropriate gene calls, but they are the source that was used during package construction and testing. Functionally, as long as a data.frame representing gene calls has the required columns, any gene predictions can be used. The required columns are `Index`, `Strand`, `Start`, `Stop`, `Coding`, and the column `Match` which is a character vector representing gene bounds. Row names are used as unique identifiers by all of SynExtend's functions.
+
+```{r}
+GeneCalls <- vector(mode = "list",
+                    length = ncol(Syn))
+
+GeneCalls[[1L]] <- gffToDataFrame(GFF = system.file("extdata",
+                                                    "GCA_002943525.1_ASM294352v1_genomic.gff.gz",
+                                                    package = "SynExtend"),
+                                  Verbose = TRUE)
+GeneCalls[[2L]] <- gffToDataFrame(GFF = system.file("extdata",
+                                                    "GCA_002082605.1_ASM208260v1_genomic.gff.gz",
+                                                    package = "SynExtend"),
+                                  Verbose = TRUE)
+GeneCalls[[3L]] <- gffToDataFrame(GFF = system.file("extdata",
+                                                    "GCA_002082585.1_ASM208258v1_genomic.gff.gz",
+                                                    package = "SynExtend"),
+                                  Verbose = TRUE)
+GeneCalls[[4L]] <- gffToDataFrame(GFF = system.file("GCA_000269985.1_ASM26998v1_genomic.gff.gz",
+                                                    package = "SynExtend"),
+                                  Verbose = TRUE)
+
+names(GeneCalls) <- seq(length(GeneCalls))
+```
+
+Finally pairs of genes that are linked by syntenic hits are explicitly identified, and then summarized. The summary step includes removal of pairs predicted to be poor matches through the `Model` argument.
+
+```{r}
+Links <- NucleotideOverlap(SyntenyObject = Syn,
+                           GeneCalls = GeneCalls,
+                           LimitIndex = FALSE,
+                           Verbose = TRUE)
+
+PredictedPairs <- PairSummaries(SyntenyLinks = Links,
+                                GeneCalls = GeneCalls,
+                                DBPATH = DBPATH,
+                                PIDs = FALSE,
+                                Verbose = TRUE,
+                                Model = "Global",
+                                Correction = "none")
+```
+
+The object `PredictedPairs` is a data.frame where each row is populated by information about the predicted orthologous pair.
+
+# Session Info
+
+```{r}
+sessionInfo()
+```
+
+
+
+

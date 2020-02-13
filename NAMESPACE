@@ -1,0 +1,10 @@
+import(IRanges)
+import(Biostrings)
+import(DECIPHER)
+import(S4Vectors)
+
+export(NucleotideOverlap)
+export(gffToDataFrame)
+export(PairSummaries)
+
+S3method(print, "LinkedPairs")
