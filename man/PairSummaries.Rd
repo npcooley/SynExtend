@@ -91,7 +91,8 @@ GeneCalls[[3L]] <- gffToDataFrame(GFF = system.file("extdata",
                                                     "GCA_002082585.1_ASM208258v1_genomic.gff.gz",
                                                     package = "SynExtend"),
                                   Verbose = TRUE)
-GeneCalls[[4L]] <- gffToDataFrame(GFF = system.file("GCA_000269985.1_ASM26998v1_genomic.gff.gz",
+GeneCalls[[4L]] <- gffToDataFrame(GFF = system.file("extdata",
+                                                    "GCA_000269985.1_ASM26998v1_genomic.gff.gz",
                                                     package = "SynExtend"),
                                   Verbose = TRUE)
 
