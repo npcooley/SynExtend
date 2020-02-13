@@ -1,10 +1,10 @@
 Package: SynExtend
 Type: Package
 Title: Tools for working with Synteny Objects
-Version: 0.99.0
+Version: 0.99.1
 Date: 2020-02-12
 Authors@R: c(
-	person("Nicholas", "Cooley", email = "npc19@pitt.edu", role = c("aut", "cre"), orcid = "0000-0002-6029-304X")
+	person("Nicholas", "Cooley", email = "npc19@pitt.edu", role = c("aut", "cre"), ORCID = "0000-0002-6029-304X")
 	person("Adelle", "Fernando", email = "Adelle.fernando@gmail.com", role = "ctb")
 	person("Erik", "Wright", email = "ESWRIGHT@pitt.edu", role = "aut")
 BiocVews: Genetics, Clustering, ComparativeGenomics
