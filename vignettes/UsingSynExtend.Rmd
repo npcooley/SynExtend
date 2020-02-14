@@ -25,7 +25,7 @@ Currently `SynExtend` contains only one set of functions, but will likely expand
 1. Install the latest version of R using [CRAN](https://cran.r-project.org/).
 2. Install `SynExtend` in R by running the following commands:
 
-```{r}
+```{r, eval = FALSE}
 if (!requireNamespace("BiocManager",
                       quietly = TRUE)) {
   install.packages("BiocManager")
@@ -38,6 +38,8 @@ BiocManager::install("SynExtend")
 Using the `FindSynteny` function in `DECIPHER` build an object of class `Synteny`.
 
 ```{r}
+library(SynExtend)
+
 DBPATH <- system.file("extdata",
                       "VignetteSeqs.sqlite",
                       package = "SynExtend")
@@ -63,7 +65,8 @@ GeneCalls[[3L]] <- gffToDataFrame(GFF = system.file("extdata",
                                                     "GCA_002082585.1_ASM208258v1_genomic.gff.gz",
                                                     package = "SynExtend"),
                                   Verbose = TRUE)
-GeneCalls[[4L]] <- gffToDataFrame(GFF = system.file("GCA_000269985.1_ASM26998v1_genomic.gff.gz",
+GeneCalls[[4L]] <- gffToDataFrame(GFF = system.file("extdata",
+                                                    "GCA_000269985.1_ASM26998v1_genomic.gff.gz",
                                                     package = "SynExtend"),
                                   Verbose = TRUE)
 
