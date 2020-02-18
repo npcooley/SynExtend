@@ -1,13 +1,13 @@
 Package: SynExtend
 Type: Package
 Title: Tools for Working With Synteny Objects
-Version: 0.99.11
+Version: 0.99.12
 Date: 2020-02-12
 Authors@R: c(
 	person("Nicholas", "Cooley", email = "npc19@pitt.edu", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-6029-304X")),
 	person("Adelle", "Fernando", email = "Adelle.fernando@gmail.com", role = "ctb"),
 	person("Erik", "Wright", email = "ESWRIGHT@pitt.edu", role = "aut"))
-biocVews: Genetics, Clustering, ComparativeGenomics
+biocViews: Genetics, Clustering, ComparativeGenomics
 Description: Shared order between genomic sequences provide a great deal of information. Synteny objects produced by the R package DECIPHER provide quantitative informative about that shared order. SynExtend provides tools for extracting information from Synteny objects.
 Depends: R (>= 3.6.0), DECIPHER (>= 2.14.0), igraph (>= 1.2.4.1)
 Imports: methods, Biostrings, S4Vectors, IRanges

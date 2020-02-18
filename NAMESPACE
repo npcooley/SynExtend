@@ -4,7 +4,8 @@ import(Biostrings)
 import(DECIPHER)
 import(S4Vectors)
 
-importFrom("utils", "setTxtProgressBar", "txtProgressBar")
+importFrom("utils", "setTxtProgressBar", "txtProgressBar", "data")
+importFrom("stats", "predict")
 
 export(NucleotideOverlap)
 export(gffToDataFrame)

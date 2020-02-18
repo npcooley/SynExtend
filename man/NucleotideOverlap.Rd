@@ -61,19 +61,15 @@ GeneCalls <- vector(mode = "list",
                     length = ncol(Syn))
 
 GeneCalls[[1L]] <- gffToDataFrame(GFF = system.file("extdata",
-                                                    "GCA_002943525.1_ASM294352v1_genomic.gff.gz",
+                                                    "GCA_006740685.1_ASM674068v1_genomic.gff.gz",
                                                     package = "SynExtend"),
                                   Verbose = TRUE)
 GeneCalls[[2L]] <- gffToDataFrame(GFF = system.file("extdata",
-                                                    "GCA_002082605.1_ASM208260v1_genomic.gff.gz",
+                                                    "GCA_000956175.1_ASM95617v1_genomic.gff.gz",
                                                     package = "SynExtend"),
                                   Verbose = TRUE)
 GeneCalls[[3L]] <- gffToDataFrame(GFF = system.file("extdata",
-                                                    "GCA_002082585.1_ASM208258v1_genomic.gff.gz",
-                                                    package = "SynExtend"),
-                                  Verbose = TRUE)
-GeneCalls[[4L]] <- gffToDataFrame(GFF = system.file("extdata",
-                                                    "GCA_000269985.1_ASM26998v1_genomic.gff.gz",
+                                                    "GCA_000875775.1_ASM87577v1_genomic.gff.gz",
                                                     package = "SynExtend"),
                                   Verbose = TRUE)
 
