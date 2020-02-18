@@ -1,10 +1,10 @@
 \name{gffToDataFrame}
 \alias{gffToDataFrame}
 \title{
-Generate a data.frame of gene calls from a gff3 file
+Generate a DataFrame of gene calls from a gff3 file
 }
 \description{
-Generate a data.frame of gene calls from a gff3 file
+Generate a DataFrame of gene calls from a gff3 file
 }
 \usage{
 gffToDataFrame(GFF,
@@ -35,27 +35,26 @@ Logical specifying whether to print a progress bar and time difference.
 Import a gff file into a rectangular parsable object.
 }
 \value{
-A data.frame
+A DataFrame with relevant information extracted from a GFF.
 }
 \references{
-None yet!
+TBA
 }
 \author{
 Nicholas Cooley \email{npc19@pitt.edu}
 }
 \note{
-None.
+TBA
 }
 
 \seealso{
-
+TBA
 }
 \examples{
 ImportedGFF <- gffToDataFrame(GFF = system.file("extdata",
-                                                "GCA_000269985.1_ASM26998v1_genomic.gff.gz",
+                                                "GCA_006740685.1_ASM674068v1_genomic.gff.gz",
                                                 package = "SynExtend"),
                               Verbose = TRUE)
 }
 
-\keyword{ ~kwd1 }% use one of  RShowDoc("KEYWORDS")
-\keyword{ ~kwd2 }% __ONLY ONE__ keyword per line
+\keyword{GeneCalls}

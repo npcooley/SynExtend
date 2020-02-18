@@ -1,12 +1,9 @@
 # Authors: Adelle Fernando, Nicholas Cooley
 # Maintainer: Nicholas Cooley
 # Contact: npc19@pitt.edu
-
-######
 # TODO
 # 1: deal with other features - mobile genetic elements, CRISPER arrays, repeat regions?
 # 2: Very small genes?
-######
 
 
 gffToDataFrame <- function(GFF,
@@ -23,33 +20,41 @@ gffToDataFrame <- function(GFF,
   if (grepl(pattern = "www.|http:|https:|ftp:|ftps:",
             x = GFF)) {
     CONN <- gzcon(url(GFF))
-    Z01 <- readLines(CONN)
+    InitLines <- readLines(CONN)
     close.connection(con = CONN)
+  } else if (grepl(pattern = ".gz$",
+                   x = GFF)) {
+    CONN <- gzfile(GFF)
+    InitLines <- readLines(CONN)
+    close.connection(con = CONN)
+  } else if (grepl(pattern = ".gff$",
+                   x = GFF)) {
+    InitLines <- readLines(GFF)
   } else {
-    Z01 <- readLines(GFF)
+    stop("File does not have a recognizable extension.")
   }
   
-  T01 <- strsplit(Z01,
-                  split = "\t",
-                  fixed = TRUE)
-  T01 <- T01[which(lengths(T01) == 9L)]
-  T01 <- do.call(rbind,
-                 T01)
-  T02 <- strsplit(T01[, 9L],
-                  split = ";",
-                  fixed = TRUE)
-  T01 <- T01[, -9L]
+  LinesAsList <- strsplit(InitLines,
+                          split = "\t",
+                          fixed = TRUE)
+  LinesAsList <- LinesAsList[which(lengths(LinesAsList) == 9L)]
+  LinesAsList <- do.call(rbind,
+                         LinesAsList)
+  RawAttrField <- strsplit(LinesAsList[, 9L],
+                           split = ";",
+                           fixed = TRUE)
+  LinesAsList <- LinesAsList[, -9L]
   
   # create a DF with the correct raw formats
   
-  T03 <- as.data.frame(T01,
-                       stringsAsFactors = FALSE)
+  StandardizedColumns <- as.data.frame(LinesAsList,
+                                       stringsAsFactors = FALSE)
   
-  T03[, 4L] <- as.integer(T03[, 4L])
-  T03[, 5L] <- as.integer(T03[, 5L])
-  T03[, 7L] <- ifelse(test = T03[, 7L] == "+",
-                      yes = 0L,
-                      no = 1L)
+  StandardizedColumns[, 4L] <- as.integer(StandardizedColumns[, 4L])
+  StandardizedColumns[, 5L] <- as.integer(StandardizedColumns[, 5L])
+  StandardizedColumns[, 7L] <- ifelse(test = StandardizedColumns[, 7L] == "+",
+                                      yes = 0L,
+                                      no = 1L)
   
   CollectAttr <- c("ID",
                    "Parent",
@@ -68,49 +73,49 @@ gffToDataFrame <- function(GFF,
   }
   
   # rectangularize attribute fields
-  T04 <- sapply(T02,
-                function(y) sapply(CollectAttr,
-                                   function(z) if (length(grep(pattern = paste(z,
-                                                                               "=",
-                                                                               sep = ""),
-                                                               x = y)) == 1L) {
-                                     gsub(pattern = paste("(",
-                                                          z,
-                                                          "=)",
-                                                          "(.*)",
-                                                          sep = ""),
-                                          replacement = "\\2",
-                                          x = y[grepl(pattern = paste(z,
-                                                                      "=",
-                                                                      sep = ""),
-                                                      x = y)])
-                                   } else if (length(grep(pattern = paste(z,
-                                                                          "=",
-                                                                          sep = ""),
-                                                          x = y)) == 0L) {
-                                     NA
-                                   } else if (length(grep(pattern = paste(z,
-                                                                          "=",
-                                                                          sep = ""),
-                                                          x = y)) > 1L) {
-                                     gsub(pattern = paste("(",
-                                                          z,
-                                                          "=)",
-                                                          "(.*)",
-                                                          sep = ""),
-                                          replacement = "\\2",
-                                          x = y[grepl(pattern = paste(z,
-                                                                      "=",
-                                                                      sep = ""),
-                                                      x = y)][1L])
-                                     warning("An attribute field is repeated, only the first is collected.")
-                                   }))
+  ParsedAttrs <- sapply(RawAttrField,
+                        function(y) sapply(CollectAttr,
+                                           function(z) if (length(grep(pattern = paste(z,
+                                                                                       "=",
+                                                                                       sep = ""),
+                                                                       x = y)) == 1L) {
+                                             gsub(pattern = paste("(",
+                                                                  z,
+                                                                  "=)",
+                                                                  "(.*)",
+                                                                  sep = ""),
+                                                  replacement = "\\2",
+                                                  x = y[grepl(pattern = paste(z,
+                                                                              "=",
+                                                                              sep = ""),
+                                                              x = y)])
+                                           } else if (length(grep(pattern = paste(z,
+                                                                                  "=",
+                                                                                  sep = ""),
+                                                                  x = y)) == 0L) {
+                                             NA
+                                           } else if (length(grep(pattern = paste(z,
+                                                                                  "=",
+                                                                                  sep = ""),
+                                                                  x = y)) > 1L) {
+                                             gsub(pattern = paste("(",
+                                                                  z,
+                                                                  "=)",
+                                                                  "(.*)",
+                                                                  sep = ""),
+                                                  replacement = "\\2",
+                                                  x = y[grepl(pattern = paste(z,
+                                                                              "=",
+                                                                              sep = ""),
+                                                              x = y)][1L])
+                                             warning("An attribute field is repeated, only the first is collected.")
+                                           }))
   
-  T04 <- t(T04)
-  T04 <- as.data.frame(T04,
-                       stringsAsFactors = FALSE)
+  ParsedAttrs <- t(ParsedAttrs)
+  ParsedAttrs <- as.data.frame(ParsedAttrs,
+                               stringsAsFactors = FALSE)
   
-  colnames(T03) <- c("Contig",
+  colnames(StandardizedColumns) <- c("Contig",
                      "Source",
                      "Type",
                      "Start",
@@ -119,8 +124,8 @@ gffToDataFrame <- function(GFF,
                      "Strand",
                      "Phase")
   
-  CompleteTable <- cbind(T03,
-                         T04,
+  CompleteTable <- cbind(StandardizedColumns,
+                         ParsedAttrs,
                          stringsAsFactors = FALSE)
   
   Contigs <- CompleteTable[!duplicated(CompleteTable$Contig), ]
@@ -142,13 +147,11 @@ gffToDataFrame <- function(GFF,
                                        CompleteTable$Start), ]
   
   if (RawTableOnly) {
-    
     if (Verbose) {
       cat("\n")
       FunEndTime <- Sys.time()
       print(FunEndTime - FunStartTime)
     }
-    
     return(CompleteTable)
   }
   
@@ -201,17 +204,19 @@ gffToDataFrame <- function(GFF,
     
     if (nrow(AllCDSChildrenList[[m1]]) >= 1L) {
       # Correct for phase:
-      AllCDSChildrenList[[m1]][, "Start"] <- mapply(function(x, y) ifelse(test = !is.na(as.integer(x)),
-                                                                          yes = y + as.integer(x),
-                                                                          no = y),
-                                                    x = AllCDSChildrenList[[m1]][, "Phase"],
-                                                    y = AllCDSChildrenList[[m1]][, "Start"])
+      # This is not what phase is for ...
+      # AllCDSChildrenList[[m1]][, "Start"] <- mapply(function(x, y) ifelse(test = !is.na(as.integer(x)),
+      #                                                                     yes = y + as.integer(x),
+      #                                                                     no = y),
+      #                                               x = AllCDSChildrenList[[m1]][, "Phase"],
+      #                                               y = AllCDSChildrenList[[m1]][, "Start"])
+      AllCDSChildrenList[[m1]] <- AllCDSChildrenList[[m1]][order(AllCDSChildrenList[[m1]]$Start,
+                                                                 decreasing = FALSE), ]
       # remove aberant lines # maybe flip, depending on NCBI response
       if (any(AllCDSChildrenList[[m1]]$Start >= AllCDSChildrenList[[m1]]$Stop)) {
         AllCDSChildrenList[[m1]] <- AllCDSChildrenList[[m1]][!(AllCDSChildrenList[[m1]]$Start >= AllCDSChildrenList[[m1]]$Stop), ]
       }
     }
-    
     
     if (Verbose) {
       setTxtProgressBar(pb = pBar,
@@ -219,16 +224,16 @@ gffToDataFrame <- function(GFF,
     }
   }
   
-  # Generate associated character and logical columns ...
+  # Generate associated character and logical columns and lists
   CodingSelect <- vector(mode = "logical",
                          length = nrow(MatchTable))
-  MatchLine <- vector(mode = "character",
+  MatchLine <- vector(mode = "list",
                       length = nrow(MatchTable))
   ProductLine <- vector(mode = "character",
                         length = nrow(MatchTable))
   NoteLine <- vector(mode = "character",
                      length = nrow(MatchTable))
-  ParseNote <- vector(mode = "character",
+  ParseNote <- vector(mode = "list",
                       length = nrow(MatchTable))
   
   for (m1 in seq_len(nrow(MatchTable))) {
@@ -237,9 +242,8 @@ gffToDataFrame <- function(GFF,
       # Case 1
       # Generate CodingSelect, MatchLine, ProductLine and NoteLine
       CodingSelect[m1] <- FALSE
-      MatchLine[m1] <- paste(MatchTable[m1, "Start"],
-                             MatchTable[m1, "Stop"],
-                             sep = "X")
+      MatchLine[[m1]] <- IRanges(start = MatchTable[m1, "Start"],
+                                 end = MatchTable[m1, "Stop"])
       if (is.na(MatchTable[m1, "product"])) {
         ProductLine[m1] <- ""
       } else {
@@ -248,7 +252,7 @@ gffToDataFrame <- function(GFF,
       if (is.na(MatchTable[m1, "Note"])) {
         NoteLine[m1] <- ""
       } else {
-        NoteLine[m1] <- MatchTable[m1, "Note"]
+        NoteLine[[m1]] <- MatchTable[m1, "Note"]
       }
     } else if (nrow(AllCDSChildrenList[[m1]]) == 0L &
                nrow(AllChildrenList[[m1]]) >= 1L) {
@@ -263,9 +267,10 @@ gffToDataFrame <- function(GFF,
         ProductLine[m1] <- unique(CurrentTable$product[!is.na(CurrentTable$product)])
       } else if (length(unique(CurrentTable$product[!is.na(CurrentTable$product)])) > 1L) {
         ProductLine[m1] <- unique(CurrentTable$product[!is.na(CurrentTable$product)])[1L]
-        warning(paste("Multiple Products exist for Row ",
-                      m1,
-                      ", taking only the first."))
+        ParseNote[[m1]] <- c(NoteLine[[m1]],
+                             paste("Multiple Products exist for Row ",
+                                   m1,
+                                   ", taking only the first."))
       }
       # Parse Note Line
       if (all(is.na(CurrentTable$Note))) {
@@ -274,30 +279,29 @@ gffToDataFrame <- function(GFF,
         NoteLine[m1] <- unique(CurrentTable$Note[!is.na(CurrentTable$Note)])
       } else if (length(unique(CurrentTable$Note[!is.na(CurrentTable$Note)])) > 1L) {
         NoteLine[m1] <- unique(CurrentTable$Note[!is.na(CurrentTable$Note)])[1L]
-        warning(paste("Multiple Notes exist for Row ",
-                      m1,
-                      ", taking only the first."))
+        ParseNote[[m1]] <- c(NoteLine[[m1]],
+                             paste("Multiple Notes exist for Row ",
+                                   m1,
+                                   ", taking only the first."))
       }
       # split into 2A & 2B & 2C
       if (length(unique(CurrentTable$Start)) == 1L &
           length(unique(CurrentTable$Stop)) == 1L) {
         # 2A no disagreements in bounds!
-        MatchLine[m1] <- paste(MatchTable[m1, "Start"],
-                               MatchTable[m1, "Stop"],
-                               sep = "X")
+        MatchLine[[m1]] <- IRanges(start = MatchTable[m1, "Start"],
+                                   end = MatchTable[m1, "Stop"])
       } else if (xor(length(unique(CurrentTable$Start)) > 1L,
                      length(unique(CurrentTable$Stop)) > 1L)) {
         # 2B if only one bound has a deviation, take the most expansive!
-        MatchLine[m1] <- paste(min(CurrentTable$Start),
-                               max(CurrentTable$Stop),
-                               sep = "X")
+        MatchLine[[m1]] <- IRanges(start = min(CurrentTable$Start),
+                                   end = max(CurrentTable$Stop))
       } else if (length(unique(CurrentTable$Start)) > 1L &
                  length(unique(CurrentTable$Stop)) > 1L) {
         # 2C this is an anticipated case with no clear a priori guidance
-        MatchLine[m1] <- paste(min(CurrentTable$Start),
-                               max(CurrentTable$Stop),
-                               sep = "X")
-        ParseNote[m1] <- "A discrepancy exists in feature bounds here."
+        MatchLine[[m1]] <- IRanges(start = min(CurrentTable$Start),
+                                   end = max(CurrentTable$Stop))
+        ParseNote[[m1]] <- c(ParseNote[[m1]],
+                             "A discrepancy exists in feature bounds here.")
       }
     } else if (nrow(AllCDSChildrenList[[m1]]) >= 1L) {
       # Case 3
@@ -311,9 +315,10 @@ gffToDataFrame <- function(GFF,
         ProductLine[m1] <- unique(CurrentTable$product[!is.na(CurrentTable$product)])
       } else if (length(unique(CurrentTable$product[!is.na(CurrentTable$product)])) > 1L) {
         ProductLine[m1] <- unique(CurrentTable$product[!is.na(CurrentTable$product)])[1L]
-        warning(paste("Multiple Products exist for Row ",
-                      m1,
-                      ", taking only the first."))
+        ParseNote[[m1]] <- c(NoteLine[[m1]],
+                             paste("Multiple Products exist for Row ",
+                                   m1,
+                                   ", taking only the first."))
       }
       # Parse Note Line
       if (all(is.na(CurrentTable$Note))) {
@@ -322,9 +327,10 @@ gffToDataFrame <- function(GFF,
         NoteLine[m1] <- unique(CurrentTable$Note[!is.na(CurrentTable$Note)])
       } else if (length(unique(CurrentTable$Note[!is.na(CurrentTable$Note)])) > 1L) {
         NoteLine[m1] <- unique(CurrentTable$Note[!is.na(CurrentTable$Note)])[1L]
-        warning(paste("Multiple Notes exist for Row ",
-                      m1,
-                      ", taking only the first."))
+        ParseNote[[m1]] <- c(NoteLine[[m1]],
+                             paste("Multiple Notes exist for Row ",
+                                   m1,
+                                   ", taking only the first."))
       }
       
       # split into 3A, 3B, and 3C
@@ -336,25 +342,30 @@ gffToDataFrame <- function(GFF,
         #                        MatchTable[m1, "Stop"],
         #                        sep = "X")
         # vs take the CDS lines
-        MatchLine[m1] <- paste(unique(AllCDSChildrenList[[m1]][, "Start"]),
-                               unique(AllCDSChildrenList[[m1]][, "Stop"]),
-                               sep = "X")
+        MatchLine[[m1]] <- IRanges(start = unique(AllCDSChildrenList[[m1]][, "Start"]),
+                                   end = unique(AllCDSChildrenList[[m1]][, "Stop"]))
+        # case where CDSs are differing by ends?starts?
       } else if (length(unique(AllCDSChildrenList[[m1]]$Start)) > 1L &
                  length(unique(AllCDSChildrenList[[m1]]$Stop)) > 1L) {
         # 3B multiple CDSs
-        MatchLine[m1] <- paste(apply(X = AllCDSChildrenList[[m1]][, c("Start", "Stop")],
-                                     MARGIN = 1,
-                                     FUN = function(x) paste(x[1],
-                                                             x[2],
-                                                             sep = "X")),
-                               collapse = "Y")
+        # MatchLine[m1] <- paste(apply(X = AllCDSChildrenList[[m1]][, c("Start", "Stop")],
+        #                              MARGIN = 1,
+        #                              FUN = function(x) paste(x[1],
+        #                                                      x[2],
+        #                                                      sep = "X")),
+        #                        collapse = "Y")
+        MatchLine[[m1]] <- IRanges(start = AllCDSChildrenList[[m1]]$Start,
+                                   end = AllCDSChildrenList[[m1]]$Stop)
       } else if (xor(length(unique(AllCDSChildrenList[[m1]]$Start)) > 1L,
                      length(unique(AllCDSChildrenList[[m1]]$Stop)) > 1L)) {
         # only one CDS bound is has multiple positions, take the most expansive CDS bound
-        MatchLine[m1] <- paste(min(AllChildrenList[[m1]][, "Start"]),
-                               max(AllChildrenList[[m1]][, "Stop"]),
-                               sep = "X")
-        ParseNote[m1] <- "A discrepancy exists in CDS Bounds here."
+        # MatchLine[m1] <- paste(min(AllChildrenList[[m1]][, "Start"]),
+        #                        max(AllChildrenList[[m1]][, "Stop"]),
+        #                        sep = "X")
+        MatchLine[[m1]] <- IRanges(start = min(AllChildrenList[[m1]][, "Start"]),
+                                   end = max(AllChildrenList[[m1]][, "Stop"]))
+        ParseNote[[m1]] <- c(ParseNote[[m1]],
+                             "A discrepancy exists in CDS Bounds here.")
       }
     } # end line reconcilation cases
     
@@ -364,76 +375,138 @@ gffToDataFrame <- function(GFF,
     }
   }
   
-  MatchTable <- cbind(MatchTable,
-                      "Match" = MatchLine,
-                      "Coding" = CodingSelect,
-                      "Product" = ProductLine,
-                      "AnnotationNote" = NoteLine,
-                      "ParseNotes" = ParseNote,
-                      stringsAsFactors = FALSE)
+  MatchTable <- DataFrame(MatchTable,
+                          "Range" = IRangesList(MatchLine),
+                          "Coding" = CodingSelect,
+                          # "AnnotationNote" = NoteLine,
+                          # "ParseNotes" = ParseNote,
+                          # stringsAsFactors = FALSE,
+                          "Product" = ProductLine)
+  
   MatchTable <- MatchTable[, c("Index",
                                "Strand",
                                "Start",
                                "Stop",
                                "Type",
-                               "Match",
+                               "ID",
+                               "Range",
                                "Product",
-                               "AnnotationNote",
-                               "gene_biotype",
+                               # "AnnotationNote",
+                               # "gene_biotype",
                                "Coding",
-                               "Contig",
-                               "ParseNotes")]
+                               "Contig")]
   rownames(MatchTable) <- NULL
   
-  # rewrite any matches where genes extend over the end of an index
+  # rewrite any ranges where bounds extend over the end of an index
   for (m1 in seq_len(nrow(MatchTable))) {
-    if (MatchTable$Stop[m1] > ContigMaxes[MatchTable$Index[m1]]) {
-      CurrentBounds <- sapply(strsplit(strsplit(MatchTable$Match[m1],
-                                                split = "Y",
-                                                fixed = TRUE)[[1]],
-                                       split = "X",
-                                       fixed = TRUE),
-                              function(x) as.integer(x))
-      BreakPoint <- which(CurrentBounds[1, ] <= ContigMaxes[MatchTable$Index[m1]] &
-                            CurrentBounds[2, ] > ContigMaxes[MatchTable$Index[m1]])
-      Section <- CurrentBounds[, BreakPoint]
-      NewSection <- matrix(data = c(Section[1],
-                                    ContigMaxes[MatchTable$Index[m1]],
-                                    1L,
-                                    Section[2] - ContigMaxes[MatchTable$Index[m1]]),
-                           ncol = 2L)
-      if (BreakPoint < ncol(CurrentBounds) &
-          BreakPoint != 1L) {
-        # if breakpoint is not either the first or last bound set
-        AdjustedBounds <- CurrentBounds[,
-                                        (BreakPoint + 1L):ncol(CurrentBounds),
-                                        drop = FALSE] - ContigMaxes[MatchTable$Index[m1]]
-        NewBoundSet <- cbind(CurrentBounds[, 1L:(BreakPoint - 1L)],
-                             NewSection,
-                             AdjustedBounds)
-      } else if (BreakPoint == 1L &
-                 ncol(CurrentBounds) > 1L) {
-        # if breakboint is the first bound set
-        CurrentBounds <- CurrentBounds - ContigMaxes[MatchTable$Index[m1]]
-        NewBoundSet <- cbind(NewSection,
-                             CurrentBounds[, (BreakPoint + 1L):ncol(CurrentBounds)])
-      } else if (BreakPoint == ncol(CurrentBounds) &
-                 ncol(CurrentBounds) > 1L) {
-        # if breakpoint is the last bound set
-        NewBoundSet <- cbind(CurrentBounds[, 1:(BreakPoint - 1L)],
-                             NewSection)
-      } else {
-        # breakpoint is the only bound set
-        NewBoundSet <- NewSection
-      }
-      NewMatchSet <- paste(apply(X = NewBoundSet,
-                                 MARGIN = 2L,
-                                 FUN = function(x) paste(x,
-                                                         collapse = "X")),
-                           collapse = "Y")
-      MatchTable$Match[m1] <- NewMatchSet
-    }
-  }
+    if (any((MatchLine[[m1]]@start + MatchLine[[m1]]@width - 1L) > ContigMaxes[MatchTable$Index[m1]])) {
+      # at least one bound extends over the end of the index
+      B_Starts <- MatchLine[[m1]]@start # Bound starts
+      B_Ends <- MatchLine[[m1]]@start + MatchLine[[m1]]@width - 1L # Bound ends
+      F_Break <- ContigMaxes[MatchTable$Index[m1]] # FASTA break
+      # do this with a while loop
+      RemainingBounds <- TRUE
+      C_Counts <- 1L
+      N_Counts <- 1L
+      N_Starts <- rep(NA_integer_,
+                      length(B_Starts) * 2L)
+      N_Ends <- rep(NA_integer_,
+                    length(B_Ends) * 2L)
+      while(RemainingBounds) {
+        if (F_Break >= B_Ends[C_Counts] &
+            C_Counts == length(B_Ends)) {
+          # print("break after, no further evaluations")
+          # Case 1:
+          # Break occurs after this bound set
+          # This bound set is the only remaining set
+          # add bounds to new vectors
+          # exit
+          N_Starts[N_Counts] <- B_Starts[C_Counts]
+          N_Ends[N_Counts] <- B_Ends[C_Counts]
+          RemainingBounds <- FALSE
+        } else if (F_Break < B_Starts[C_Counts] &
+                   C_Counts == length(B_Starts)) {
+          # print("break prior, no further evaluations")
+          # Case 2:
+          # Break occurs before this bound set
+          # This bound set is the only remaining set
+          # adjust current bound set
+          # exit
+          N_Starts[N_Counts] <- B_Starts[C_Counts] - F_Break
+          N_Ends[N_Counts] <- B_Ends[C_Counts] - F_Break
+          RemainingBounds <- FALSE
+        } else if (F_Break >= B_Starts[C_Counts] &
+                   F_Break < B_Ends[C_Counts] &
+                   C_Counts == length(B_Starts)) {
+          # print("break interior, no further evaluations")
+          # Case 3:
+          # Break occurs inside current bound set
+          # this is the only remaining bound set
+          # add set with adjusted current end
+          # add new set
+          # exit
+          N_Starts[N_Counts] <- B_Starts[C_Counts]
+          N_Ends[N_Counts] <- F_Break
+          N_Starts[N_Counts + 1L] <- 1L
+          N_Ends[N_Counts + 1L] <- B_Ends[C_Counts] - F_Break
+          RemainingBounds <- FALSE
+        } else if (F_Break >= B_Ends[C_Counts] &
+                   C_Counts < length(B_Ends)) {
+          # print("break after, further evaluations exist")
+          # Case 4:
+          # Break occurs after this bound set
+          # Bound sets remain to be evaluated
+          # add current set whole cloth
+          # update counters
+          N_Starts[N_Counts] <- B_Starts[C_Counts]
+          N_Ends[N_Counts] <- B_Ends[C_Counts]
+          N_Counts <- N_Counts + 1L
+          C_Counts <- C_Counts + 1L
+        } else if (F_Break < B_Starts[C_Counts] &
+                   C_Counts < length(B_Starts)) {
+          # print("break prior, further evaluations exist")
+          # Case 5:
+          # Break occurs before this bound set
+          # Bound sets remain to be evaluated
+          # Adjust all following bound sets, but not current
+          # update counters
+          # remaining sets will be visited in future
+          B_Starts[(C_Counts + 1L):length(B_Starts)] <- B_Starts[(C_Counts + 1L):length(B_Starts)] - F_Break
+          B_Ends[(C_Counts + 1L):length(B_Ends)] <- B_Ends[(C_Counts + 1L):length(B_Ends)] - F_Break
+          N_Starts[N_Counts] <- B_Starts[C_Counts] - F_Break
+          N_Ends[N_Counts] <- B_Ends[C_Counts] - F_Break
+          N_Counts <- N_Counts + 1L
+          C_Counts <- C_Counts + 1L
+        } else if (F_Break >= B_Starts[C_Counts] &
+                   F_Break < B_Ends[C_Counts]) {
+          # print("break interior, further evaluations exist")
+          # Case 6:
+          # Break occurs inside current bound set
+          # Bound sets remain to be evaluated
+          # Adjust following bound sets
+          # add set with adjusted current end
+          # add new set
+          # update following bounds
+          N_Starts[N_Counts] <- B_Starts[C_Counts]
+          N_Ends[N_Counts] <- F_Break
+          N_Starts[N_Counts + 1L] <- 1L
+          N_Ends[N_Counts + 1L] <- B_Ends[C_Counts] - F_Break # check off by 1!
+          B_Starts[(C_Counts + 1L):length(B_Starts)] <- B_Starts[(C_Counts + 1L):length(B_Starts)] - F_Break
+          B_Ends[(C_Counts + 1L):length(B_Ends)] <- B_Ends[(C_Counts + 1L):length(B_Ends)] - F_Break
+          C_Counts <- C_Counts + 1L
+          N_Counts <- N_Counts + 2L
+        } else {
+          print("an unmet condition exists")
+          stop("An unmet condition was discovered while adjusting bounds, please contact maintainer!")
+        }
+      } # while loop
+      N_Starts <- N_Starts[!is.na(N_Starts)]
+      N_Ends <- N_Ends[!is.na(N_Ends)]
+      
+      MatchTable$Range[[m1]] <- IRanges(start = N_Starts,
+                                        end = N_Ends)
+    } # conditional to check
+  } # end loop
   
   if (Verbose) {
     FunEndTime <- Sys.time()

@@ -1,10 +1,14 @@
+import(methods)
 import(IRanges)
 import(Biostrings)
 import(DECIPHER)
 import(S4Vectors)
 
+importFrom("utils", "setTxtProgressBar", "txtProgressBar")
+
 export(NucleotideOverlap)
 export(gffToDataFrame)
 export(PairSummaries)
 
+S3method(`[`, "LinkedPairs")
 S3method(print, "LinkedPairs")
