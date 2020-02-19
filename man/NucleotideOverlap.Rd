@@ -18,7 +18,7 @@ NucleotideOverlap(SyntenyObject,
 An object of class ``Synteny''
 }
   \item{GeneCalls}{
-A list of data.frames that describe gene calls for the sequences represented in \code{SyntenyObject}
+A list of DataFrames that describe feature calls for the sequences represented in \code{SyntenyObject}
 }
   \item{LimitIndex}{
 Logical indicating whether to only limit which indices in a synteny object to query. \code{TRUE} by default, which means that only the first indices for each cell in the synteny object are queried.
@@ -34,7 +34,7 @@ Logical indicating whether or not to display a progress bar and print the time d
 Builds a matrix of lists that contain information about linked pairs.
 }
 \value{
-
+An object of class ''LinkedPairs''.
 }
 \references{
 None yet.

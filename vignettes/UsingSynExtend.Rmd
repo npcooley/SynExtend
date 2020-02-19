@@ -1,26 +1,26 @@
 ---
 title: "Using SynExtend"
 author: "Nicholas Cooley"
-date: "`r doc_date()`"
+date: "`r Sys.Date()`"
 package: "`r pkg_ver('SynExtend')`"
-output: BiocStyle::pdf_document
+output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Using SynExtend}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-# Introduction
+## Introduction
 
 `SynExtend` is a package of tools built to work with objects of class `Synteny` built from the package `DECIPHER`'s function `FindSynteny()`.
 
 Synteny maps provide a powerful tool for quantifying and visualizing where pairs of genomes share order. Typically these maps are built from predictions of orthologous pairs, where groups of pairs that provide contiguous and sequential blocks in their both genomes are deemed a 'syntenic block'. That designation of synteny can then used to further interogate the predicted orthologs themselves, or query topics like genomic rearrangements or ancestor genome reconstruction.
 
-# Package Structure
+## Package Structure
 
 Currently `SynExtend` contains only one set of functions, but will likely expand in the future.
 
-# Installation
+## Installation
 
 1. Install the latest version of R using [CRAN](https://cran.r-project.org/).
 2. Install `SynExtend` in R by running the following commands:
@@ -33,7 +33,7 @@ if (!requireNamespace("BiocManager",
 BiocManager::install("SynExtend")
 ```
 
-# Usage
+## Usage
 
 Using the `FindSynteny` function in `DECIPHER` build an object of class `Synteny`.
 
@@ -88,7 +88,7 @@ PredictedPairs <- PairSummaries(SyntenyLinks = Links,
 
 The object `PredictedPairs` is a data.frame where each row is populated by information about the predicted orthologous pair.
 
-# Session Info
+## Session Info
 
 ```{r}
 sessionInfo()
