@@ -3,7 +3,7 @@ title: "Using SynExtend"
 author: "Nicholas Cooley"
 date: "`r Sys.Date()`"
 output:
-  BiocStyle::html_document
+  BiocStyle::html_document:
     toc: true
 vignette: >
   %\VignetteIndexEntry{Using SynExtend}
