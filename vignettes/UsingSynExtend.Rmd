@@ -2,12 +2,13 @@
 title: "Using SynExtend"
 author: "Nicholas Cooley"
 date: "`r Sys.Date()`"
-package: "`r pkg_ver('SynExtend')`"
-output: rmarkdown::html_vignette
+output:
+  BiocStyle::html_document
+    toc: true
 vignette: >
   %\VignetteIndexEntry{Using SynExtend}
   %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+  \usepackage[utf8]{inputenc}
 ---
 
 ## Introduction
