@@ -30,7 +30,7 @@ List of 21
   ..$ linkfun   :function (mu)  
   ..$ linkinv   :function (eta)  
   ..$ mu.eta    :function (eta)  
-  ..$ initialize:  expression({  if (NCOL(y) == 1) {  if (is.factor(y))  y <- y != levels(y)[1L]  n <- rep.int(1, nobs)  y[weights =| __truncated__
+  ..$ initialize:  expression({  if (NCOL(y) == 1) {  if (is.factor(y))  y <- y != levels(y)[1L]  n <- rep.int(1, nobs)  y[weights =| __truncated__}}
   ..$ valideta  :function (eta)  
   ..- attr(*, "class")= chr "family"
  $ deviance     : num 29193
