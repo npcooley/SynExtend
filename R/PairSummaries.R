@@ -31,6 +31,13 @@ PairSummaries <- function(SyntenyLinks,
   if (!is(SyntenyLinks, "LinkedPairs")) {
     stop ("Object is not an LinkedPairs object.")
   }
+  GCallClasses <- sapply(GeneCalls,
+                         function(x) class(x),
+                         simplify = TRUE,
+                         USE.NAMES = FALSE)
+  if (any(GCallClasses == "GRanges")) {
+    warning("GRanges objects only support Nucleotide Alignments.")
+  }
   
   if (PIDs) {
     Genomes <- vector("list",
@@ -44,53 +51,85 @@ PairSummaries <- function(SyntenyLinks,
     Genomes <- DNAStringSetList(Genomes)
   }
   
+  ###### -- Deal with GRanges objects -----------------------------------------
+  
+  for (m1 in seq_along(GeneCalls)) {
+    if (GCallClasses[m1] == "GRanges") {
+      if (length(levels(GeneCalls[[m1]]@seqnames)) > 1L) {
+        
+        warning(paste("GRange object ",
+                      m1,
+                      " contains more than 1 index and has been truncated.",
+                      sep = ""))
+        IndexPlaceHolder <- as.character(GeneCalls[[m1]]@seqnames)[1L]
+        GeneCalls[[m1]] <- GeneCalls[[m1]][as.character(GeneCalls[[m1]]@seqnames == IndexPlaceHolder), ]
+        
+      }
+      TypePlaceHolder <- as.character(GeneCalls[[m1]]$type)
+      GeneCalls[[m1]] <- GeneCalls[[m1]][TypePlaceHolder %in% c("gene",
+                                                                "pseudogene"), ]
+      StrandConversion <- ifelse(test = as.character(GeneCalls[[m1]]@strand == "+"),
+                                 yes = 0L,
+                                 no = 1L)
+      StartConversion <- GeneCalls[[m1]]@ranges@start
+      StopConversion <- GeneCalls[[m1]]@ranges@start + GeneCalls[[m1]]@ranges@width - 1L
+      IndexConversion <- rep(1L,
+                             length(StartConversion))
+      LengthsConversion <- StopConversion - StartConversion + 1L
+      
+      o <- order(StartConversion)
+      StrandConversion <- StrandConversion[o]
+      IndexConversion <- IndexConversion[o]
+      StartConversion <- StartConversion[o]
+      StopConversion <- StopConversion[o]
+      LengthsConversion <- LengthsConversion[o]
+      
+      NewRanges <- vector(mode = "list",
+                          length = length(o))
+      for (m2 in seq_along(NewRanges)) {
+        NewRanges[[m2]] <- IRanges(start = StartConversion[m2],
+                                   end = StopConversion[m2])
+      }
+      NewRanges <- IRangesList(NewRanges)
+      CodingSelect <- rep(FALSE,
+                          length(o))
+      GRangeIndices <- rep(1L,
+                           length(o))
+      GeneCalls[[m1]] <- DataFrame("Index" = GRangeIndices,
+                                   "Strand" = StrandConversion,
+                                   "Start" = StartConversion,
+                                   "Stop" = StopConversion,
+                                   "Range" = NewRanges,
+                                   "Coding" = CodingSelect)
+      
+      
+      
+      if (any(StopConversion > length(Genomes[[m1]][[1]]))) {
+        GeneCalls[[m1]] <- GeneCalls[[m1]][-which(StopConversion > length(Genomes[[m1]][[1]])), ]
+      }
+    }
+  }
+  
   Size <- dim(SyntenyLinks)[1]
   Total <- (Size^2 - Size) / 2
   
-  TotalCoverage <- vector("list",
-                          length = Total)
-  MinCoverage <- vector("list",
-                        length = Total)
-  MaxCoverage <- vector("list",
-                        length = Total)
-  PairMatrix <- vector("list",
-                       length = Total)
-  IndexMatrix <- vector("list",
-                        length = Total)
-  QueryGeneLength <- vector("list",
-                            length = Total)
-  SubjectGeneLength <- vector("list",
-                              length = Total)
-  CombinedGeneLength <- vector("list",
-                               length = Total)
-  NormGeneDiff <- vector("list",
-                         length = Total)
-  AbsStartDelta <- vector("list",
-                          length = Total)
-  AbsStopDelta <- vector("list",
-                         length = Total)
-  NormDeltaStart <- vector("list",
-                           length = Total)
-  NormDeltaStop <- vector("list",
-                          length = Total)
-  Scores <- vector("list",
-                   length = Total)
-  QueryCharacter <- vector("list",
-                           length = Total)
-  SubjectCharacter <- vector("list",
-                             length = Total)
-  LabelNames <- vector("list",
-                       length = Total)
-  IDType <- vector(mode = "list",
-                   length = Total)
-  ExactMatch <- vector(mode = "list",
-                       length = Total)
+  TotalCoverage <- MinCoverage <- MaxCoverage <- vector("list",
+                                                        length = Total)
+  PairMatrix <- IndexMatrix <- vector("list",
+                                      length = Total)
+  QueryGeneLength <- SubjectGeneLength <- CombinedGeneLength <- vector("list",
+                                                                       length = Total)
+  NormGeneDiff <- AbsStartDelta <- AbsStopDelta <- NormDeltaStart <- NormDeltaStop <- vector("list",
+                                                                                             length = Total)
+  Scores <- QueryCharacter <- SubjectCharacter <- LabelNames <- vector("list",
+                                                                       length = Total)
+  IDType <- ExactMatch <- vector(mode = "list",
+                                 length = Total)
   ExactLeftQ <- ExactRightQ <- ExactLeftS <- ExactRightS <- vector(mode = "list",
                                                                    length = Total)
   Count <- 1L
   for (m1 in seq_len(Size - 1L)) {
     for (m2 in (m1 + 1L):Size) {
-      
       o <- order(GeneCalls[[m1]][, "Index"],
                  GeneCalls[[m1]][, "Start"],
                  decreasing = FALSE)
@@ -176,30 +215,26 @@ PairSummaries <- function(SyntenyLinks,
               !(GeneCalls[[m2]][SyntenyLinks[[m1, m2]][i, "SubjectGene"], "Coding"]) |
               IgnoreDefaultStringSet) {
             # align as nucleotides
-            IDType[[Count]][i] <- "DNA"
-            Scores[[Count]][[i]] <- 1 - DistanceMatrix(myXStringSet = AlignSeqs(myXStringSet = Scores[[Count]][[i]],
-                                                                                verbose = FALSE),
-                                                       penalizeGapLetterMatches = GapPenalty,
-                                                       includeTerminalGaps = TerminalPenalty,
-                                                       correction = Correction,
-                                                       type = "matrix",
-                                                       verbose = FALSE)[1, 2]
+            PlaceHolder01 <- AlignSeqs(myXStringSet = Scores[[Count]][[i]],
+                                       verbose =	FALSE)
+            PlaceHolder02 <- "DNA"
           } else {
             # align as AAs
-            IDType[[Count]][i] <- "AA"
-            Scores[[Count]][[i]] <- 1 - DistanceMatrix(myXStringSet = AlignTranslation(myXStringSet = Scores[[Count]][[i]],
-                                                                                       sense = "+",
-                                                                                       direction = "5' to 3'",
-                                                                                       type = "DNAStringSet",
-                                                                                       readingFrame = 1L,
-                                                                                       verbose = FALSE),
-                                                       penalizeGapLetterMatches = GapPenalty,
-                                                       includeTerminalGaps = TerminalPenalty,
-                                                       correction = Correction,
-                                                       type = "matrix",
-                                                       verbose = FALSE)[1, 2]
-            
+            PlaceHolder01 <- AlignTranslation(myXStringSet = Scores[[Count]][[i]],
+                                              sense = "+",
+                                              direction = "5' to 3'",
+                                              type = "DNAStringSet",
+                                              readingFrame = 1L,
+                                              verbose = FALSE)
+            PlaceHolder02 <- "AA"
           } # end select AA vs DNA Alignment
+          IDType[[Count]][i] <- PlaceHolder02
+          Scores[[Count]][[i]] <- 1 - DistanceMatrix(myXStringSet = PlaceHolder01, 
+                                                     penalizeGapLetterMatches = GapPenalty,
+                                                     includeTerminalGaps = TerminalPenalty,
+                                                     correction = Correction,
+                                                     type = "matrix",
+                                                     verbose = FALSE)[1, 2]
         } # end similarity scores conditional
       } # end similarity scores loop
       
@@ -215,44 +250,26 @@ PairSummaries <- function(SyntenyLinks,
       Count <- Count + 1L
     } # end of columns loop
   } # end of rows loop
+  
+  DF <- data.frame("TotalCoverage" = unlist(TotalCoverage),
+                   "MaxCoverage" = unlist(MaxCoverage),
+                   "MinCoverage" = unlist(MinCoverage),
+                   "NormDeltaStart" = unlist(NormDeltaStart),
+                   "NormDeltaStop" = unlist(NormDeltaStop),
+                   "NormGeneDiff" = unlist(NormGeneDiff),
+                   "ExactMatch" = unlist(ExactMatch),
+                   stringsAsFactors = FALSE)
   if (PIDs) {
-    DF <- data.frame("TotalCoverage" = unlist(TotalCoverage),
-                     "MaxCoverage" = unlist(MaxCoverage),
-                     "MinCoverage" = unlist(MinCoverage),
-                     "NormDeltaStart" = unlist(NormDeltaStart),
-                     "NormDeltaStop" = unlist(NormDeltaStop),
-                     "NormGeneDiff" = unlist(NormGeneDiff),
-                     "ExactMatch" = unlist(ExactMatch),
-                     # "LeftDeviation" = unlist(AbsStartDelta),
-                     # "RightDeviation" = unlist(AbsStopDelta),
-                     # "SubjectLeft" = unlist(ExactLeftS),
-                     # "SubjectRight" = unlist(ExactRightS),
-                     # "QueryLeft" = unlist(ExactLeftQ),
-                     # "QueryRight" = unlist(ExactRightQ),
-                     "PID" = unlist(Scores),
-                     "PIDType" = unlist(IDType),
-                     stringsAsFactors = FALSE)
-    rownames(DF) <- unlist(LabelNames)
+    DF <- cbind(DF,
+                "PID" = unlist(Scores),
+                "PIDType" = unlist(IDType))
   } else {
-    DF <- data.frame("TotalCoverage" = unlist(TotalCoverage),
-                     "MaxCoverage" = unlist(MaxCoverage),
-                     "MinCoverage" = unlist(MinCoverage),
-                     "NormDeltaStart" = unlist(NormDeltaStart),
-                     "NormDeltaStop" = unlist(NormDeltaStop),
-                     "NormGeneDiff" = unlist(NormGeneDiff),
-                     "ExactMatch" = unlist(ExactMatch),
-                     # "LeftDeviation" = unlist(AbsStartDelta),
-                     # "RightDeviation" = unlist(AbsStopDelta),
-                     # "SubjectLeft" = unlist(ExactLeftS),
-                     # "SubjectRight" = unlist(ExactRightS),
-                     # "QueryLeft" = unlist(ExactLeftQ),
-                     # "QueryRight" = unlist(ExactRightQ),
-                     stringsAsFactors = FALSE)
-    rownames(DF) <- unlist(LabelNames)
+    # do nothing
   }
+  rownames(DF) <- unlist(LabelNames)
   
   ###### -- load in prebuilt, or user specified model -------------------------
-  # If link statistics imply that PID will likely be give a PID that falls from
+  # If link statistics imply that PID will likely give a PID that falls from
   # a distribution of random PIDs, remove that link
   
   if (is.null(Model)) {
@@ -262,44 +279,31 @@ PairSummaries <- function(SyntenyLinks,
       data("GlobalSelect",
            envir = environment(),
            package = "SynExtend")
-      
       KeepSet <- predict(object = GlobalSelect,
                          DF,
                          type = "response")
-      DF <- cbind(DF,
-                  "ModelSelect" = KeepSet >= 0.5)
-      # DF <- DF[KeepSet >= 0.5, ]
     } else if (Model == "Local") {
       data("LocalSelect",
            envir = environment(),
            package = "SynExtend")
-      
       KeepSet <- predict(object = LocalSelect,
                          DF,
                          type = "response")
-      DF <- cbind(DF,
-                  "ModelSelect" = KeepSet >= 0.5)
-      # DF <- DF[KeepSet >= 0.5, ]
     } else if (Model == "Exact") {
       data("ExactSelect",
            envir = environment(),
            package = "SynExtend")
-      
       KeepSet <- predict(object = ExactSelect,
                          DF,
                          type = "response")
-      DF <- cbind(DF,
-                  "ModelSelect" = KeepSet >= 0.5)
-      # DF <- DF[KeepSet >= 0.5, ]
     } else if (!is.character(Model) &
                !is.null(Model)) {
       KeepSet <- predict(object = Model,
                          DF,
                          type = "response")
-      DF <- cbind(DF,
-                  "ModelSelect" = KeepSet >= 0.5)
-      # DF <- DF[KeepSet >= 0.5, ]
     }
+    DF <- cbind(DF,
+                "ModelSelect" = KeepSet >= 0.5)
   }
   
   if (Verbose) {
@@ -309,3 +313,4 @@ PairSummaries <- function(SyntenyLinks,
   }
   return(DF)
 }
+

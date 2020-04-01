@@ -15,16 +15,16 @@ NucleotideOverlap(SyntenyObject,
 }
 \arguments{
   \item{SyntenyObject}{
-An object of class ``Synteny''
+An object of class ''Synteny''
 }
   \item{GeneCalls}{
-A list of DataFrames that describe feature calls for the sequences represented in \code{SyntenyObject}
+A list of DataFrames that describe feature calls for the sequences represented in \code{SyntenyObject}. This list must be named, and these names should match the identifiers of the associated sequences in the DECIPHER sqlite database used to build the associated synteny object. Dataframes built by ''gffToDataFrame'' can be used directly, while ''GRanges'' objects may also be used with limited functionality. Using a ''GRanges'' object will force \code{LimitIndex} to \code{FALSE}. Additionally, genomic features that extend past the terminal position of the origin FASTA sequence are truncated.
 }
   \item{LimitIndex}{
-Logical indicating whether to only limit which indices in a synteny object to query. \code{TRUE} by default, which means that only the first indices for each cell in the synteny object are queried.
+Logical indicating whether to only limit which indices in a synteny object to query. \code{FALSE} by default, when \code{TRUE} only the first sequence in all selected identifiers will be used. \code{LimitIndex} can be used to skip analysis of plasmids, or solely query a single chromosome.
 }
   \item{OutputFormat}{
-Character string to designate whether to output a lot, or a little information.
+Character string to designate how much information to return. "Sparse" returns only a filled upper triangle of exactly matched positions. "Normal" returns a matrix with associated match information in both the upper and lower triangle of the returned matrix, while "Comprehensive" will return \code{GeneCalls} used in construction in the diagonal.
 }
   \item{Verbose}{
 Logical indicating whether or not to display a progress bar and print the time difference upon completion.
@@ -37,13 +37,10 @@ Builds a matrix of lists that contain information about linked pairs.
 An object of class ''LinkedPairs''.
 }
 \references{
-None yet.
+None.
 }
 \author{
 Nicholas Cooley \email{npc19@pitt.edu}
-}
-\note{
-A note.
 }
 
 

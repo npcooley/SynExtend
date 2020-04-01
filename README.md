@@ -9,15 +9,18 @@
 
 ## Introduction
 
-SynExtend is a package of tools for working with synteny objects.
+SynExtend is a package of tools for working with synteny objects generated from the Bioconductor Package DECIPHER.
 
 ## Installation
 
 SynExtend is currently in the submission process to Bioconductor and will be be available there upon acceptance, until then it can be installed from this repository via:
 
 ```r
-library("devtools")
-install_github(repo = "npcooley/SynExtend")
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install(version = "3.11")
+
+BiocManager::install("SynExtend")
 library("SynExtend")
 ```
 
@@ -25,7 +28,7 @@ Additionally, SynExtend is maintained in a Docker container at: Coming Soon!
 
 ## Usage
 
-Currently SynExtend's major function is facilitating the prediction of orthologous gene pairs from synteny maps. The functions herein rely on synteny maps built by the `FindSynteny` function in the package `DECIPHER`. The process is relatively straightforward and only requires assemblies and genecalls, which can be conveniently pulled from the NCBI using entrez. However, as long as given assemblies have associated gene calls, or can have genecalls generated, they will work just fine.
+Currently SynExtend's major function is facilitating the prediction of orthologous gene pairs from synteny maps. The functions herein rely on synteny maps built by the `FindSynteny` function in the package `DECIPHER`. The process is relatively straightforward and only requires assemblies and genecalls, which can be conveniently pulled from the NCBI using entrez. However, as long as given assemblies have associated gene calls, or can have gene calls generated, they will work just fine.
 
 Using entrez, this process would start like this:
 ```r
@@ -68,7 +71,7 @@ GFFs <- unname(sapply(FtPPaths,
 
 With these matched character vectors describing files on the NCBI FTP site, we can pull given assemblies, and their associated genecalls.
 
-Assemblies are pulled using functions within the package `Biostrings` and placed in a sqlite database using the package `DECIPHER`. Note, `DBPATH` can be a specific local file location, though a tempfile works fine for this example.
+Assemblies are pulled using functions within the package `Biostrings` and placed in a sqlite database using the package `DECIPHER`. Note, `DBPATH` can be a specific local file location, though a tempfile works fine for this example. The tempfile in this example will be destroyed upon closure of the current R session, so specified files are preferable for most user activity.
 
 ```r
 DBPATH <- tempfile()

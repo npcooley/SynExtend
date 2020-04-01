@@ -4,7 +4,7 @@
 
 NucleotideOverlap <- function(SyntenyObject,
                               GeneCalls,
-                              LimitIndex = TRUE,
+                              LimitIndex = FALSE,
                               OutputFormat = "Normal",
                               Verbose = FALSE) {
   ######
@@ -36,6 +36,11 @@ NucleotideOverlap <- function(SyntenyObject,
   if (L <= 1L) {
     stop ("SyntenyObject is too small.")
   }
+  if (!(OutputFormat %in% c("Sparse",
+                            "Normal",
+                            "Comprehensive"))) {
+    stop("OutputFormat must be either 'Sparse', 'Normal', or 'Comprehensive'.")
+  }
   IndexMatching <- vector("integer",
                           length = length(GeneCalls))
   for (i in seq_along(GeneCalls)) {
@@ -44,6 +49,14 @@ NucleotideOverlap <- function(SyntenyObject,
   SyntenyIndices <- unname(lengths(diag(SyntenyObject)))
   if (any(IndexMatching > SyntenyIndices)) {
     stop ("Indices do not match. Object orders may be not be matched.")
+  }
+  GCallClasses <- sapply(GeneCalls,
+                         function(x) class(x),
+                         USE.NAMES = FALSE,
+                         simplify = TRUE)
+  if (any(GCallClasses == "GRanges")) {
+    LimitIndex <- TRUE
+    warning("GRanges objects currently only support single contig inputs.")
   }
 
   if (Verbose) {
@@ -57,6 +70,88 @@ NucleotideOverlap <- function(SyntenyObject,
   ######
   # scroll through every hit table in the synteny object
   ######
+  
+  ###### -- Deal with GRanges -------------------------------------------------
+  
+  FeatureRepresentations <- vector(mode = "list",
+                                   length = L)
+  
+  for (m1 in seq_along(GeneCalls)) {
+    if (class(GeneCalls[[m1]]) == "GRanges") {
+      
+      if (length(levels(GeneCalls[[m1]]@seqnames)) > 1L) {
+        
+        warning(paste("GRange object ",
+                      m1,
+                      " contains more than 1 index and has been truncated.",
+                      sep = ""))
+        IndexPlaceHolder <- as.character(GeneCalls[[m1]]@seqnames)[1L]
+        GeneCalls[[m1]] <- GeneCalls[[m1]][as.character(GeneCalls[[m1]]@seqnames == IndexPlaceHolder), ]
+        
+      }
+      
+      TypePlaceHolder <- as.character(GeneCalls[[m1]]$type)
+      GeneCalls[[m1]] <- GeneCalls[[m1]][TypePlaceHolder %in% c("gene",
+                                                                "pseudogene"), ]
+      StrandConversion <- ifelse(test = as.character(GeneCalls[[m1]]@strand == "+"),
+                                 yes = 0L,
+                                 no = 1L)
+      StartConversion <- GeneCalls[[m1]]@ranges@start
+      StopConversion <- GeneCalls[[m1]]@ranges@start + GeneCalls[[m1]]@ranges@width - 1L
+      IndexConversion <- rep(1L,
+                             length(StartConversion))
+      LengthsConversion <- StopConversion - StartConversion + 1L
+      
+      o <- order(StartConversion)
+      StrandConversion <- StrandConversion[o]
+      IndexConversion <- IndexConversion[o]
+      StartConversion <- StartConversion[o]
+      StopConversion <- StopConversion[o]
+      LengthsConversion <- LengthsConversion[o]
+      
+      FeatureRepresentations[[m1]] <- matrix(data = c(IndexConversion,
+                                                      StrandConversion,
+                                                      StartConversion,
+                                                      StopConversion,
+                                                      LengthsConversion),
+                                             nrow = length(o),
+                                             ncol = 5L)
+      
+      if (any(StopConversion > SyntenyObject[[m1, m1]][1])) {
+        FeatureRepresentations[[m1]] <- FeatureRepresentations[[m1]][-which(StopConversion > SyntenyObject[[m1, m1]][1]), ]
+      }
+      
+      rm(list = c("IndexConversion",
+                  "StrandConversion",
+                  "StartConversion",
+                  "StopConversion",
+                  "LengthsConversion"))
+      
+    } else if (class(GeneCalls[[m1]]) == "DFrame") {
+      
+      o <- order(GeneCalls[[m1]][, "Index"], GeneCalls[[m1]][, "Start"])
+      CurrentStarts <- as.integer(GeneCalls[[m1]]$Start)[o]
+      CurrentStops <- as.integer(GeneCalls[[m1]]$Stop)[o]
+      CurrentStrands <- as.integer(GeneCalls[[m1]]$Strand)[o]
+      CurrentIndices <- as.integer(GeneCalls[[m1]]$Index)[o]
+      CurrentLengths <- CurrentStops - CurrentStarts + 1L
+      
+      FeatureRepresentations[[m1]] <- matrix(data = c(CurrentIndices,
+                                                      CurrentStrands,
+                                                      CurrentStarts,
+                                                      CurrentStops,
+                                                      CurrentLengths),
+                                             nrow = length(o),
+                                             ncol = 5L)
+      rm(list = c("CurrentIndices",
+                  "CurrentStrands",
+                  "CurrentStarts",
+                  "CurrentStops",
+                  "CurrentLengths"))
+    }
+  }
+  
+  
   pBar <- txtProgressBar(style = 1L)
   for (m1 in seq_len(L - 1L)) {
     for (m2 in (m1 +1L):L) {
@@ -64,18 +159,16 @@ NucleotideOverlap <- function(SyntenyObject,
       # Collect Index Start Stop and Strand from current subject and query gene calls
       # Collect Index Start Stop Strand from hit table
       ######
-      Q.o <- order(GeneCalls[[m1]][, "Index"], GeneCalls[[m1]][, "Start"])
-      S.o <- order(GeneCalls[[m2]][, "Index"], GeneCalls[[m2]][, "Start"])
-      Q.Start <- as.integer(GeneCalls[[m1]]$Start)[Q.o]
-      Q.Stop <- as.integer(GeneCalls[[m1]]$Stop)[Q.o]
-      S.Start <- as.integer(GeneCalls[[m2]]$Start)[S.o]
-      S.Stop <- as.integer(GeneCalls[[m2]]$Stop)[S.o]
-      QG.Strand <- as.integer(GeneCalls[[m1]]$Strand)[Q.o]
-      SG.Strand <- as.integer(GeneCalls[[m2]]$Strand)[S.o]
-      Q.Index <- as.integer(GeneCalls[[m1]]$Index)[Q.o]
-      S.Index <- as.integer(GeneCalls[[m2]]$Index)[S.o]
-      Q.Length <- Q.Stop - Q.Start + 1L
-      S.Length <- S.Stop - S.Start + 1L
+
+      Q.Start <- FeatureRepresentations[[m1]][, 3L]
+      Q.Stop <- FeatureRepresentations[[m1]][, 4L]
+      Q.Index <- FeatureRepresentations[[m1]][, 1L]
+      QG.Strand <- FeatureRepresentations[[m1]][, 2L]
+      
+      S.Start <- FeatureRepresentations[[m2]][, 3L]
+      S.Stop <- FeatureRepresentations[[m2]][, 4L]
+      S.Index <- FeatureRepresentations[[m2]][, 1L]
+      SG.Strand <- FeatureRepresentations[[m2]][, 2L]
       
       CurrentHitTable <- SyntenyObject[m1, m2, drop = FALSE][[1]]
       if (LimitIndex) {
@@ -600,10 +693,6 @@ NucleotideOverlap <- function(SyntenyObject,
         CondenseCount <- 1L
         Row <- 2L
         while (CondenseCount <= nrow(OverLapMatrix)) {
-          # z5 <- which(OverLapMatrix[, 1L] == OverLapMatrix[CondenseCount, 1L] &
-          #               OverLapMatrix[, 2L] == OverLapMatrix[CondenseCount, 2L] &
-          #               OverLapMatrix[, 4L] == OverLapMatrix[CondenseCount, 4L] &
-          #               OverLapMatrix[, 5L] == OverLapMatrix[CondenseCount, 5L])
           while (Row <= nrow(OverLapMatrix)) {
             if (OverLapMatrix[Row, 5L] != OverLapMatrix[CondenseCount, 5L]) {
               break
@@ -621,11 +710,6 @@ NucleotideOverlap <- function(SyntenyObject,
           }
           
           z5 <- CondenseCount:(Row - 1L)
-          # if (length(z6) != length(z5)) {
-          #   print(z5)
-          #   print(z6)
-          #   stop()
-          # }
           OutPutMatrix[RowCount, ] <- c(OverLapMatrix[CondenseCount, 1L],
                                         OverLapMatrix[CondenseCount, 2L],
                                         sum(OverLapMatrix[z5, 3L]),

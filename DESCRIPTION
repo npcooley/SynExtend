@@ -1,8 +1,7 @@
 Package: SynExtend
 Type: Package
 Title: Tools for Working With Synteny Objects
-Version: 0.99.19
-Date: 2020-02-12
+Version: 0.99.20
 Authors@R: c(
 	person("Nicholas", "Cooley", email = "npc19@pitt.edu", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-6029-304X")),
 	person("Adelle", "Fernando", email = "Adelle.fernando@gmail.com", role = "ctb"),
@@ -14,6 +13,5 @@ Imports: methods, Biostrings, S4Vectors, IRanges, utils, stats
 Suggests: knitr
 License: GPL-3
 Encoding: UTF-8
-LazyData: true
 NeedsCompilation: no
 VignetteBuilder: knitr
