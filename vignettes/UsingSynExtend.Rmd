@@ -2,18 +2,15 @@
 title: "Using SynExtend"
 author: "Nicholas Cooley"
 date: "`r Sys.Date()`"
-output:
-  BiocStyle::html_document:
-    toc: true
+output: 
+  html_vignette
 vignette: >
-  %\VignetteIndexEntry{Using SynExtend}
+  %\VignetteIndexEntry{ExploreModelMatrix}
+  %\VignetteEncoding{UTF-8} 
   %\VignetteEngine{knitr::rmarkdown}
-  \usepackage[utf8]{inputenc}
+editor_options: 
+  chunk_output_type: console
 ---
-
-```{r style, echo = FALSE, results = 'asis'}
-BiocStyle::markdown()
-```
 
 # Introduction
 
