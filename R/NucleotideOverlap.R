@@ -77,7 +77,8 @@ NucleotideOverlap <- function(SyntenyObject,
                                    length = L)
   
   for (m1 in seq_along(GeneCalls)) {
-    if (class(GeneCalls[[m1]]) == "GRanges") {
+    if (is(GeneCalls[[m1]],
+           "GRanges")) {
       
       if (length(levels(GeneCalls[[m1]]@seqnames)) > 1L) {
         
@@ -127,7 +128,8 @@ NucleotideOverlap <- function(SyntenyObject,
                   "StopConversion",
                   "LengthsConversion"))
       
-    } else if (class(GeneCalls[[m1]]) == "DFrame") {
+    } else if (is(GeneCalls[[m1]],
+                  "DFrame")) {
       
       o <- order(GeneCalls[[m1]][, "Index"], GeneCalls[[m1]][, "Start"])
       CurrentStarts <- as.integer(GeneCalls[[m1]]$Start)[o]

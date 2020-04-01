@@ -9,7 +9,7 @@ A function for concisely tabulating where genomic features are connected by synt
 \usage{
 NucleotideOverlap(SyntenyObject,
                   GeneCalls,
-                  LimitIndex = TRUE,
+                  LimitIndex = FALSE,
                   OutputFormat = "Normal",
                   Verbose = FALSE)
 }
