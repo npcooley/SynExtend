@@ -67,16 +67,9 @@ List of 21
  - attr(*, "class")= chr [1:2] "glm" "lm"
 }
 \details{
-A model for rejecting identified pairs whose link statistics indicate a likely local PID that would fall within a random distribution in AA Space.
-}
-\source{
-TBA
-}
-\references{
-TBA
+A model for rejecting identified pairs whose link statistics indicate a likely local PID that would fall within a random distribution in an amino acid alignment.
 }
 \examples{
 data(LocalSelect)
-## ? ?
 }
 \keyword{datasets}
