@@ -63,7 +63,7 @@ DBPATH <- system.file("extdata",
 #          dbFile = DBPATH,
 #          identifier = as.character(m1),
 #          verbose = TRUE)
-#}
+# }
 
 Syn <- FindSynteny(dbFile = DBPATH)
 
