@@ -117,7 +117,9 @@ print(head(GeneCalls[[1]]))
 Raw GFF imports are also acceptable, but prevent alignments in amino acid space with `PairSummaries()`.
 
 ```{r show rtracklayer}
-X01 <- rtracklayer::import("~/Dropbox/Packages/SynExtend/inst/extdata/GCA_000875775.1_ASM87577v1_genomic.gff.gz")
+X01 <- rtracklayer::import(system.file("extdata",
+                                       "GCA_000875775.1_ASM87577v1_genomic.gff.gz",
+                                       package = "SynExtend"))
 class(X01)
 print(X01)
 ```
@@ -157,6 +159,7 @@ print(head(LinkedPairs1))
 ```
 
 PairSummaries includes arguments that allow for aligning all pairs that are predicted, via `PIDs = TRUE`, while `IgnoreDefaultStringSet = FALSE` indicates that alignments should be performed in nucleotide or amino acid space as is appropriate for the linked sequences. Setting `IgnoreDefaultStringSet = TRUE` will force all alignments into nucleotide space.
+
 
 Session Info:
 
