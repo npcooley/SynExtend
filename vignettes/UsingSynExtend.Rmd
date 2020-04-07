@@ -158,36 +158,6 @@ print(head(LinkedPairs1))
 
 PairSummaries includes arguments that allow for aligning all pairs that are predicted, via `PIDs = TRUE`, while `IgnoreDefaultStringSet = FALSE` indicates that alignments should be performed in nucleotide or amino acid space as is appropriate for the linked sequences. Setting `IgnoreDefaultStringSet = TRUE` will force all alignments into nucleotide space.
 
-```{r morelinkedpairs01}
-LinkedPairs2 <- PairSummaries(SyntenyLinks = Links[1:2, 1:2],
-                              GeneCalls = GeneCalls[1:2],
-                              DBPATH = DBPATH,
-                              PIDs = TRUE,
-                              IgnoreDefaultStringSet = TRUE,
-                              Verbose = TRUE,
-                              Model = "Global",
-                              Correction = "none")
-```
-
-`LinkedPairs2` will now contain a column of PIDs, and a column indicating whether alignments were performed in nucleotide, or amino acid space.
-
-```{r morelinkedpairs02}
-print(head(LinkedPairs2))
-```
-
-A plot of predicted PIDs.
-
-```{r}
-plot(LinkedPairs2$PID,
-     pch = 46,
-     col = ifelse(test = LinkedPairs2$ModelSelect,
-                  yes = "blue",
-                  no = "red"),
-     ylim = c(0, 1),
-     xlab = "index",
-     ylab = "PID")
-```
-
 Session Info:
 
 ```{r}
