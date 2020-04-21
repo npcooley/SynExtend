@@ -15,7 +15,7 @@ NucleotideOverlap(SyntenyObject,
 }
 \arguments{
   \item{SyntenyObject}{
-An object of class ''Synteny''
+An object of class ''Synteny'' built from the function ''FindSyntey'' in the package ''DECIPHER''.
 }
   \item{GeneCalls}{
 A list of DataFrames that describe feature calls for the sequences represented in \code{SyntenyObject}. This list must be named, and these names should match the identifiers of the associated sequences in the DECIPHER sqlite database used to build the associated synteny object. Dataframes built by ''gffToDataFrame'' can be used directly, while ''GRanges'' objects may also be used with limited functionality. Using a ''GRanges'' object will force \code{LimitIndex} to \code{FALSE}. Additionally, genomic features that extend past the terminal position of the origin FASTA sequence are truncated and only features of type "gene" and "pseudogene" will be included in the analysis.

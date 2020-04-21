@@ -57,10 +57,9 @@ PairSummaries <- function(SyntenyLinks,
     if (GCallClasses[m1] == "GRanges") {
       if (length(levels(GeneCalls[[m1]]@seqnames)) > 1L) {
         
-        warning(paste("GRange object ",
-                      m1,
-                      " contains more than 1 index and has been truncated.",
-                      sep = ""))
+        warning("GRange object ",
+                m1,
+                " contains more than 1 index and has been truncated.")
         IndexPlaceHolder <- as.character(GeneCalls[[m1]]@seqnames)[1L]
         GeneCalls[[m1]] <- GeneCalls[[m1]][as.character(GeneCalls[[m1]]@seqnames == IndexPlaceHolder), ]
         

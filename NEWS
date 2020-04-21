@@ -1,8 +1,0 @@
-**************************************************
-*              1.0                               *
-**************************************************
-
-Initial Verison - generate ortholog predictions from combining synteny maps built by the R package DECIPHER with position information. Currently requires only three functions.
-* gffToDataFrame - Convert standard gff3 representation of genomic data into succinct representation.
-* NucleotideOverlap - Tabulate all genomic features linked by syntenic k-mers.
-* PairSummaries - Summarize all linked pairs, perform pairwise alignments if desired.

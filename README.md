@@ -18,7 +18,7 @@ SynExtend is currently in the submission process to Bioconductor and will be be 
 ```r
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
-BiocManager::install(version = "3.11")
+BiocManager::install()
 
 BiocManager::install("SynExtend")
 library("SynExtend")

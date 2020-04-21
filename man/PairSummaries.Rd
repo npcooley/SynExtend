@@ -47,7 +47,7 @@ Argument passed to \code{AlignTranslation}
 A character string specifying a model to use to identify pairs that are unlikely to be good orthologs. By default this is ''Global'', but two other models are included; ''Local'' and ''Exact'', which have minor differences in performance. Alternatively, a user generated model can be used.
 }
   \item{Correction}{
-Argument to be passed to \code{DistanceMatrix}
+Argument to be passed to \code{DistanceMatrix}, currently only "none" and "Jukes-Cantor" are supported options. Will only be applied to nucleotide alignments.
 }
 }
 \details{
