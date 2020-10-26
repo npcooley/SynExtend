@@ -150,6 +150,30 @@ NucleotideOverlap <- function(SyntenyObject,
                   "CurrentStarts",
                   "CurrentStops",
                   "CurrentLengths"))
+    } else if (is(GeneCalls[[m1]],
+                  "Genes")) {
+      # convert Erik's gene calls to a temporary DataFrame
+      # the column "Gene" assigns whether or not that particular line is the gene
+      # that the caller actually picked, calls must be subset to where Gene == 1
+      ans <- GeneCalls[[m1]]
+      R <- mapply(function(x, y) IRanges(start = x,
+                                         end = y),
+                  x = ans[, "Begin"],
+                  y = ans[, "End"],
+                  SIMPLIFY = FALSE)
+      D <- DataFrame("Index" = as.integer(ans[, "Index"]),
+                     "Strand" = as.integer(ans[, "Strand"]),
+                     "Start" = as.integer(ans[, "Begin"]),
+                     "Stop" = as.integer(ans[, "End"]),
+                     "Type" = rep("gene",
+                                  nrow(ans)),
+                     "Range" = IRangesList(R),
+                     "Coding" = rep(TRUE,
+                                    nrow(ans)))
+      D <- D[ans[, "Gene"] == 1L, ]
+      rownames(D) <- NULL
+      GeneCalls[[m1]] <- D
+      rm(c("D", "ans", "R"))
     }
   }
   
