@@ -51,19 +51,36 @@ PairSummaries <- function(SyntenyLinks,
     Genomes <- DNAStringSetList(Genomes)
   }
   
-  ###### -- Deal with GRanges objects -----------------------------------------
+  ###### -- Deal with Different GeneCall types --------------------------------
+  
+  L <- length(GeneCalls)
+  FeatureRepresentations <- vector(mode = "list",
+                                   length = L)
+  
+  GCallClasses <- sapply(GeneCalls,
+                         function(x) class(x),
+                         USE.NAMES = FALSE,
+                         simplify = TRUE)
+  if (any(GCallClasses == "GRanges")) {
+    LimitIndex <- TRUE
+    warning("GRanges objects currently only support single contig inputs.")
+  }
   
   for (m1 in seq_along(GeneCalls)) {
-    if (GCallClasses[m1] == "GRanges") {
+    if (is(GeneCalls[[m1]],
+           "GRanges")) {
+      
       if (length(levels(GeneCalls[[m1]]@seqnames)) > 1L) {
         
-        warning("GRange object ",
-                m1,
-                " contains more than 1 index and has been truncated.")
+        warning(paste("GRange object ",
+                      m1,
+                      " contains more than 1 index and has been truncated.",
+                      sep = ""))
         IndexPlaceHolder <- as.character(GeneCalls[[m1]]@seqnames)[1L]
         GeneCalls[[m1]] <- GeneCalls[[m1]][as.character(GeneCalls[[m1]]@seqnames == IndexPlaceHolder), ]
         
       }
+      
       TypePlaceHolder <- as.character(GeneCalls[[m1]]$type)
       GeneCalls[[m1]] <- GeneCalls[[m1]][TypePlaceHolder %in% c("gene",
                                                                 "pseudogene"), ]
@@ -83,30 +100,37 @@ PairSummaries <- function(SyntenyLinks,
       StopConversion <- StopConversion[o]
       LengthsConversion <- LengthsConversion[o]
       
-      NewRanges <- vector(mode = "list",
-                          length = length(o))
-      for (m2 in seq_along(NewRanges)) {
-        NewRanges[[m2]] <- IRanges(start = StartConversion[m2],
-                                   end = StopConversion[m2])
-      }
-      NewRanges <- IRangesList(NewRanges)
-      CodingSelect <- rep(FALSE,
-                          length(o))
-      GRangeIndices <- rep(1L,
-                           length(o))
-      GeneCalls[[m1]] <- DataFrame("Index" = GRangeIndices,
-                                   "Strand" = StrandConversion,
-                                   "Start" = StartConversion,
-                                   "Stop" = StopConversion,
-                                   "Range" = NewRanges,
-                                   "Coding" = CodingSelect)
+      FeatureRepresentations[[m1]] <- matrix(data = c(IndexConversion,
+                                                      StrandConversion,
+                                                      StartConversion,
+                                                      StopConversion,
+                                                      LengthsConversion),
+                                             nrow = length(o),
+                                             ncol = 5L)
       
+      colnames(FeatureRepresentations[[m1]]) <- c("Index",
+                                                  "Strand",
+                                                  "Start",
+                                                  "Stop",
+                                                  "Lengths")
       
+      # no synteny object requested, cannot perform this test ...
+      # if (any(StopConversion > SyntenyObject[[m1, m1]][1])) {
+      #   FeatureRepresentations[[m1]] <- FeatureRepresentations[[m1]][-which(StopConversion > SyntenyObject[[m1, m1]][1]), ]
+      # }
       
-      if (any(StopConversion > length(Genomes[[m1]][[1]]))) {
-        GeneCalls[[m1]] <- GeneCalls[[m1]][-which(StopConversion > length(Genomes[[m1]][[1]])), ]
-      }
-    } else if (GCallClasses[m1] == "Genes") {
+      rm(list = c("IndexConversion",
+                  "StrandConversion",
+                  "StartConversion",
+                  "StopConversion",
+                  "LengthsConversion"))
+      
+    } else if (is(GeneCalls[[m1]],
+                  "DFrame")) {
+      
+      FeatureRepresentations[[m1]] <- GeneCalls[[m1]]
+    } else if (is(GeneCalls[[m1]],
+                  "Genes")) {
       # convert Erik's gene calls to a temporary DataFrame
       # the column "Gene" assigns whether or not that particular line is the gene
       # that the caller actually picked, calls must be subset to where Gene == 1
@@ -123,15 +147,25 @@ PairSummaries <- function(SyntenyLinks,
                      "Type" = rep("gene",
                                   nrow(ans)),
                      "Range" = IRangesList(R),
+                     "Gene" = as.integer(ans[, "Gene"]),
                      "Coding" = rep(TRUE,
                                     nrow(ans)))
-      D <- D[ans[, "Gene"] == 1L, ]
+      D <- D[as.vector(ans[, "Gene"]) == 1L, ]
       rownames(D) <- NULL
-      GeneCalls[[m1]] <- D
-      rm(c("D", "ans", "R"))
+      FeatureRepresentations[[m1]] <- D
       
+      rm(list = c("D",
+                  "ans",
+                  "R"))
     }
   }
+  
+  GeneCalls <- FeatureRepresentations
+  
+  rm(list = c("FeatureRepresentations",
+              "L"))
+  
+  ###### -- End Gene call stuff -----------------------------------------------
   
   Size <- dim(SyntenyLinks)[1]
   Total <- (Size^2 - Size) / 2

@@ -41,24 +41,7 @@ NucleotideOverlap <- function(SyntenyObject,
                             "Comprehensive"))) {
     stop("OutputFormat must be either 'Sparse', 'Normal', or 'Comprehensive'.")
   }
-  IndexMatching <- vector("integer",
-                          length = length(GeneCalls))
-  for (i in seq_along(GeneCalls)) {
-    IndexMatching[i] <- length(unique(GeneCalls[[i]]$Index))
-  }
-  SyntenyIndices <- unname(lengths(diag(SyntenyObject)))
-  if (any(IndexMatching > SyntenyIndices)) {
-    stop ("Indices do not match. Object orders may be not be matched.")
-  }
-  GCallClasses <- sapply(GeneCalls,
-                         function(x) class(x),
-                         USE.NAMES = FALSE,
-                         simplify = TRUE)
-  if (any(GCallClasses == "GRanges")) {
-    LimitIndex <- TRUE
-    warning("GRanges objects currently only support single contig inputs.")
-  }
-
+  
   if (Verbose) {
     TotalTimeStart <- Sys.time()
   }
@@ -71,10 +54,34 @@ NucleotideOverlap <- function(SyntenyObject,
   # scroll through every hit table in the synteny object
   ######
   
-  ###### -- Deal with GRanges -------------------------------------------------
+  ###### -- Deal with Different GeneCall types --------------------------------
   
   FeatureRepresentations <- vector(mode = "list",
                                    length = L)
+  
+  GCallClasses <- sapply(GeneCalls,
+                         function(x) class(x),
+                         USE.NAMES = FALSE,
+                         simplify = TRUE)
+  if (any(GCallClasses == "GRanges")) {
+    LimitIndex <- TRUE
+    warning("GRanges objects currently only support single contig inputs.")
+  }
+  IndexMatching <- vector("integer",
+                          length = length(GeneCalls))
+  for (i in seq_along(GeneCalls)) {
+    if (!is(GeneCalls[[m1]],
+            "GRanges")) {
+      IndexMatching[i] <- length(unique(GeneCalls[[i]][, "Index"]))
+    } else {
+      IndexMatching[i] <- 1L
+    }
+  }
+  SyntenyIndices <- unname(lengths(diag(SyntenyObject)))
+  if (any(IndexMatching > SyntenyIndices)) {
+    warning ("Indices do not match. Setting LimitIndex to TRUE.")
+    LimitIndex <- TRUE
+  }
   
   for (m1 in seq_along(GeneCalls)) {
     if (is(GeneCalls[[m1]],
@@ -168,15 +175,20 @@ NucleotideOverlap <- function(SyntenyObject,
                      "Type" = rep("gene",
                                   nrow(ans)),
                      "Range" = IRangesList(R),
+                     "Gene" = as.integer(ans[, "Gene"]),
                      "Coding" = rep(TRUE,
                                     nrow(ans)))
-      D <- D[ans[, "Gene"] == 1L, ]
+      D <- D[as.vector(ans[, "Gene"]) == 1L, ]
       rownames(D) <- NULL
-      GeneCalls[[m1]] <- D
-      rm(c("D", "ans", "R"))
+      FeatureRepresentations[[m1]] <- D
+      
+      rm(list = c("D",
+                  "ans",
+                  "R"))
     }
   }
   
+  ###### -- End Gene call stuff -----------------------------------------------
   
   pBar <- txtProgressBar(style = 1L)
   for (m1 in seq_len(L - 1L)) {
