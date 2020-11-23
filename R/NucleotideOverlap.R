@@ -69,12 +69,12 @@ NucleotideOverlap <- function(SyntenyObject,
   }
   IndexMatching <- vector("integer",
                           length = length(GeneCalls))
-  for (i in seq_along(GeneCalls)) {
+  for (m1 in seq_along(GeneCalls)) {
     if (!is(GeneCalls[[m1]],
             "GRanges")) {
-      IndexMatching[i] <- length(unique(GeneCalls[[i]][, "Index"]))
+      IndexMatching[m1] <- length(unique(GeneCalls[[m1]][, "Index"]))
     } else {
-      IndexMatching[i] <- 1L
+      IndexMatching[m1] <- 1L
     }
   }
   SyntenyIndices <- unname(lengths(diag(SyntenyObject)))
