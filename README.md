@@ -1,10 +1,10 @@
 # SynExtend
 
 **Table of contents:**
-*[Introduction](#introduction)
-*[Installation](#installation)
-*[Usage](#usage)
-*[Reporting Bugs and Errors](#Reporting-Bugs-and-Errors)
+- [Introduction](#introduction)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Reporting Bugs and Errors](#Reporting-Bugs-and-Errors)
 
 ## Introduction
 
