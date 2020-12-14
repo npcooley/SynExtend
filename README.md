@@ -1,7 +1,6 @@
 # SynExtend
 
 **Table of contents:**
-
 *[Introduction](#introduction)
 *[Installation](#installation)
 *[Usage](#usage)
@@ -13,7 +12,7 @@ SynExtend is a package of tools for working with synteny objects generated from 
 
 ## Installation
 
-SynExtend is currently in the submission process to Bioconductor and will be be available there upon acceptance, until then it can be installed from this repository via:
+SynExtend is currently present in Bioconductor and the current release version can be installed via:
 
 ```r
 if (!requireNamespace("BiocManager", quietly = TRUE))
@@ -24,13 +23,27 @@ BiocManager::install("SynExtend")
 library("SynExtend")
 ```
 
-Additionally, SynExtend is maintained in a Docker container at: Coming Soon!
+The devel version in Bioconductor can be installed via:
+
+```r
+BiocManager::install("SynExtend", version = "devel")
+library("SynExtend")
+```
+
+The version in this repository (which should always be up to date with devel - and sometimes ahead of release) can be installed with devtools via:
+
+```r
+devtools::install_github(repo = "npcooley/synextend")
+library("SynExtend")
+```
+
+Additionally, SynExtend is maintained in a Docker container on [Dockerhub](https://hub.docker.com/repository/docker/npcooley/synextend) that is [here](https://github.com/npcooley/SynContainer). Only the current release version is maintained.
 
 ## Usage
 
-Currently SynExtend's major function is facilitating the prediction of orthologous gene pairs from synteny maps. The functions herein rely on synteny maps built by the `FindSynteny` function in the package `DECIPHER`. The process is relatively straightforward and only requires assemblies and genecalls, which can be conveniently pulled from the NCBI using entrez. However, as long as given assemblies have associated gene calls, or can have gene calls generated, they will work just fine.
+Currently SynExtend's major function is facilitating the prediction of orthologous gene pairs from synteny maps. The functions herein rely on synteny maps built by the `FindSynteny()` function in the package `DECIPHER`. The process is relatively straightforward and only requires assemblies and genecalls, which can be conveniently pulled from the NCBI using [Entrez Direct](https://www.ncbi.nlm.nih.gov/books/NBK179288/). However, as long as given assemblies have associated gene calls, or can have gene calls generated, they will work just fine. `DECIPHER` now contains the function `FindGenes()` that produces high quality de novo gene calls.
 
-Using entrez, this process would start like this:
+Using Entrez Direct, this process would start like this:
 ```r
 library(SynExtend)
 
@@ -71,7 +84,7 @@ GFFs <- unname(sapply(FtPPaths,
 
 With these matched character vectors describing files on the NCBI FTP site, we can pull given assemblies, and their associated genecalls.
 
-Assemblies are pulled using functions within the package `Biostrings` and placed in a sqlite database using the package `DECIPHER`. Note, `DBPATH` can be a specific local file location, though a tempfile works fine for this example. The tempfile in this example will be destroyed upon closure of the current R session, so specified files are preferable for most user activity.
+Assemblies are pulled using functions within the package `Biostrings` and placed in a sqlite database using the package `DECIPHER`. Note, `DBPATH` can be a specific local file location, though a tempfile works fine for this example. The tempfile in this example will be destroyed upon closure of the active R session, so specific file paths are preferable for most user activity.
 
 ```r
 DBPATH <- tempfile()
@@ -88,7 +101,7 @@ for (m1 in seq_along(FNAs)) {
 }
 ```
 
-A function within the package `SynExtend` allows us to import GFF3 formatted gene annotations into a simple data.frame, and names are added to this generated list for later use.
+A few key quirks to this process are that genomes are given an integer identifier inside the `DECIPHER` database, and that same integer must be used as the name for the associated list position in the the object `GeneCalls` that is generated below. Also SynExtend currently does not care about header names in FASTA files, meaning that the FASTA is ordered by sequence width before import to the data base. Similarly feature information in the GFF3 file is assigned an index and ordered by the width of its source sequence. The function `gffToDataFrame` in `SynExtend` provides comprehensive conversion of GFF3s into a simple DataFrame object. Future updates to incorporate FASTA headers will eventually render ordering by width unnecessary.
 
 ```r
 GeneCalls <- vector(mode = "list",
@@ -103,7 +116,7 @@ for (m1 in seq_along(GFFs)) {
 names(GeneCalls) <- seq(length(GeneCalls))
 ```
 
-A synteny object is generated.
+A synteny object is generated. See `?FindSynteny` in R for further reading.
 
 ```r
 Syn <- FindSynteny(dbFile = DBPATH)
@@ -118,7 +131,7 @@ Links <- NucleotideOverlap(SyntenyObject = Syn,
                            Verbose = TRUE)
 ```
 
-And positions on the grid of gene calls that are occupied by syntenic hits are recorded, and evaluated with a simple model to remove poor links. The function `PairSummaries` has arguments allowing a user align, and collect PIDs for each predicted pair, but that step is generally too cumbersome for a README example.
+And positions on the grid of gene calls that are occupied by syntenic hits are recorded and evaluated with a simple model to identify unlikely pairs. The function `PairSummaries` has arguments allowing a user align and collect PIDs for each predicted pair, this step is cumbersome but `PIDs = TRUE` is currently the default.
 
 ```r
 PairedGenes <- PairSummaries(SyntenyLinks = Links,
@@ -129,8 +142,15 @@ PairedGenes <- PairSummaries(SyntenyLinks = Links,
                              Verbose = TRUE)
 ```
 
-A more self-contained example is maintained in this package's Bioconductor vignette, and can be found here: ...
+A more self-contained example is maintained in this package's Bioconductor vignette, and can be found [here](https://www.bioconductor.org/packages/release/bioc/html/SynExtend.html)
+
+SynExtend currently has an extensive TODO list that includes:
+1. Improving model performance for quickly identifying spuriously linked pairs.
+2. Parsing communities of predicted pairs.
+3. User friendly accessor functions to help with printing and plotting data.
+
+If users have specific requests I would love to incorporate them.
 
 ## Reporting Bugs and Errors
 
-Feel free to email me at npc19@pitt.edu, or submit bugs here on github.
+Feel free to email me at npc19@pitt.edu or submit issues here on github.
