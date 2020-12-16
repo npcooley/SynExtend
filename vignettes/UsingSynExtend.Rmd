@@ -131,8 +131,7 @@ LinkedPairs1 <- PairSummaries(SyntenyLinks = Links,
                               DBPATH = DBPATH,
                               PIDs = FALSE,
                               Verbose = TRUE,
-                              Model = "Global",
-                              Correction = "none")
+                              Model = "Global")
 ```
 
 The object `LinkedPairs1` is a data.frame where each row is populated by information about a predicted orthologous pair. By default `PairSummaries` uses a simple model to determine whether the k-mers that link a pair of genes are likely to provide an erroneous link. When set to `Model = "Global"`, is is simply a prediction of whether the involved nucleotides are likely to describe a pair of genomic features whose alignment would result in a PID that falls within a random distribution. This model is effective if somewhat permissive, but is significantly faster than performing many pairwise alignments.

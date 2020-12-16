@@ -5,7 +5,6 @@
 NucleotideOverlap <- function(SyntenyObject,
                               GeneCalls,
                               LimitIndex = FALSE,
-                              OutputFormat = "Normal",
                               Verbose = FALSE) {
   ######
   # Error Checking
@@ -35,11 +34,6 @@ NucleotideOverlap <- function(SyntenyObject,
   }
   if (L <= 1L) {
     stop ("SyntenyObject is too small.")
-  }
-  if (!(OutputFormat %in% c("Sparse",
-                            "Normal",
-                            "Comprehensive"))) {
-    stop("OutputFormat must be either 'Sparse', 'Normal', or 'Comprehensive'.")
   }
   
   if (Verbose) {
@@ -715,13 +709,13 @@ NucleotideOverlap <- function(SyntenyObject,
       if (dim(OverLapMatrix)[1] == 0L) {
         OverLapMatrix <- matrix(NA_integer_,
                                 nrow = 1L,
-                                ncol = 9L)
+                                ncol = 11L)
         OutPutMatrix <- matrix(NA_integer_,
                                nrow = 1L,
-                               ncol = 9L)
+                               ncol = 11L)
       } else if (dim(OverLapMatrix)[1] >= 1L) {
         OutPutMatrix <- matrix(NA_integer_,
-                               ncol = 9L,
+                               ncol = 11L,
                                nrow = nrow(OverLapMatrix))
         ######
         # All recordings so far are by hit
@@ -756,7 +750,9 @@ NucleotideOverlap <- function(SyntenyObject,
                                         min(OverLapMatrix[z5, 6L]),
                                         max(OverLapMatrix[z5, 7L]),
                                         min(OverLapMatrix[z5, 8L]),
-                                        max(OverLapMatrix[z5, 9L]))
+                                        max(OverLapMatrix[z5, 9L]),
+                                        max(OverLapMatrix[z5, 3L]),
+                                        nrow(OverLapMatrix[z5, , drop = FALSE]))
           RowCount <- RowCount + 1L
           CondenseCount <- CondenseCount + length(z5)
         }
@@ -780,7 +776,9 @@ NucleotideOverlap <- function(SyntenyObject,
                                   "QLeftPos",
                                   "QRightPos",
                                   "SLeftPos",
-                                  "SRightPos")
+                                  "SRightPos",
+                                  "MaxKmerSize",
+                                  "TotalKmerHits")
       QueryStartDisplacement <- ifelse(test = QG.Strand[OutPutMatrix[, "QueryGene"]] == 1L,
                                        yes = abs(OutPutMatrix[, 7L] - Q.Stop[OutPutMatrix[, 1L]]),
                                        no = abs(OutPutMatrix[, 6L] - Q.Start[OutPutMatrix[, 1L]]))
@@ -803,25 +801,8 @@ NucleotideOverlap <- function(SyntenyObject,
         setTxtProgressBar(pb = pBar,
                           value = TotalCounter/TotalLength)
       }
-      if (OutputFormat == "Normal") {
-        ResultMatrix[m1, m2] <- list(OutPutMatrix)
-        ResultMatrix[m2, m1] <- list(DisplacementMatrix)
-      } else if (OutputFormat == "Sparse") {
-        ResultMatrix[m1, m2] <- list(cbind(OutPutMatrix[, "QueryGene"],
-                                           OutPutMatrix[, "SubjectGene"],
-                                           OutPutMatrix[, "ExactOverlap"],
-                                           QueryStartDisplacement,
-                                           QueryStopDisplacement,
-                                           SubjectStartDisplacement,
-                                           SubjectStopDisplacement))
-        colnames(ResultMatrix[m1, m2][[1]])[1:3] <- c("QueryGene",
-                                                      "SubjectGene",
-                                                      "ExactOverlap")
-      } else if (OutputFormat == "Comprehensive") {
-        ResultMatrix[m1, m2] <- list(OutPutMatrix)
-        ResultMatrix[m2, m1] <- list(DisplacementMatrix)
-        diag(ResultMatrix) <- GeneCalls
-      }
+      ResultMatrix[m1, m2] <- list(OutPutMatrix)
+      ResultMatrix[m2, m1] <- list(DisplacementMatrix)
     } # end of columns loop
   } # end of rows loop
   if (Verbose) {
