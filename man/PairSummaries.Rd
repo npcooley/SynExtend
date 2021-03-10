@@ -13,7 +13,7 @@ PairSummaries(SyntenyLinks,
               PIDs = FALSE,
               IgnoreDefaultStringSet = FALSE,
               Verbose = FALSE,
-              Model = "Global",
+              Model = "Generic",
               ...)
 }
 \arguments{
@@ -39,7 +39,7 @@ Logical indicating whether or not to display a progress bar and print the time d
 Arguments to be passed to \code{AlignTranslation}, \code{AlignSeqs}, and \code{DistanceMatrix}. Currently Not Implemented!
 }
   \item{Model}{
-A character string specifying a model to use to identify pairs that are unlikely to be good orthologs. By default this is ''Global'', but two other models are included; ''Local'' and ''Exact'', which have minor differences in performance. Alternatively, a user generated model can be used. Currently Not Implemented!
+A character string specifying a model to use to predict PIDs without performing an alignment. By default this is ``Generic'', currently no other models are included. User's may also supply their own model of type ``glm'' if they so desire.
 }
 }
 \details{

@@ -8,7 +8,7 @@ PairSummaries <- function(SyntenyLinks,
                           PIDs = FALSE,
                           IgnoreDefaultStringSet = FALSE,
                           Verbose = FALSE,
-                          Model = "Global",
+                          Model = "Generic",
                           ...) {
   if (Verbose) {
     TimeStart <- Sys.time()
@@ -33,6 +33,57 @@ PairSummaries <- function(SyntenyLinks,
   if (any(GCallClasses == "GRanges")) {
     warning("GRanges objects only support Nucleotide Alignments.")
   }
+  
+  ###### -- argument passing --------------------------------------------------
+  # pass arguments through the ellipsis to either:
+  # AlignTranslation,
+  # AlignSeqs,
+  # or DistanceMatrix
+  # if a user supplies an argument that is problematic, such as verbose
+  # ignore it
+  
+  # step one, parse to different functions
+  Args <- list(...)
+  ArgNames <- names(Args)
+  
+  if ("verbose" %in% ArgNames) {
+    w <- !("verbose" %in% ArgNames)
+    Args <- Args[w]
+    ArgNames <- ArgNames[w]
+  }
+  
+  PossibleATArgs <- names(formals(AlignTranslation))
+  m <- match(x = ArgNames,
+             table = PossibleATArgs)
+  m <- m[!is.na(m)]
+  if (length(m) > 0L) {
+    ATArgs <- PossibleATArgs[m]
+    rm(PossibleATArgs)
+  } else {
+    rm(PossibleATArgs)
+  }
+  PossibleASArgs <- names(formals(AlignSeqs))
+  m <- match(x = ArgNames,
+             table = PossibleASArgs)
+  m <- m[!is.na(m)]
+  if (length(m) > 0L) {
+    ASArgs <- PossibleASArgs[m]
+    rm(PossibleASArgs)
+  } else {
+    rm(PossibleASArgs)
+  }
+  PossibleDMArgs <- names(formals(DistanceMatrix))
+  m <- match(x = ArgNames,
+             table = PossibleDMArgs)
+  m <- m[!is.na(m)]
+  if (length(m) > 0L) {
+    DMArgs <- PossibleDMArgs[m]
+    rm(PossibleDMArgs)
+  } else {
+    rm(PossibleDMArgs)
+  }
+  
+  
   # lifted almost whole cloth from AlignSeqs ...
   # args <- list(...)
   # n <- names(args)
@@ -152,10 +203,12 @@ PairSummaries <- function(SyntenyLinks,
                      "Type" = rep("gene",
                                   nrow(ans)),
                      "Range" = IRangesList(R),
-                     "Gene" = as.integer(ans[, "Gene"]),
+                     "Gene" = ifelse(test = ans[, "Gene"] > 0L,
+                                     yes = TRUE,
+                                     no = FALSE),
                      "Coding" = rep(TRUE,
                                     nrow(ans)))
-      D <- D[as.vector(ans[, "Gene"]) == 1L, ]
+      D <- D[as.vector(ans[, "Gene"]) != 0, ]
       rownames(D) <- NULL
       FeatureRepresentations[[m1]] <- D
       
@@ -170,7 +223,19 @@ PairSummaries <- function(SyntenyLinks,
   rm(list = c("FeatureRepresentations",
               "L"))
   
-  ###### -- End Gene call stuff begin summary stuff ---------------------------
+  ###### -- End Gene call -----------------------------------------------------
+  
+  ###### -- if a model is specified, load it ----------------------------------
+  
+  if (!is.null(Model) &
+      Model %in% c("Generic")) {
+    data("Generic",
+         envir = environment(),
+         package = "SynExtend")
+  }
+  
+  
+  ###### -- Summary stuff -----------------------------------------------------
   
   Size <- dim(SyntenyLinks)[1]
   Total <- (Size^2 - Size) / 2
@@ -207,7 +272,7 @@ PairSummaries <- function(SyntenyLinks,
       QGeneLength <- GeneCalls[[m1]][PMatrix[, 1L], "Stop"] - GeneCalls[[m1]][PMatrix[, 1L], "Start"] + 1L
       SGeneLength <- GeneCalls[[m2]][PMatrix[, 2L], "Stop"] - GeneCalls[[m2]][PMatrix[, 2L], "Start"] + 1L
       ExactOverLap <- SyntenyLinks[[m1, m2]][, 3L]
-      MinGap <- abs(QGeneLength - SGeneLength)
+      # MinGap <- abs(QGeneLength - SGeneLength)
       TotalKmers <- SyntenyLinks[[m1, m2]][, 11L]
       MaxKmer <- SyntenyLinks[[m1, m2]][, 10L]
       ExteriorMissQuery <- SyntenyLinks[[m2, m1]][, 1L] + SyntenyLinks[[m2, m1]][, 2L]
@@ -304,10 +369,12 @@ PairSummaries <- function(SyntenyLinks,
             Atype[m3] <- "NT"
             Pident[m3] <- 1 - DistanceMatrix(myXStringSet = AlignSeqs(myXStringSet = c(QuerySeqs[m3],
                                                                                        SubjectSeqs[m3]),
-                                                                      verbose = FALSE),
+                                                                      verbose = FALSE,
+                                                                      ...),
                                              includeTerminalGaps = TRUE,
                                              verbose = FALSE,
-                                             type = "matrix")[1, 2]
+                                             type = "matrix",
+                                             ...)[1, 2]
           }
         } else {
           # perform amino acid alignments where possible
@@ -330,18 +397,22 @@ PairSummaries <- function(SyntenyLinks,
                                                                                sense = "+",
                                                                                direction = "5' to 3'",
                                                                                type = "DNAStringSet",
-                                                                               verbose = FALSE),
+                                                                               verbose = FALSE,
+                                                                               ...),
                                                includeTerminalGaps = TRUE,
                                                verbose = FALSE,
-                                               type = "matrix")[1, 2]
+                                               type = "matrix",
+                                               ...)[1, 2]
             } else {
               Atype[m3] <- "NT"
               Pident[m3] <- 1 - DistanceMatrix(myXStringSet = AlignSeqs(myXStringSet = c(QuerySeqs[m3],
                                                                                          SubjectSeqs[m3]),
-                                                                        verbose = FALSE),
+                                                                        verbose = FALSE,
+                                                                        ...),
                                                includeTerminalGaps = TRUE,
                                                verbose = FALSE,
-                                               type = "matrix")[1, 2]
+                                               type = "matrix",
+                                               ...)[1, 2]
             }
           }
         }
@@ -349,13 +420,15 @@ PairSummaries <- function(SyntenyLinks,
         PH[[Count]] <- data.frame("p1" = names(QuerySeqs),
                                   "p2" = names(SubjectSeqs),
                                   "ExactMatch" = ExactOverLap,
-                                  "MinGap" = MinGap,
+                                  # "MinGap" = MinGap,
                                   "TotalKmers" = TotalKmers,
                                   "MaxKmer" = MaxKmer,
                                   "InteriorQueryMiss" = InteriorMissQuery,
                                   "InteriorSubjectMiss" = InteriorMissSubject,
                                   "ExteriorQueryMiss" = ExteriorMissQuery,
                                   "ExteriorSubjectMiss" = ExteriorMissSubject,
+                                  "p1FeatureLength" = QGeneLength,
+                                  "p2FeatureLength" = SGeneLength,
                                   "PID" = Pident,
                                   "PIDType" = Atype,
                                   stringsAsFactors = FALSE)
@@ -369,13 +442,19 @@ PairSummaries <- function(SyntenyLinks,
                                                PMatrix[, 2L],
                                                sep = "_"),
                                   "ExactMatch" = ExactOverLap,
-                                  "MinGap" = MinGap,
+                                  # "MinGap" = MinGap,
                                   "TotalKmers" = TotalKmers,
                                   "MaxKmer" = MaxKmer,
                                   "InteriorQueryMiss" = InteriorMissQuery,
                                   "InteriorSubjectMiss" = InteriorMissSubject,
                                   "ExteriorQueryMiss" = ExteriorMissQuery,
                                   "ExteriorSubjectMiss" = ExteriorMissSubject,
+                                  "p1FeatureLength" = QGeneLength,
+                                  "p2FeatureLength" = SGeneLength,
+                                  "PIDType" = ifelse(test = GeneCalls[[m1]][PMatrix[, 1L], "Coding"] &
+                                                       GeneCalls[[m2]][PMatrix[, 2L], "Coding"],
+                                                     yes = "AA",
+                                                     no = "NT"),
                                   stringsAsFactors = FALSE)
       }
       
@@ -386,14 +465,39 @@ PairSummaries <- function(SyntenyLinks,
       Count <- Count + 1L
     }
   }
+  
+  DF <- do.call(rbind,
+                PH)
+  rownames(DF) <- NULL
+  
+  if (is.null(Model)) {
+    # do nothing
+  } else if (Model == "Generic") {
+    # model constructed from randomly selected prokaryotic pair alignments
+    PPids <- predict(object = Generic,
+                     DF[])
+    DF <- cbind(DF,
+                "PPids" = PPids)
+  } else if (!is.character(Model) &
+             !is.null(Model)) {
+    # user supplied model
+    PPids <- predict(object = Model,
+                     DF)
+    DF <- cbind(DF,
+                "PPids" = PPids)
+  } else if (is.character(Model) &
+             !(Model %in% c("Generic"))) {
+    cat("\n Selected model is not available.")
+  }
+  
+  
+  
   if (Verbose) {
     TimeEnd <- Sys.time()
     cat("\n")
     print(TimeEnd - TimeStart)
   }
-  DF <- do.call(rbind,
-                PH)
-  rownames(DF) <- NULL
+  
   return(DF)
 }
   
