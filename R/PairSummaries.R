@@ -45,44 +45,58 @@ PairSummaries <- function(SyntenyLinks,
   # step one, parse to different functions
   Args <- list(...)
   ArgNames <- names(Args)
+  ForbiddenArguments <- c("verbose",
+                          "includeTerminalGaps",
+                          "type",
+                          "myXStringSet",
+                          "readingFrame",
+                          "sense",
+                          "direction")
+  # return(list(Args,
+  #             ArgNames))
   
-  if ("verbose" %in% ArgNames) {
-    w <- !("verbose" %in% ArgNames)
+  if (any(ForbiddenArguments %in% ArgNames)) {
+    w <- !(ArgNames %in% ForbiddenArguments)
     Args <- Args[w]
     ArgNames <- ArgNames[w]
   }
   
-  PossibleATArgs <- names(formals(AlignTranslation))
-  m <- match(x = ArgNames,
-             table = PossibleATArgs)
+  PossibleATArgs <- unique(c(names(formals(AlignTranslation)),
+                             names(formals(AlignSeqs)),
+                             names(formals(AlignProfiles))))
+  m <- match(x = PossibleATArgs,
+             table = ArgNames)
   m <- m[!is.na(m)]
   if (length(m) > 0L) {
-    ATArgs <- PossibleATArgs[m]
+    ATArgs <- Args[m]
     rm(PossibleATArgs)
   } else {
     rm(PossibleATArgs)
   }
-  PossibleASArgs <- names(formals(AlignSeqs))
-  m <- match(x = ArgNames,
-             table = PossibleASArgs)
+  PossibleASArgs <- unique(c(names(formals(AlignSeqs)),
+                             names(formals(AlignProfiles))))
+  m <- match(x = PossibleASArgs,
+             table = ArgNames)
   m <- m[!is.na(m)]
   if (length(m) > 0L) {
-    ASArgs <- PossibleASArgs[m]
+    # myXStringSet = c(QuerySeqs[m3],
+    #                  SubjectSeqs[m3]),
+    # verbose = FALSE
+    ASArgs <- Args[m]
     rm(PossibleASArgs)
   } else {
     rm(PossibleASArgs)
   }
   PossibleDMArgs <- names(formals(DistanceMatrix))
-  m <- match(x = ArgNames,
-             table = PossibleDMArgs)
+  m <- match(x = PossibleDMArgs,
+             table = ArgNames)
   m <- m[!is.na(m)]
   if (length(m) > 0L) {
-    DMArgs <- PossibleDMArgs[m]
+    DMArgs <- Args[m]
     rm(PossibleDMArgs)
   } else {
     rm(PossibleDMArgs)
   }
-  
   
   # lifted almost whole cloth from AlignSeqs ...
   # args <- list(...)
@@ -348,6 +362,7 @@ PairSummaries <- function(SyntenyLinks,
                          length = length(QuerySeqs))
         Atype <- vector(mode = "character",
                         length = length(QuerySeqs))
+        
         # return(list(QuerySeqs,
         #             SubjectSeqs,
         #             QGeneCoding,
@@ -367,14 +382,41 @@ PairSummaries <- function(SyntenyLinks,
           # perform all alignments in nucleotide space
           for (m3 in seq_along(SubjectSeqs)) {
             Atype[m3] <- "NT"
-            Pident[m3] <- 1 - DistanceMatrix(myXStringSet = AlignSeqs(myXStringSet = c(QuerySeqs[m3],
-                                                                                       SubjectSeqs[m3]),
-                                                                      verbose = FALSE,
-                                                                      ...),
-                                             includeTerminalGaps = TRUE,
-                                             verbose = FALSE,
-                                             type = "matrix",
-                                             ...)[1, 2]
+            if ("ASArgs" %in% ls()) {
+              CurrentASArgs <- c(list("myXStringSet" = c(QuerySeqs[m3],
+                                                         SubjectSeqs[m3]),
+                                      "verbose" = FALSE),
+                                 ASArgs)
+              
+            } else {
+              CurrentASArgs <- list("myXStringSet" = c(QuerySeqs[m3],
+                                                       SubjectSeqs[m3]),
+                                    "verbose" = FALSE)
+            }
+            ph01 <- do.call(what = AlignSeqs,
+                            args = CurrentASArgs)
+            if ("DMArgs" %in% ls()) {
+              CurrentDMArgs <- c(list("myXStringSet" = ph01,
+                                      "includeTerminalGaps" = TRUE,
+                                      "verbose" = FALSE,
+                                      "type" = "matrix"),
+                                 DMArgs)
+            } else {
+              CurrentDMArgs <- list("myXStringSet" = ph01,
+                                    "includeTerminalGaps" = TRUE,
+                                    "verbose" = FALSE,
+                                    "type" = "matrix")
+            }
+            Pident[m3] <- 1 - do.call(what = DistanceMatrix,
+                                      args = CurrentDMArgs)[1, 2]
+            # Pident[m3] <- 1 - DistanceMatrix(myXStringSet = AlignSeqs(myXStringSet = c(QuerySeqs[m3],
+            #                                                                            SubjectSeqs[m3]),
+            #                                                           verbose = FALSE,
+            #                                                           ...),
+            #                                  includeTerminalGaps = TRUE,
+            #                                  verbose = FALSE,
+            #                                  type = "matrix",
+            #                                  ...)[1, 2]
           }
         } else {
           # perform amino acid alignments where possible
@@ -391,28 +433,91 @@ PairSummaries <- function(SyntenyLinks,
               #                                  includeTerminalGaps = TRUE,
               #                                  verbose = FALSE,
               #                                  type = "matrix")[1, 2]
-              Pident[m3] <- 1 - DistanceMatrix(myXStringSet = AlignTranslation(myXStringSet = c(QuerySeqs[m3],
-                                                                                                SubjectSeqs[m3]),
-                                                                               readingFrame = 1,
-                                                                               sense = "+",
-                                                                               direction = "5' to 3'",
-                                                                               type = "DNAStringSet",
-                                                                               verbose = FALSE,
-                                                                               ...),
-                                               includeTerminalGaps = TRUE,
-                                               verbose = FALSE,
-                                               type = "matrix",
-                                               ...)[1, 2]
+              if ("ATArgs" %in% ls()) {
+                CurrentATArgs <- c(list("myXStringSet" = c(QuerySeqs[m3],
+                                                           SubjectSeqs[m3]),
+                                        "readingFrame" = 1,
+                                        "sense" = "+",
+                                        "direction" = "5' to 3'",
+                                        "type" = "DNAStringSet",
+                                        "verbose" = FALSE),
+                                   ATArgs)
+                
+              } else {
+                CurrentATArgs <- list("myXStringSet" = c(QuerySeqs[m3],
+                                                         SubjectSeqs[m3]),
+                                      "readingFrame" = 1,
+                                      "sense" = "+",
+                                      "direction" = "5' to 3'",
+                                      "type" = "DNAStringSet",
+                                      "verbose" = FALSE)
+              }
+              # return(CurrentATArgs)
+              ph01 <- do.call(what = AlignTranslation,
+                              args = CurrentATArgs)
+              if ("DMArgs" %in% ls()) {
+                CurrentDMArgs <- c(list("myXStringSet" = ph01,
+                                        "includeTerminalGaps" = TRUE,
+                                        "verbose" = FALSE,
+                                        "type" = "matrix"),
+                                   DMArgs)
+              } else {
+                CurrentDMArgs <- list("myXStringSet" = ph01,
+                                      "includeTerminalGaps" = TRUE,
+                                      "verbose" = FALSE,
+                                      "type" = "matrix")
+              }
+              Pident[m3] <- 1 - do.call(what = DistanceMatrix,
+                                        args = CurrentDMArgs)[1, 2]
+              # Pident[m3] <- 1 - DistanceMatrix(myXStringSet = AlignTranslation(myXStringSet = c(QuerySeqs[m3],
+              #                                                                                   SubjectSeqs[m3]),
+              #                                                                  readingFrame = 1,
+              #                                                                  sense = "+",
+              #                                                                  direction = "5' to 3'",
+              #                                                                  type = "DNAStringSet",
+              #                                                                  verbose = FALSE,
+              #                                                                  ...),
+              #                                  includeTerminalGaps = TRUE,
+              #                                  verbose = FALSE,
+              #                                  type = "matrix",
+              #                                  ...)[1, 2]
             } else {
               Atype[m3] <- "NT"
-              Pident[m3] <- 1 - DistanceMatrix(myXStringSet = AlignSeqs(myXStringSet = c(QuerySeqs[m3],
-                                                                                         SubjectSeqs[m3]),
-                                                                        verbose = FALSE,
-                                                                        ...),
-                                               includeTerminalGaps = TRUE,
-                                               verbose = FALSE,
-                                               type = "matrix",
-                                               ...)[1, 2]
+              if ("ASArgs" %in% ls()) {
+                CurrentASArgs <- c(list("myXStringSet" = c(QuerySeqs[m3],
+                                                           SubjectSeqs[m3]),
+                                        "verbose" = FALSE),
+                                   ASArgs)
+                
+              } else {
+                CurrentASArgs <- list("myXStringSet" = c(QuerySeqs[m3],
+                                                         SubjectSeqs[m3]),
+                                      "verbose" = FALSE)
+              }
+              ph01 <- do.call(what = AlignSeqs,
+                              args = CurrentASArgs)
+              if ("DMArgs" %in% ls()) {
+                CurrentDMArgs <- c(list("myXStringSet" = ph01,
+                                        "includeTerminalGaps" = TRUE,
+                                        "verbose" = FALSE,
+                                        "type" = "matrix"),
+                                   DMArgs)
+              } else {
+                CurrentDMArgs <- list("myXStringSet" = ph01,
+                                      "includeTerminalGaps" = TRUE,
+                                      "verbose" = FALSE,
+                                      "type" = "matrix")
+              }
+              Pident[m3] <- 1 - do.call(what = DistanceMatrix,
+                                        args = CurrentDMDMArgs)[1, 2]
+              # Pident[m3] <- 1 - DistanceMatrix(myXStringSet = AlignSeqs(myXStringSet = c(QuerySeqs[m3],
+              #                                                                            SubjectSeqs[m3]),
+              #                                                           verbose = FALSE,
+              #                                                           ...),
+              #                                  includeTerminalGaps = TRUE,
+              #                                  verbose = FALSE,
+              #                                  type = "matrix",
+              #                                  ...)[1, 2]
             }
           }
         }
