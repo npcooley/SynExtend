@@ -1,3 +1,9 @@
+# SynExtend 1.3.5
+
+* `PairSummaries` now translates sequences based on `transl_table` attributes provided by gene calls
+* `PairSummaries` now uses a generic model for predicting PID
+* `gffToDataFrame` now parses out the `transl_table` attribute
+
 # SynExtend 1.3.2
 
 * Minor changes to `NucleotideOverlap`

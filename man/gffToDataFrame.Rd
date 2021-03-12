@@ -19,10 +19,10 @@ gffToDataFrame(GFF,
 A url or filepath specifying a gff3 file to import
 }
   \item{AdditionalAttrs}{
-A vector of character strings to designate the attributes to pull. Default Attributes include: ''ID'', ''Parent'', ''Name'', ''gbkey'', ''gene'', ''product'', ''protein_id'', ''gene_biotype'', and ''Note''.
+A vector of character strings to designate the attributes to pull. Default Attributes include: ``ID'', ``Parent'', ``Name'', ``gbkey'', ``gene'', ``product'', ``protein_id'', ``gene_biotype'', ``transl_table'', and ``Note''.
 }
   \item{AdditionalTypes}{
-A vector of character strings to query from the the ''Types'' column. Default types are limited to ''Gene'' and ''Pseudogene'', but any possible entry for ''Type'' in a gff3 format can be added, such as ''rRNA'', or ''CRISPR_REPEAT''.
+A vector of character strings to query from the the ``Types'' column. Default types are limited to ``Gene'' and ``Pseudogene'', but any possible entry for ``Type'' in a gff3 format can be added, such as ``rRNA'', or ``CRISPR_REPEAT''.
 }
   \item{RawTableOnly}{
 Logical specifying whether to return the raw imported GFF without complex parsing. Remains as a holdover from function construction and debugging. For simple gff3 import see \code{rtracklayer::import}.

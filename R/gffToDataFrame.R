@@ -64,7 +64,8 @@ gffToDataFrame <- function(GFF,
                    "product",
                    "protein_id",
                    "gene_biotype",
-                   "Note")
+                   "Note",
+                   "transl_table")
   
   if (!is.null(AdditionalAttrs)) {
     CollectAttr <- c(CollectAttr,
@@ -235,6 +236,8 @@ gffToDataFrame <- function(GFF,
                      length = nrow(MatchTable))
   ParseNote <- vector(mode = "list",
                       length = nrow(MatchTable))
+  Translation_Table <- rep(NA_character_,
+                           length(nrow(MatchTable)))
   
   for (m1 in seq_len(nrow(MatchTable))) {
     if (nrow(AllChildrenList[[m1]]) == 0L &
@@ -308,6 +311,7 @@ gffToDataFrame <- function(GFF,
       CodingSelect[m1] <- TRUE
       CurrentTable <- rbind(MatchTable[m1, ],
                             AllCDSChildrenList[[m1]])
+      Translation_Table[m1] <- unique(CurrentTable$transl_table[!is.na(CurrentTable$transl_table)])[1L]
       # Parse Product Line
       if (all(is.na(CurrentTable$product))) {
         ProductLine[m1] <- ""
@@ -381,6 +385,7 @@ gffToDataFrame <- function(GFF,
                           # "AnnotationNote" = NoteLine,
                           # "ParseNotes" = ParseNote,
                           # stringsAsFactors = FALSE,
+                          "Translation_Table" = Translation_Table,
                           "Product" = ProductLine)
   
   MatchTable <- MatchTable[, c("Index",
@@ -394,6 +399,7 @@ gffToDataFrame <- function(GFF,
                                # "AnnotationNote",
                                # "gene_biotype",
                                "Coding",
+                               "Translation_Table",
                                "Contig")]
   rownames(MatchTable) <- NULL
   

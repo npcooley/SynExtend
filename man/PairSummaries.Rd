@@ -14,6 +14,7 @@ PairSummaries(SyntenyLinks,
               IgnoreDefaultStringSet = FALSE,
               Verbose = FALSE,
               Model = "Generic",
+              DefaultTranslationTable = "11",
               ...)
 }
 \arguments{
@@ -40,6 +41,9 @@ Arguments to be passed to \code{AlignTranslation}, \code{AlignSeqs}, and \code{D
 }
   \item{Model}{
 A character string specifying a model to use to predict PIDs without performing an alignment. By default this is ``Generic'', currently no other models are included. User's may also supply their own model of type ``glm'' if they so desire.
+}
+  \item{DefaultTranslationTable}{
+A character used to set the default translation table for \code{AlignTranslation}. Is passed to \code{getGeneticCode}. Used when no translation table is specified in the ``GeneCalls'' object.
 }
 }
 \details{

@@ -9,6 +9,7 @@ PairSummaries <- function(SyntenyLinks,
                           IgnoreDefaultStringSet = FALSE,
                           Verbose = FALSE,
                           Model = "Generic",
+                          DefaultTranslationTable = "11",
                           ...) {
   if (Verbose) {
     TimeStart <- Sys.time()
@@ -51,7 +52,8 @@ PairSummaries <- function(SyntenyLinks,
                           "myXStringSet",
                           "readingFrame",
                           "sense",
-                          "direction")
+                          "direction",
+                          "geneticCode")
   # return(list(Args,
   #             ArgNames))
   
@@ -170,19 +172,14 @@ PairSummaries <- function(SyntenyLinks,
       StopConversion <- StopConversion[o]
       LengthsConversion <- LengthsConversion[o]
       
-      FeatureRepresentations[[m1]] <- matrix(data = c(IndexConversion,
-                                                      StrandConversion,
-                                                      StartConversion,
-                                                      StopConversion,
-                                                      LengthsConversion),
-                                             nrow = length(o),
-                                             ncol = 5L)
-      
-      colnames(FeatureRepresentations[[m1]]) <- c("Index",
-                                                  "Strand",
-                                                  "Start",
-                                                  "Stop",
-                                                  "Lengths")
+      FeatureRepresentations[[m1]] <- data.frame("Index" = IndexConversion,
+                                                 "Strand" = StrandConversion,
+                                                 "Start" = StartConversion,
+                                                 "Stop" = StopConversion,
+                                                 "Lengths" = LengthsConversion,
+                                                 "Translation_Table" = rep(NA_character_,
+                                                                           length(o)),
+                                                 stringsAsFactors = FALSE)
       
       # no synteny object requested, cannot perform this test ...
       # if (any(StopConversion > SyntenyObject[[m1, m1]][1])) {
@@ -220,8 +217,11 @@ PairSummaries <- function(SyntenyLinks,
                      "Gene" = ifelse(test = ans[, "Gene"] > 0L,
                                      yes = TRUE,
                                      no = FALSE),
-                     "Coding" = rep(TRUE,
-                                    nrow(ans)))
+                     "Translation_Table" = rep(NA_character_,
+                                               nrow(ans)),
+                     "Coding" = ifelse(test = ans[, "Gene"] > 0L,
+                                       yes = TRUE,
+                                       no = FALSE))
       D <- D[as.vector(ans[, "Gene"]) != 0, ]
       rownames(D) <- NULL
       FeatureRepresentations[[m1]] <- D
@@ -295,8 +295,10 @@ PairSummaries <- function(SyntenyLinks,
       InteriorMissSubject <- SGeneLength - (ExactOverLap + ExteriorMissSubject)
       QGeneStrand <- GeneCalls[[m1]][PMatrix[, 1L], "Strand"]
       QGeneCoding <- GeneCalls[[m1]][PMatrix[, 1L], "Coding"]
+      QGeneTransl <- GeneCalls[[m1]][PMatrix[, 1L], "Translation_Table"]
       SGeneStrand <- GeneCalls[[m2]][PMatrix[, 2L], "Strand"]
       SGeneCoding <- GeneCalls[[m2]][PMatrix[, 2L], "Coding"]
+      SGeneTransl <- GeneCalls[[m2]][PMatrix[, 2L], "Translation_Table"]
       
       # collect PIDs if user requests
       # as of the writing of this function extractAt does not recycle x,
@@ -434,22 +436,62 @@ PairSummaries <- function(SyntenyLinks,
               #                                  verbose = FALSE,
               #                                  type = "matrix")[1, 2]
               if ("ATArgs" %in% ls()) {
+                gC1 <- if (is.na(QGeneTransl[m3])) {
+                  getGeneticCode(id_or_name2 = DefaultTranslationTable,
+                                 full.search = FALSE,
+                                 as.data.frame = FALSE)
+                } else {
+                  getGeneticCode(id_or_name2 = QGeneTransl[m3],
+                                 full.search = FALSE,
+                                 as.data.frame = FALSE)
+                }
+                gC2 <- if (is.na(SGeneTransl[m3])) {
+                  getGeneticCode(id_or_name2 = DefaultTranslationTable,
+                                 full.search = FALSE,
+                                 as.data.frame = FALSE)
+                } else {
+                  getGeneticCode(id_or_name2 = SGeneTransl[m3],
+                                 full.search = FALSE,
+                                 as.data.frame = FALSE)
+                }
                 CurrentATArgs <- c(list("myXStringSet" = c(QuerySeqs[m3],
                                                            SubjectSeqs[m3]),
                                         "readingFrame" = 1,
                                         "sense" = "+",
                                         "direction" = "5' to 3'",
                                         "type" = "DNAStringSet",
+                                        "geneticCode" = list(gC1,
+                                                             gC2),
                                         "verbose" = FALSE),
                                    ATArgs)
                 
               } else {
+                gC1 <- if (is.na(QGeneTransl[m3])) {
+                  getGeneticCode(id_or_name2 = DefaultTranslationTable,
+                                 full.search = FALSE,
+                                 as.data.frame = FALSE)
+                } else {
+                  getGeneticCode(id_or_name2 = QGeneTransl[m3],
+                                 full.search = FALSE,
+                                 as.data.frame = FALSE)
+                }
+                gC2 <- if (is.na(SGeneTransl[m3])) {
+                  getGeneticCode(id_or_name2 = DefaultTranslationTable,
+                                 full.search = FALSE,
+                                 as.data.frame = FALSE)
+                } else {
+                  getGeneticCode(id_or_name2 = SGeneTransl[m3],
+                                 full.search = FALSE,
+                                 as.data.frame = FALSE)
+                }
                 CurrentATArgs <- list("myXStringSet" = c(QuerySeqs[m3],
                                                          SubjectSeqs[m3]),
                                       "readingFrame" = 1,
                                       "sense" = "+",
                                       "direction" = "5' to 3'",
                                       "type" = "DNAStringSet",
+                                      "geneticCode" = list(gC1,
+                                                           gC2),
                                       "verbose" = FALSE)
               }
               # return(CurrentATArgs)
@@ -509,7 +551,7 @@ PairSummaries <- function(SyntenyLinks,
                                       "type" = "matrix")
               }
               Pident[m3] <- 1 - do.call(what = DistanceMatrix,
-                                        args = CurrentDMDMArgs)[1, 2]
+                                        args = CurrentDMArgs)[1, 2]
               # Pident[m3] <- 1 - DistanceMatrix(myXStringSet = AlignSeqs(myXStringSet = c(QuerySeqs[m3],
               #                                                                            SubjectSeqs[m3]),
               #                                                           verbose = FALSE,
