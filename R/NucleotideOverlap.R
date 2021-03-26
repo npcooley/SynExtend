@@ -5,6 +5,7 @@
 NucleotideOverlap <- function(SyntenyObject,
                               GeneCalls,
                               LimitIndex = FALSE,
+                              AcceptContigNames = TRUE,
                               Verbose = FALSE) {
   ######
   # Error Checking
@@ -50,16 +51,24 @@ NucleotideOverlap <- function(SyntenyObject,
   
   ###### -- Deal with Different GeneCall types --------------------------------
   
+  SynNames <- unname(sapply(diag(SyntenyObject),
+                            function(x) gsub(x = names(x),
+                                             pattern = " .+",
+                                             replacement = ""),
+                            simplify = FALSE,
+                            USE.NAMES = FALSE))
   FeatureRepresentations <- vector(mode = "list",
                                    length = L)
+  names(FeatureRepresentations) <- names(GeneCalls)
+  ContigNames <- vector(mode = "list",
+                        length = L)
   
   GCallClasses <- sapply(GeneCalls,
                          function(x) class(x),
                          USE.NAMES = FALSE,
                          simplify = TRUE)
   if (any(GCallClasses == "GRanges")) {
-    LimitIndex <- TRUE
-    warning("GRanges objects currently only support single contig inputs.")
+    warning("GRanges support is tenuous, exercise caution.")
   }
   IndexMatching <- vector("integer",
                           length = length(GeneCalls))
@@ -80,16 +89,17 @@ NucleotideOverlap <- function(SyntenyObject,
   for (m1 in seq_along(GeneCalls)) {
     if (is(GeneCalls[[m1]],
            "GRanges")) {
+      # if GRanges, force contig name matching
+      # stop if a contig name exists in the synteny object that
+      # does not exist in the GRanges object
       
-      if (length(levels(GeneCalls[[m1]]@seqnames)) > 1L) {
-        
-        warning(paste("GRange object ",
-                      m1,
-                      " contains more than 1 index and has been truncated.",
-                      sep = ""))
-        IndexPlaceHolder <- as.character(GeneCalls[[m1]]@seqnames)[1L]
-        GeneCalls[[m1]] <- GeneCalls[[m1]][as.character(GeneCalls[[m1]]@seqnames == IndexPlaceHolder), ]
-        
+      ContigNames[[m1]] <- seq(length(GeneCalls[[m1]]@seqnames@lengths))
+      names(ContigNames[[m1]]) <- unique(GeneCalls[[m1]]@seqnames@values)[ContigNames[[m1]]]
+      
+      if (any(is.na(match(x = names(ContigNames[[m1]]),
+                          table = SynNames[[m1]])))) {
+        stop (paste0("Contig names imply inorrectly matched objects at diag position ",
+                     names(GeneCalls)[m1]))
       }
       
       TypePlaceHolder <- as.character(GeneCalls[[m1]]$type)
@@ -100,13 +110,36 @@ NucleotideOverlap <- function(SyntenyObject,
                                  no = 1L)
       StartConversion <- GeneCalls[[m1]]@ranges@start
       StopConversion <- GeneCalls[[m1]]@ranges@start + GeneCalls[[m1]]@ranges@width - 1L
-      IndexConversion <- rep(1L,
-                             length(StartConversion))
-      LengthsConversion <- StopConversion - StartConversion + 1L
+      # assign integer positions to contings
+      IndexConversion <- rep(unname(ContigNames[[m1]]),
+                             GeneCalls[[m1]]@seqnames@lengths)
       
-      o <- order(StartConversion)
+      LengthsConversion <- StopConversion - StartConversion + 1L
+      # reorder and reindex lines
+      C.Index <- IndexConversion
+      ph1 <- unname(ContigNames[[m1]])
+      ph2 <- match(x = names(ContigNames[[m1]]),
+                   table = SynNames[[m1]])
+      ph3 <- vector(mode = "list",
+                    length = length(ph1))
+      for (m3 in seq_along(ph1)) {
+        ph3[[m3]] <- which(C.Index == ph1[m3])
+      }
+      for (m3 in seq_along(ph1)) {
+        if (length(ph3) > 0L) {
+          C.Index <- replace(x = C.Index,
+                             list = ph3[[m3]],
+                             values = ph2[m3])
+        }
+      }
+      rm(list = c("ph1",
+                  "ph2",
+                  "ph3"))
+      o <- order(C.Index,
+                 StartConversion)
+      
       StrandConversion <- StrandConversion[o]
-      IndexConversion <- IndexConversion[o]
+      IndexConversion <- C.Index[o]
       StartConversion <- StartConversion[o]
       StopConversion <- StopConversion[o]
       LengthsConversion <- LengthsConversion[o]
@@ -119,24 +152,64 @@ NucleotideOverlap <- function(SyntenyObject,
                                              nrow = length(o),
                                              ncol = 5L)
       
-      if (any(StopConversion > SyntenyObject[[m1, m1]][1])) {
-        FeatureRepresentations[[m1]] <- FeatureRepresentations[[m1]][-which(StopConversion > SyntenyObject[[m1, m1]][1]), ]
-      }
-      
+      StrandMax <- rep(unname(SyntenyObject[[m1, m1]]),
+                       table(IndexConversion))
+      FeatureRepresentations[[m1]] <- FeatureRepresentations[[m1]][StopConversion <= StrandMax, ]
       rm(list = c("IndexConversion",
                   "StrandConversion",
                   "StartConversion",
                   "StopConversion",
                   "LengthsConversion"))
       
+      ph <- seq(length(ContigNames[[m1]]))
+      # ph <- unname(SyntenyObject[[m1, m1]])
+      names(ph) <- SynNames[[m1]]
+      ContigNames[[m1]] <- ph
+      
     } else if (is(GeneCalls[[m1]],
                   "DFrame")) {
       
-      o <- order(GeneCalls[[m1]][, "Index"], GeneCalls[[m1]][, "Start"])
-      CurrentStarts <- as.integer(GeneCalls[[m1]]$Start)[o]
+      ph <- unique(GeneCalls[[m1]][, c("Index", "Contig")])
+      ContigNames[[m1]] <- ph$Index
+      names(ContigNames[[m1]]) <- ph$Contig
+      rm(list = c("ph"))
+      
+      CurrentIndices <- as.integer(GeneCalls[[m1]]$Index)
+      CurrentStarts <- as.integer(GeneCalls[[m1]]$Start)
+      if (AcceptContigNames) {
+        C.Index <- CurrentIndices
+        ph1 <- unname(ContigNames[[m1]])
+        ph2 <- match(x = names(ContigNames[[m1]]),
+                     table = SynNames[[m1]])
+        ph3 <- vector(mode = "list",
+                      length = length(ph1))
+        for (m3 in seq_along(ph1)) {
+          ph3[[m3]] <- which(C.Index == ph1[m3])
+        }
+        for (m3 in seq_along(ph1)) {
+          if (length(ph3) > 0L) {
+            C.Index <- replace(x = C.Index,
+                               list = ph3[[m3]],
+                               values = ph2[m3])
+          }
+        }
+        rm(list = c("ph1",
+                    "ph2",
+                    "ph3"))
+        o <- order(C.Index,
+                   CurrentStarts)
+      } else {
+        o <- order(CurrentIndices,
+                   CurrentStarts)
+      }
+      CurrentStarts <- CurrentStarts[o]
       CurrentStops <- as.integer(GeneCalls[[m1]]$Stop)[o]
       CurrentStrands <- as.integer(GeneCalls[[m1]]$Strand)[o]
-      CurrentIndices <- as.integer(GeneCalls[[m1]]$Index)[o]
+      if (AcceptContigNames) {
+        CurrentIndices <- C.Index[o]
+      } else {
+        CurrentIndices <- CurrentIndices[o]
+      }
       CurrentLengths <- CurrentStops - CurrentStarts + 1L
       
       FeatureRepresentations[[m1]] <- matrix(data = c(CurrentIndices,
@@ -151,36 +224,110 @@ NucleotideOverlap <- function(SyntenyObject,
                   "CurrentStarts",
                   "CurrentStops",
                   "CurrentLengths"))
+      
     } else if (is(GeneCalls[[m1]],
                   "Genes")) {
       # convert Erik's gene calls to a temporary DataFrame
       # the column "Gene" assigns whether or not that particular line is the gene
       # that the caller actually picked, calls must be subset to where Gene == 1
       ans <- GeneCalls[[m1]]
+      
+      CurrentIndices <- as.integer(ans[, "Index"])
+      CurrentStarts <- as.integer(ans[, "Begin"])
+      CurrentStrand <- as.integer(ans[, "Strand"])
+      CurrentStops <- as.integer(ans[, "End"])
+      CurrentType <- rep("gene",
+                         nrow(ans))
+      CurrentGene <- as.integer(ans[, "Gene"])
+      CurrentCoding <- ifelse(test = CurrentGene > 0L,
+                              yes = TRUE,
+                              no = FALSE)
       R <- mapply(function(x, y) IRanges(start = x,
                                          end = y),
                   x = ans[, "Begin"],
                   y = ans[, "End"],
                   SIMPLIFY = FALSE)
-      D <- DataFrame("Index" = as.integer(ans[, "Index"]),
-                     "Strand" = as.integer(ans[, "Strand"]),
-                     "Start" = as.integer(ans[, "Begin"]),
-                     "Stop" = as.integer(ans[, "End"]),
-                     "Type" = rep("gene",
-                                  nrow(ans)),
+      ContigNames[[m1]] <- unique(CurrentIndices)
+      names(ContigNames[[m1]]) <- gsub(x = names(attr(ans, "widths")),
+                                       pattern = " .+",
+                                       replacement = "")
+      if (AcceptContigNames) {
+        C.Index <- CurrentIndices
+        ph1 <- unname(ContigNames[[m1]])
+        ph2 <- match(x = names(ContigNames[[m1]]),
+                     table = SynNames[[m1]])
+        ph3 <- vector(mode = "list",
+                      length = length(ph1))
+        for (m3 in seq_along(ph1)) {
+          ph3[[m3]] <- which(C.Index == ph1[m3])
+        }
+        for (m3 in seq_along(ph1)) {
+          if (length(ph3) > 0L) {
+            C.Index <- replace(x = C.Index,
+                               list = ph3[[m3]],
+                               values = ph2[m3])
+          }
+        }
+        rm(list = c("ph1",
+                    "ph2",
+                    "ph3"))
+        o <- order(C.Index,
+                   CurrentStarts)
+      } else {
+        # there should be no need to generically re-order a GeneCalls object
+        # unless it has been fiddled with by the user, but we'll include this anyway
+        o <- order(CurrentIndices,
+                   CurrentStarts)
+      }
+      D <- DataFrame("Index" = CurrentIndices,
+                     "Strand" = CurrentStrand,
+                     "Start" = CurrentStarts,
+                     "Stop" = CurrentStops,
+                     "Type" = CurrentType,
                      "Range" = IRangesList(R),
-                     "Gene" = as.integer(ans[, "Gene"]),
-                     "Coding" = rep(TRUE,
-                                    nrow(ans)))
-      D <- D[as.vector(ans[, "Gene"]) == 1L, ]
+                     "Gene" = CurrentGene,
+                     "Coding" = CurrentCoding)
+      D <- D[o, ]
+      D <- D[as.vector(ans[, "Gene"]) != 0L, ]
       rownames(D) <- NULL
       FeatureRepresentations[[m1]] <- D
+      # ContigNames[[m1]] <- unique(D$Index)
+      # names(ContigNames[[m1]]) <- ContigNames[[m1]]
+      
       
       rm(list = c("D",
                   "ans",
-                  "R"))
+                  "R",
+                  "CurrentIndices",
+                  "CurrentStarts",
+                  "CurrentStrand",
+                  "CurrentStops",
+                  "CurrentType",
+                  "CurrentGene",
+                  "CurrentCoding"))
     }
   }
+  if (AcceptContigNames) {
+    for (m1 in seq_along(ContigNames)) {
+      if (any(is.na(match(x = names(ContigNames[[m1]]),
+                          table = SynNames[[m1]])))) {
+        stop (paste0("Contig names imply incorrectly matched objects at diag position ",
+                     names(GeneCalls)[m1]))
+      } else {
+        ph <- unname(SyntenyObject[[m1, m1]])
+        # ph <- seq(length(ContigNames[[m1]]))
+        names(ph) <- SynNames[[m1]]
+        ContigNames[[m1]] <- ph
+      }
+    }
+  } else {
+    for (m1 in seq_along(ContigNames)) {
+      ph <- unname(SyntenyObject[[m1, m1]])
+      names(ph) <- SynNames[[m1]]
+      ContigNames[[m1]] <- ph
+    }
+  }
+  diag(ResultMatrix) <- ContigNames
   
   ###### -- End Gene call stuff -----------------------------------------------
   
@@ -191,18 +338,86 @@ NucleotideOverlap <- function(SyntenyObject,
       # Collect Index Start Stop and Strand from current subject and query gene calls
       # Collect Index Start Stop Strand from hit table
       ######
-
+      
+      Q.Index <- FeatureRepresentations[[m1]][, 1L]
       Q.Start <- FeatureRepresentations[[m1]][, 3L]
       Q.Stop <- FeatureRepresentations[[m1]][, 4L]
-      Q.Index <- FeatureRepresentations[[m1]][, 1L]
       QG.Strand <- FeatureRepresentations[[m1]][, 2L]
       
+      S.Index <- FeatureRepresentations[[m2]][, 1L]
       S.Start <- FeatureRepresentations[[m2]][, 3L]
       S.Stop <- FeatureRepresentations[[m2]][, 4L]
-      S.Index <- FeatureRepresentations[[m2]][, 1L]
       SG.Strand <- FeatureRepresentations[[m2]][, 2L]
       
+      # if (AcceptContigNames) {
+      #   Q.Index <- FeatureRepresentations[[m1]][, 1L]
+      #   ph1 <- unname(ContigNames[[m1]])
+      #   ph2 <- match(x = names(ContigNames[[m1]]),
+      #                table = SynNames[[m1]])
+      #   ph3 <- vector(mode = "list",
+      #                 length = length(ph1))
+      #   for (m3 in seq_along(ph1)) {
+      #     ph3[[m3]] <- which(Q.Index == ph1[m3])
+      #   }
+      #   for (m3 in seq_along(ph1)) {
+      #     if (length(ph3) > 0L) {
+      #       Q.Index <- replace(x = Q.Index,
+      #                          list = ph3[[m3]],
+      #                          values = ph2[m3])
+      #     }
+      #   }
+      #   rm(list = c("ph1",
+      #               "ph2",
+      #               "ph3"))
+      #   S.Index <- FeatureRepresentations[[m2]][, 1L]
+      #   ph1 <- unname(ContigNames[[m2]])
+      #   ph2 <- match(x = names(ContigNames[[m2]]),
+      #                table = SynNames[[m2]])
+      #   ph3 <- vector(mode = "list",
+      #                 length = length(ph1))
+      #   for (m3 in seq_along(ph1)) {
+      #     ph3[[m3]] <- which(S.Index == ph1[m3])
+      #   }
+      #   for (m3 in seq_along(ph2)) {
+      #     if (length(ph3[[m3]]) > 0L) {
+      #       S.Index <- replace(x = S.Index,
+      #                          list = ph3[[m3]],
+      #                          values = ph2[m3])
+      #     }
+      #   }
+      #   rm(list = c("ph1",
+      #               "ph2",
+      #               "ph3"))
+      #   o <- order(S.Index,
+      #              S.Start)
+      #   S.Start <- S.Start[o]
+      #   S.Stop <- S.Stop[o]
+      #   SG.Strand <- SG.Strand[o]
+      #   S.Index <- S.Index[o]
+      #   o <- order(Q.Index,
+      #              Q.Start)
+      #   Q.Start <- Q.Start[o]
+      #   Q.Stop <- Q.Stop[o]
+      #   QG.Strand <- QG.Strand[o]
+      #   Q.Index <- Q.Index[o]
+      #   rm(list = c("o"))
+      # } else {
+      #   Q.Index <- FeatureRepresentations[[m1]][, 1L]
+      #   S.Index <- FeatureRepresentations[[m2]][, 1L]
+      # }
+      
       CurrentHitTable <- SyntenyObject[m1, m2, drop = FALSE][[1]]
+      # return(list(unique(CurrentHitTable[, 1:2]),
+      #             FeatureRepresentations[[m1]],
+      #             FeatureRepresentations[[m2]],
+      #             LimitIndex,
+      #             diag(ResultMatrix),
+      #             SynNames,
+      #             FeatureRepresentations,
+      #             Q.Index,
+      #             FeatureRepresentations[[m1]][, 1L],
+      #             S.Index,
+      #             FeatureRepresentations[[m2]][, 1L]))
       if (LimitIndex) {
         ######
         # Select current hit table, subset to only single index
@@ -259,10 +474,25 @@ NucleotideOverlap <- function(SyntenyObject,
       QueryMatrix <- matrix(NA_integer_,
                             nrow = 8L,
                             ncol = nrow(CurrentHitTable))
+      # return(list(CurrentHitTable,
+      #             FeatureRepresentations,
+      #             Q.Index,
+      #             S.Index))
       HitCounter <- 1L
       AddCounter <- 1L
       DimLimit <- nrow(CurrentHitTable) / 2
       DimAdjust <- 2L
+      
+      # return(list(Q.Start,
+      #             Q.Stop,
+      #             QG.Strand,
+      #             Q.Index,
+      #             S.Start,
+      #             S.Stop,
+      #             SG.Strand,
+      #             S.Index,
+      #             SHI))
+      
       for (z1 in seq_along(Q.Start)) {
         ######
         # loop through the starts of the query genes as they have been ordered
@@ -482,6 +712,7 @@ NucleotideOverlap <- function(SyntenyObject,
                                  "QueryIndex", # index that was matched between the hit and the gene in the query
                                  "SubjectIndex" # index (chromosome, plasmid, whatever) of the hit in the subject
                                  )
+      # return(QueryMatrix)
       ######
       # Remove unfilled extra rows
       ######
@@ -525,6 +756,13 @@ NucleotideOverlap <- function(SyntenyObject,
         Q.HitEnds <- QueryMatrix[, "QueryNucleotideOverLapRight"]
         QueryIndices <- QueryMatrix[, "QueryIndex"]
         SubjectHitIndex <- QueryMatrix[, "SubjectIndex"]
+        
+        # return(list(QueryMatrix,
+        #             S.Start,
+        #             S.Stop,
+        #             S.Index,
+        #             FeatureRepresentations[[m1]],
+        #             FeatureRepresentations[[m2]]))
         for (z2 in seq_along(S.Start)) {
           ######
           # Loop through the subject genes
@@ -686,6 +924,7 @@ NucleotideOverlap <- function(SyntenyObject,
           }
         }
       }
+      
       OverLapMatrix <- t(OverLapMatrix)
       ######
       # Remove empty extra rows
@@ -693,12 +932,6 @@ NucleotideOverlap <- function(SyntenyObject,
       OverLapMatrix <- OverLapMatrix[apply(OverLapMatrix,
                                            1L,
                                            function(x) !all(is.na(x))),
-                                     ,
-                                     drop = FALSE]
-      OverLapMatrix <- OverLapMatrix[order(OverLapMatrix[, 1L, drop = FALSE],
-                                           OverLapMatrix[, 2L, drop = FALSE],
-                                           OverLapMatrix[, 4L, drop = FALSE],
-                                           OverLapMatrix[, 5L, drop = FALSE]),
                                      ,
                                      drop = FALSE]
       ######
@@ -714,6 +947,12 @@ NucleotideOverlap <- function(SyntenyObject,
                                nrow = 1L,
                                ncol = 11L)
       } else if (dim(OverLapMatrix)[1] >= 1L) {
+        OverLapMatrix <- OverLapMatrix[order(OverLapMatrix[, 1L, drop = FALSE],
+                                             OverLapMatrix[, 2L, drop = FALSE],
+                                             OverLapMatrix[, 4L, drop = FALSE],
+                                             OverLapMatrix[, 5L, drop = FALSE]),
+                                       ,
+                                       drop = FALSE]
         OutPutMatrix <- matrix(NA_integer_,
                                ncol = 11L,
                                nrow = nrow(OverLapMatrix))
@@ -779,6 +1018,8 @@ NucleotideOverlap <- function(SyntenyObject,
                                   "SRightPos",
                                   "MaxKmerSize",
                                   "TotalKmerHits")
+      # return(list(OverLapMatrix,
+      #             OutPutMatrix))
       QueryStartDisplacement <- ifelse(test = QG.Strand[OutPutMatrix[, "QueryGene"]] == 1L,
                                        yes = abs(OutPutMatrix[, 7L] - Q.Stop[OutPutMatrix[, 1L]]),
                                        no = abs(OutPutMatrix[, 6L] - Q.Start[OutPutMatrix[, 1L]]))
@@ -800,6 +1041,11 @@ NucleotideOverlap <- function(SyntenyObject,
         TotalCounter <- TotalCounter + 1L
         setTxtProgressBar(pb = pBar,
                           value = TotalCounter/TotalLength)
+      }
+      if (nrow(OutPutMatrix) == 1L &
+          all(is.na(OutPutMatrix))) {
+        OutPutMatrix <- OutPutMatrix[-1L, ]
+        DisplacementMatrix[1, ] <- rep(0L, ncol(DisplacementMatrix))
       }
       ResultMatrix[m1, m2] <- list(OutPutMatrix)
       ResultMatrix[m2, m1] <- list(DisplacementMatrix)

@@ -237,14 +237,14 @@ gffToDataFrame <- function(GFF,
   ParseNote <- vector(mode = "list",
                       length = nrow(MatchTable))
   Translation_Table <- rep(NA_character_,
-                           length(nrow(MatchTable)))
-  
+                           nrow(MatchTable))
   for (m1 in seq_len(nrow(MatchTable))) {
     if (nrow(AllChildrenList[[m1]]) == 0L &
         nrow(AllCDSChildrenList[[m1]]) == 0L) {
       # Case 1
       # Generate CodingSelect, MatchLine, ProductLine and NoteLine
       CodingSelect[m1] <- FALSE
+      Translation_Table[m1] <- NA_character_
       MatchLine[[m1]] <- IRanges(start = MatchTable[m1, "Start"],
                                  end = MatchTable[m1, "Stop"])
       if (is.na(MatchTable[m1, "product"])) {
@@ -261,6 +261,7 @@ gffToDataFrame <- function(GFF,
                nrow(AllChildrenList[[m1]]) >= 1L) {
       # Case 2
       CodingSelect[m1] <- FALSE
+      Translation_Table[m1] <- NA_character_
       CurrentTable <- rbind(MatchTable[m1, ],
                             AllChildrenList[[m1]])
       # Parse Product Line

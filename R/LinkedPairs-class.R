@@ -42,8 +42,8 @@ print.LinkedPairs <- function(x,
         k <- sum(x[m2, m1][[1]][, "ExactOverlap"])
         m[m1, m2] <- paste(k,
                            ifelse(k == 1,
-                                  "Nucleotide",
-                                  "Nucleotides"),
+                                  "NT",
+                                  "NTs"),
                            sep = " ")
       } else if (m1 < m2) {
         ######
@@ -57,11 +57,11 @@ print.LinkedPairs <- function(x,
                            sep = " ")
       } else if (m1 == m2 &
                  !is.null(x[m1, m2][[1]])) {
-        k <- nrow(x[m1, m2][[1]])
+        k <- length(x[m1, m2][[1]])
         m[m1, m2] <- paste(k,
                            ifelse(k == 1,
-                                  "Gene",
-                                  "Genes"),
+                                  "Contig",
+                                  "Contigs"),
                            sep = " ")
       } else if (m1 == m2 &
                  is.null(x[m1, m2][[1]])) {

@@ -10,6 +10,7 @@ A function for concisely tabulating where genomic features are connected by synt
 NucleotideOverlap(SyntenyObject,
                   GeneCalls,
                   LimitIndex = FALSE,
+                  AcceptContigNames = TRUE,
                   Verbose = FALSE)
 }
 \arguments{
@@ -21,6 +22,9 @@ A named list of objects of class ``DFrame'' built from \code{gffToDataFrame}, ob
 }
   \item{LimitIndex}{
 Logical indicating whether to limit which indices in a synteny object to query. \code{FALSE} by default, when \code{TRUE} only the first sequence in all selected identifiers will be used. \code{LimitIndex} can be used to skip analysis of plasmids, or solely query a single chromosome.
+}
+  \item{AcceptContigNames}{
+Match names of contigs between gene calls object and synteny object. Where relevant, the first white space and everything following are removed from contig names. If ``TRUE'', NucleotideOverlap assumes that the contigs at each position in the synteny object and ``GeneCalls'' object are in the same order. Is automatically set to TRUE when ``GeneCalls'' are of class ``GRanges''.
 }
   \item{Verbose}{
 Logical indicating whether or not to display a progress bar and print the time difference upon completion.

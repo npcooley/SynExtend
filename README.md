@@ -91,8 +91,12 @@ DBPATH <- tempfile()
 
 for (m1 in seq_along(FNAs)) {
   X <- readDNAStringSet(FNAs[m1])
-  X <- X[order(width(X),
-               decreasing = TRUE)]
+  # as of SynExtend 1.3.6 contig name matching implemented and the default.
+  # Users can set AcceptContigNames = FALSE to prevent attempts at name matching,
+  # but this will force SynExtend to assume that users have matched the ordering of contigs
+  # in gene calls objects to their respective positions in the synteny objects.
+  # X <- X[order(width(X),
+  #              decreasing = TRUE)]
   Seqs2DB(seqs = X,
           type = "XStringSet",
           dbFile = DBPATH,
@@ -101,7 +105,7 @@ for (m1 in seq_along(FNAs)) {
 }
 ```
 
-A few key quirks to this process are that genomes are given an integer identifier inside the `DECIPHER` database, and that same integer must be used as the name for the associated list position in the the object `GeneCalls` that is generated below. Also SynExtend currently does not care about header names in FASTA files, meaning that the FASTA is ordered by sequence width before import to the data base. Similarly feature information in the GFF3 file is assigned an index and ordered by the width of its source sequence. The function `gffToDataFrame` in `SynExtend` provides comprehensive conversion of GFF3s into a simple DataFrame object. Future updates to incorporate FASTA headers will eventually render ordering by width unnecessary.
+A few key quirks to this process are that genomes are given an integer identifier inside the `DECIPHER` database, and that same integer must be used as the name for the associated list position in the the object `GeneCalls` that is generated below. ~~Also SynExtend currently does not care about header names in FASTA files, meaning that the FASTA is ordered by sequence width before import to the data base.~~ **Contig names are now accepted as of SynExtend 1.3.6** Feature information in the GFF3 file is assigned an index and ordered by the width of its source sequence in the function `gffToDataFrame`.  This re-ordering may conflict with the natural order of contigs in fasta and therefore it is recommended to keep the default of `AcceptContigNames` as `TRUE`. Users also have the option of using the function `FindGenes` in `DECIPHER`, or using the `rtracklayer` function `import`.
 
 ```r
 GeneCalls <- vector(mode = "list",
@@ -128,6 +132,7 @@ Genecalls are overlaid on the synteny map.
 Links <- NucleotideOverlap(SyntenyObject = Syn,
                            GeneCalls = GeneCalls,
                            LimitIndex = FALSE,
+                           AcceptContigNames = TRUE,
                            Verbose = TRUE)
 ```
 
@@ -138,7 +143,8 @@ PairedGenes <- PairSummaries(SyntenyLinks = Links,
                              GeneCalls = GeneCalls,
                              DBPATH = DBPATH,
                              PIDs = FALSE,
-                             Model = "Global",
+                             Model = "Generic",
+                             AcceptContigNames =  TRUE,
                              Verbose = TRUE)
 ```
 
