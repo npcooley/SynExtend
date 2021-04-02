@@ -39,6 +39,7 @@ NucleotideOverlap <- function(SyntenyObject,
   
   if (Verbose) {
     TotalTimeStart <- Sys.time()
+    pBar <- txtProgressBar(style = 1L)
   }
   ResultMatrix <- matrix(data = list(),
                          nrow = L,
@@ -72,6 +73,10 @@ NucleotideOverlap <- function(SyntenyObject,
   }
   IndexMatching <- vector("integer",
                           length = length(GeneCalls))
+  
+  if (Verbose) {
+    cat("\nReconciling Genecalls.\n")
+  }
   for (m1 in seq_along(GeneCalls)) {
     if (!is(GeneCalls[[m1]],
             "GRanges")) {
@@ -306,7 +311,16 @@ NucleotideOverlap <- function(SyntenyObject,
                   "CurrentGene",
                   "CurrentCoding"))
     }
+    if (Verbose) {
+      setTxtProgressBar(pb = pBar,
+                        value = m1 / length(GeneCalls))
+    }
   }
+  
+  if (Verbose) {
+    cat("\nGeneCalls reconciled.\n")
+  }
+  
   if (AcceptContigNames) {
     for (m1 in seq_along(ContigNames)) {
       if (any(is.na(match(x = names(ContigNames[[m1]]),

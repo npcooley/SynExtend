@@ -112,6 +112,9 @@ PairSummaries <- function(SyntenyLinks,
   #                             formals(DistanceMatrix))))
   # }
   if (PIDs) {
+    if (Verbose) {
+      cat("\nSelecting Genomes.\n")
+    }
     Genomes <- vector("list",
                       length = length(GeneCalls))
     for (i in seq_along(Genomes)) {
@@ -119,6 +122,10 @@ PairSummaries <- function(SyntenyLinks,
                                identifier = names(GeneCalls[i]),
                                nameBy = "identifier",
                                verbose = FALSE)
+      if (Verbose) {
+        setTxtProgressBar(pb = pBar,
+                          value = i / length(Genomes))
+      }
     }
     Genomes <- DNAStringSetList(Genomes)
   }
@@ -140,6 +147,10 @@ PairSummaries <- function(SyntenyLinks,
                          function(x) class(x),
                          USE.NAMES = FALSE,
                          simplify = TRUE)
+  
+  if (Verbose) {
+    cat("\nReconciling Genecalls.\n")
+  }
   
   for (m1 in seq_along(GeneCalls)) {
     if (is(GeneCalls[[m1]],
@@ -353,6 +364,13 @@ PairSummaries <- function(SyntenyLinks,
                   "CurrentGene",
                   "CurrentCoding"))
     }
+    if (Verbose) {
+      setTxtProgressBar(pb = pBar,
+                        value = m1 / length(GeneCalls))
+    }
+  }
+  if (Verbose) {
+    cat("\nGeneCalls reconciled.\n")
   }
   
   LinkContigNames <- diag(SyntenyLinks)
@@ -368,11 +386,23 @@ PairSummaries <- function(SyntenyLinks,
   
   if (!is.null(Model) &
       Model %in% c("Generic")) {
-    data("Generic",
-         envir = environment(),
-         package = "SynExtend")
+    MOD <- get(data(list = "Generic",
+                    envir = environment(),
+                    package = "SynExtend"))
+    
+  } else if (!is.null(Model) &
+             !(Model %in% c("Generic"))) {
+    if (file.exists(Model)) {
+      MOD <- get(load(file = Model,
+                      verbose = FALSE))
+      if (!is(object = MOD,
+              class2 = "glm")) {
+        stop ("\nUser specified model is not a glm?")
+      }
+    } else {
+      stop ("\nUser specified file does not appear to exist.\n")
+    }
   }
-  
   
   ###### -- Summary stuff -----------------------------------------------------
   
@@ -513,7 +543,7 @@ PairSummaries <- function(SyntenyLinks,
             # }
             QuerySeqs[[m3]] <- extractAt(x = rep(Genomes[[m1]][PresQI[m3]],
                                                  length(CurrentRanges)),
-                                         at = CurrentRanges)
+                                         at = unname(CurrentRanges))
             QuerySeqs[[m3]] <- DNAStringSet(sapply(QuerySeqs[[m3]],
                                                    function(x) unlist(x)))
             names(QuerySeqs[[m3]]) <- paste(names(GeneCalls)[m1],
@@ -541,7 +571,7 @@ PairSummaries <- function(SyntenyLinks,
             #             m3))
             SubjectSeqs[[m3]] <- extractAt(x = rep(Genomes[[m2]][PresSI[m3]],
                                                    length(CurrentRanges)),
-                                           at = CurrentRanges)
+                                           at = unname(CurrentRanges))
             SubjectSeqs[[m3]] <- DNAStringSet(sapply(SubjectSeqs[[m3]],
                                                      function(x) unlist(x)))
             names(SubjectSeqs[[m3]]) <- paste(names(GeneCalls)[m2],
@@ -777,10 +807,10 @@ PairSummaries <- function(SyntenyLinks,
                                     # "MinGap" = MinGap,
                                     "TotalKmers" = TotalKmers,
                                     "MaxKmer" = MaxKmer,
-                                    "InteriorQueryMiss" = InteriorMissQuery,
-                                    "InteriorSubjectMiss" = InteriorMissSubject,
-                                    "ExteriorQueryMiss" = ExteriorMissQuery,
-                                    "ExteriorSubjectMiss" = ExteriorMissSubject,
+                                    "p1InteriorMiss" = InteriorMissQuery,
+                                    "p2InteriorMiss" = InteriorMissSubject,
+                                    "p1ExteriorMiss" = ExteriorMissQuery,
+                                    "p2ExteriorMiss" = ExteriorMissSubject,
                                     "p1FeatureLength" = QGeneLength,
                                     "p2FeatureLength" = SGeneLength,
                                     "PID" = Pident,
@@ -799,10 +829,10 @@ PairSummaries <- function(SyntenyLinks,
                                     # "MinGap" = MinGap,
                                     "TotalKmers" = TotalKmers,
                                     "MaxKmer" = MaxKmer,
-                                    "InteriorQueryMiss" = InteriorMissQuery,
-                                    "InteriorSubjectMiss" = InteriorMissSubject,
-                                    "ExteriorQueryMiss" = ExteriorMissQuery,
-                                    "ExteriorSubjectMiss" = ExteriorMissSubject,
+                                    "p1InteriorMiss" = InteriorMissQuery,
+                                    "p2InteriorMiss" = InteriorMissSubject,
+                                    "p1ExteriorMiss" = ExteriorMissQuery,
+                                    "p2ExteriorMiss" = ExteriorMissSubject,
                                     "p1FeatureLength" = QGeneLength,
                                     "p2FeatureLength" = SGeneLength,
                                     "PIDType" = ifelse(test = GeneCalls[[m1]][PMatrix[, 1L], "Coding"] &
@@ -825,25 +855,18 @@ PairSummaries <- function(SyntenyLinks,
   DF <- do.call(rbind,
                 PH)
   rownames(DF) <- NULL
+  
+  # return(list(DF,
+  #             MOD))
   if (!is.null(DF)) {
     if (is.null(Model)) {
       # do nothing
-    } else if (Model == "Generic") {
-      # model constructed from randomly selected prokaryotic pair alignments
-      PPids <- predict(object = Generic,
-                       DF)
+    } else {
+      PPids <- predict(object = MOD,
+                       DF,
+                       type = "response")
       DF <- cbind(DF,
-                  "PPids" = PPids)
-    } else if (!is.character(Model) &
-               !is.null(Model)) {
-      # user supplied model
-      PPids <- predict(object = Model,
-                       DF)
-      DF <- cbind(DF,
-                  "PPids" = PPids)
-    } else if (is.character(Model) &
-               !(Model %in% c("Generic"))) {
-      cat("\n Selected model is not available.")
+                  "PredictedPID" = PPids)
     }
   } else {
     DF <- NULL

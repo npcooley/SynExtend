@@ -1,3 +1,8 @@
+# SynExtend 1.3.7
+
+* Adjustments to progress bars in both `PairSummaries` and `NucleotideOverlap`.
+* PID prediction models in `PairSummaries` adjusted.
+
 # SynExtend 1.3.6
 
 * Contig name matching has been implemented. Scheme expects users to follow NCBI contig naming and gff formats, accepting contig names from gffs directly, and removing the first whitespace and everything thereafter from FASTA headers. Contig name matching can be disabled if users wish, using the argument `AcceptContigNames`, but ensuring that the correct contigs in GeneCalls objects are matched to the appropriate contigs in Synteny objects are then the user's responsibility.
