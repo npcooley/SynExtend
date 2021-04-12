@@ -1,3 +1,7 @@
+# SynExtend 1.3.9
+
+* Minor vignette and suggested package changes.
+
 # SynExtend 1.3.8
 
 * `PairSummaries` now allows users to fill in specific matching gaps in blocks of predicted pairs with the arguments `AllowGaps` and `OffSetsAllowed`.

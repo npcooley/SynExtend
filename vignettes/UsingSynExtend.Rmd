@@ -99,7 +99,7 @@ print(head(GeneCalls[[1]]))
 
 Raw GFF imports are also acceptable, but prevent alignments in amino acid space with `PairSummaries()`.
 
-```{r, show_rtracklayer}
+```{r, show_rtracklayer, eval = FALSE}
 X01 <- rtracklayer::import(system.file("extdata",
                                        "GCA_000875775.1_ASM87577v1_genomic.gff.gz",
                                        package = "SynExtend"))
