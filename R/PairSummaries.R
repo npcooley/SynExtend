@@ -11,6 +11,8 @@ PairSummaries <- function(SyntenyLinks,
                           Model = "Generic",
                           DefaultTranslationTable = "11",
                           AcceptContigNames = TRUE,
+                          AllowGaps = TRUE,
+                          OffSetsAllowed = 2L,
                           ...) {
   if (Verbose) {
     TimeStart <- Sys.time()
@@ -491,6 +493,164 @@ PairSummaries <- function(SyntenyLinks,
         SGeneStrand <- GeneCalls[[m2]][PMatrix[, 2L], "Strand"]
         SGeneCoding <- GeneCalls[[m2]][PMatrix[, 2L], "Coding"]
         SGeneTransl <- GeneCalls[[m2]][PMatrix[, 2L], "Translation_Table"]
+        
+        # Create a matrix of gap filled positions
+        # if PID calc is specified, calculate them
+        # if not, don't bother?
+        
+        if (AllowGaps &
+            nrow(PMatrix) > 1L) {
+          
+          GapFill <- vector(mode = "list",
+                            length = length(OffSetsAllowed))
+          
+          # diff gives absolute difference to next neighbor
+          p1R <- c(as.integer(abs(diff(PMatrix[, 1L]))), 0L)
+          p2R <- c(as.integer(abs(diff(PMatrix[, 2L]))), 0L)
+          
+          # for each gap size allowed:
+          for (g1 in seq_along(OffSetsAllowed)) {
+            # find where gap size equals allowed size
+            w1 <- p1R == OffSetsAllowed[g1]
+            w2 <- p2R == OffSetsAllowed[g1]
+            # check that the gap does not span indices
+            
+            w3 <- w1 & w2
+            if (sum(w3) > 0L) {
+              # gap to next is the same distance for both partner columns
+              # at least once
+              # build vectors of those gene positions
+              # and the opposing positions spanning the gap
+              # don't overwrite things you need until you're finished with them
+              GapFill[[g1]] <- vector(mode = "list",
+                                      length = sum(w3))
+              w4 <- which(w3) + 1L
+              i1l <- IMatrix[w3, 1L]
+              i1r <- IMatrix[w4, 1L]
+              i2l <- IMatrix[w3, 2L]
+              i2r <- IMatrix[w4, 2L]
+              p1l <- PMatrix[w3, 1L]
+              p1r <- PMatrix[w4, 1L]
+              p2l <- PMatrix[w3, 2L]
+              p2r <- PMatrix[w4, 2L]
+              # create new pair partner lines
+              # if gap does not span indices
+              for (g2 in seq_along(p1l)) {
+                if (i1l[g2] == i1r[g2] &
+                    i2l[g2] == i2r[g2]) {
+                  # gap does not span indices fill in based on gap size
+                  # conversion to characters is unlikely to be necessary at this step ...
+                  # was coded this way originally because it made the most sense logically
+                  # indices, parter indices, and associated statistics must be eventually folded into
+                  # the matching vectors from the originally extracted pairs
+                  gp1 <- seq(from = p1l[g2],
+                             to = p1r[g2],
+                             by = if (p1l[g2] < p1r[g2]) {
+                               1L
+                             } else {
+                               -1L
+                             })
+                  gp1 <- paste(rep(m1, OffSetsAllowed[g1] - 1L),
+                               rep(i1l[g2], OffSetsAllowed[g1] - 1L),
+                               gp1[-c(1, length(gp1))],
+                               sep = "_")
+                  gp2 <- seq(from = p2l[g2],
+                             to = p2r[g2],
+                             by = if (p2l[g2] < p2r[g2]) {
+                               1L
+                             } else {
+                               -1L
+                             })
+                  gp2 <- paste(rep(m2, OffSetsAllowed[g1] - 1L),
+                               rep(i2l[g2], OffSetsAllowed[g1] - 1L),
+                               gp2[-c(1, length(gp2))],
+                               sep = "_")
+                  GapFill[[g1]][[g2]] <- matrix(data = c(gp1, gp2),
+                                                nrow = length(gp1))
+                }
+              }
+              GapFill[[g1]] <- do.call(rbind,
+                                       GapFill[[g1]])
+              RMat1 <- do.call(rbind,
+                               strsplit(x = GapFill[[g1]][, 1L],
+                                        split = "_",
+                                        fixed = TRUE))
+              RMat2 <- do.call(rbind,
+                               strsplit(x = GapFill[[g1]][, 2L],
+                                        split = "_",
+                                        fixed = TRUE))
+              RMat1 <- matrix(data = as.integer(RMat1),
+                              nrow = nrow(RMat1))
+              RMat2 <- matrix(data = as.integer(RMat2),
+                              nrow = nrow(RMat2))
+              Ins1Str <- GeneCalls[[m1]][RMat1[, 3L], "Strand"]
+              Ins1Coding <- GeneCalls[[m1]][RMat1[, 3L], "Coding"]
+              Ins1Transl <- GeneCalls[[m1]][RMat1[, 3L], "Translation_Table"]
+              Ins2Str <- GeneCalls[[m2]][RMat2[, 3L], "Strand"]
+              Ins2Coding <- GeneCalls[[m2]][RMat2[, 3L], "Coding"]
+              Ins2Transl <- GeneCalls[[m2]][RMat2[, 3L], "Translation_Table"]
+              Ins1GLength <- GeneCalls[[m1]][RMat1[, 3L], "Stop"] - GeneCalls[[m1]][RMat1[, 3L], "Start"] + 1L
+              Ins2GLength <- GeneCalls[[m2]][RMat2[, 3L], "Stop"] - GeneCalls[[m2]][RMat2[, 3L], "Start"] + 1L
+              Ins1IMiss <- Ins1EMiss <- Ins1GLength
+              Ins2IMiss <- Ins2EMiss <- Ins2GLength
+              InsOv <- InsMax <- InsTot <- rep(0L, nrow(RMat1))
+            } else {
+              # in this case do ... something?
+              # leave list position as null
+              # GapFill[[g1]]
+            }
+          }
+          # return(GapFill)
+          GapFill <- do.call(rbind,
+                             GapFill)
+          
+          if (!is.null(GapFill)) {
+            # gaps were spanned
+            # combine and order vectors
+            RMat1 <- do.call(rbind,
+                             strsplit(x = GapFill[, 1L],
+                                      split = "_",
+                                      fixed = TRUE))
+            RMat2 <- do.call(rbind,
+                             strsplit(x = GapFill[, 2L],
+                                      split = "_",
+                                      fixed = TRUE))
+            RMat1 <- matrix(data = as.integer(RMat1),
+                            nrow = nrow(RMat1))
+            RMat2 <- matrix(data = as.integer(RMat2),
+                            nrow = nrow(RMat2))
+            
+            pmat1 <- rbind(IMatrix,
+                           cbind(RMat1[, 2L],
+                                 RMat2[, 2L]))
+            pmat2 <- rbind(PMatrix,
+                           cbind(RMat1[, 3L],
+                                 RMat2[, 3L]))
+            o1 <- order(pmat1[, 1L],
+                        pmat2[, 1L])
+            
+            IMatrix <- pmat1[o1, ]
+            PMatrix <- pmat2[o1, ]
+            QGeneLength <- c(QGeneLength, Ins1GLength)[o1]
+            SGeneLength <- c(SGeneLength, Ins2GLength)[o1]
+            ExactOverLap <- c(ExactOverLap, InsOv)[o1]
+            TotalKmers <- c(TotalKmers, InsTot)[o1]
+            MaxKmer <- c(MaxKmer, InsMax)[o1]
+            ExteriorMissQuery <- c(ExteriorMissQuery, Ins1EMiss)[o1]
+            ExteriorMissSubject <- c(ExteriorMissSubject, Ins2EMiss)[o1]
+            InteriorMissQuery <- c(InteriorMissQuery, Ins1IMiss)[o1]
+            InteriorMissSubject <- c(InteriorMissSubject, Ins2IMiss)[o1]
+            QGeneStrand <- c(QGeneStrand, Ins1Str)[o1]
+            QGeneCoding <- c(QGeneCoding, Ins1Coding)[o1]
+            QGeneTransl <- c(QGeneTransl, Ins1Transl)[o1]
+            SGeneStrand <- c(SGeneStrand, Ins2Str)[o1]
+            SGeneCoding <- c(SGeneCoding, Ins2Coding)[o1]
+            SGeneTransl <- c(SGeneTransl, Ins2Transl)[o1]
+            
+          } else {
+            # do nothing, no gaps discovered
+          }
+        } # End gap checking
         
         # collect PIDs if user requests
         # as of the writing of this function extractAt does not recycle x,

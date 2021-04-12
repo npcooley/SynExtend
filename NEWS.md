@@ -1,3 +1,7 @@
+# SynExtend 1.3.8
+
+* `PairSummaries` now allows users to fill in specific matching gaps in blocks of predicted pairs with the arguments `AllowGaps` and `OffSetsAllowed`.
+
 # SynExtend 1.3.7
 
 * Adjustments to progress bars in both `PairSummaries` and `NucleotideOverlap`.
