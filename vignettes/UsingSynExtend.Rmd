@@ -127,7 +127,6 @@ This raw data can be processed to provide a straightforward summary of predicted
 
 ```{r, describe_links}
 LinkedPairs1 <- PairSummaries(SyntenyLinks = Links,
-                              GeneCalls = GeneCalls,
                               DBPATH = DBPATH,
                               PIDs = FALSE,
                               Verbose = TRUE)

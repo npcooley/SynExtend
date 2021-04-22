@@ -1,3 +1,7 @@
+# SynExtend 1.3.10
+
+* `NucleotideOverlap` now passes it's GeneCalls object forward, allowing `PairSummaries` to forego inclusion of that object as an argument.
+
 # SynExtend 1.3.9
 
 * Minor vignette and suggested package changes.

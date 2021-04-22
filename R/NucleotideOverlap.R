@@ -149,16 +149,34 @@ NucleotideOverlap <- function(SyntenyObject,
       StopConversion <- StopConversion[o]
       LengthsConversion <- LengthsConversion[o]
       
-      FeatureRepresentations[[m1]] <- matrix(data = c(IndexConversion,
-                                                      StrandConversion,
-                                                      StartConversion,
-                                                      StopConversion,
-                                                      LengthsConversion),
-                                             nrow = length(o),
-                                             ncol = 5L)
+      # FeatureRepresentations[[m1]] <- matrix(data = c(IndexConversion,
+      #                                                 StrandConversion,
+      #                                                 StartConversion,
+      #                                                 StopConversion,
+      #                                                 LengthsConversion),
+      #                                        nrow = length(o),
+      #                                        ncol = 5L)
       
       StrandMax <- rep(unname(SyntenyObject[[m1, m1]]),
                        table(IndexConversion))
+      R <- mapply(function(x, y) IRanges(start = x,
+                                         end = y),
+                  x = StartConversion,
+                  y = StopConversion,
+                  SIMPLIFY = FALSE)
+      FeatureRepresentations[[m1]] <- DataFrame("Index" = IndexConversion,
+                                                "Strand" = StrandConversion,
+                                                "Start" = StartConversion,
+                                                "Stop" = StopConversion,
+                                                # "Lengths" = LengthsConversion,
+                                                "Type" = rep("gene",
+                                                             length(o)),
+                                                "Translation_Table" = rep(NA_character_,
+                                                                          length(o)),
+                                                "Coding" = rep(FALSE,
+                                                               length(o)),
+                                                "Range" = IRangesList(R))
+      
       FeatureRepresentations[[m1]] <- FeatureRepresentations[[m1]][StopConversion <= StrandMax, ]
       rm(list = c("IndexConversion",
                   "StrandConversion",
@@ -207,28 +225,31 @@ NucleotideOverlap <- function(SyntenyObject,
         o <- order(CurrentIndices,
                    CurrentStarts)
       }
-      CurrentStarts <- CurrentStarts[o]
-      CurrentStops <- as.integer(GeneCalls[[m1]]$Stop)[o]
-      CurrentStrands <- as.integer(GeneCalls[[m1]]$Strand)[o]
+      # CurrentStarts <- CurrentStarts[o]
+      # CurrentStops <- as.integer(GeneCalls[[m1]]$Stop)[o]
+      # CurrentStrands <- as.integer(GeneCalls[[m1]]$Strand)[o]
       if (AcceptContigNames) {
-        CurrentIndices <- C.Index[o]
+        # CurrentIndices <- C.Index[o]
+        GeneCalls[[m1]][, "Index"] <- C.Index
       } else {
-        CurrentIndices <- CurrentIndices[o]
+        # CurrentIndices <- CurrentIndices[o]
+        GeneCalls[[m1]][, "Index"] <- CurrentIndices
       }
-      CurrentLengths <- CurrentStops - CurrentStarts + 1L
+      # CurrentLengths <- CurrentStops - CurrentStarts + 1L
       
-      FeatureRepresentations[[m1]] <- matrix(data = c(CurrentIndices,
-                                                      CurrentStrands,
-                                                      CurrentStarts,
-                                                      CurrentStops,
-                                                      CurrentLengths),
-                                             nrow = length(o),
-                                             ncol = 5L)
-      rm(list = c("CurrentIndices",
-                  "CurrentStrands",
-                  "CurrentStarts",
-                  "CurrentStops",
-                  "CurrentLengths"))
+      # FeatureRepresentations[[m1]] <- matrix(data = c(CurrentIndices,
+      #                                                 CurrentStrands,
+      #                                                 CurrentStarts,
+      #                                                 CurrentStops,
+      #                                                 CurrentLengths),
+      #                                        nrow = length(o),
+      #                                        ncol = 5L)
+      FeatureRepresentations[[m1]] <- GeneCalls[[m1]][o, ]
+      # rm(list = c("CurrentIndices",
+      #             "CurrentStrands",
+      #             "CurrentStarts",
+      #             "CurrentStops",
+      #             "CurrentLengths"))
       
     } else if (is(GeneCalls[[m1]],
                   "Genes")) {
@@ -291,7 +312,9 @@ NucleotideOverlap <- function(SyntenyObject,
                      "Type" = CurrentType,
                      "Range" = IRangesList(R),
                      "Gene" = CurrentGene,
-                     "Coding" = CurrentCoding)
+                     "Coding" = CurrentCoding,
+                     "Translation_Table" = rep(NA_character_,
+                                               length(o)))
       D <- D[o, ]
       D <- D[as.vector(ans[, "Gene"]) != 0L, ]
       rownames(D) <- NULL
@@ -1073,6 +1096,7 @@ NucleotideOverlap <- function(SyntenyObject,
   }
   dimnames(ResultMatrix) <- dimnames(SyntenyObject)
   class(ResultMatrix) <- "LinkedPairs"
+  attr(ResultMatrix, "GeneCalls") <- FeatureRepresentations
   return(ResultMatrix)
 }
 

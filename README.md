@@ -140,7 +140,6 @@ And positions on the grid of gene calls that are occupied by syntenic hits are r
 
 ```r
 PairedGenes <- PairSummaries(SyntenyLinks = Links,
-                             GeneCalls = GeneCalls,
                              DBPATH = DBPATH,
                              PIDs = FALSE,
                              Model = "Generic",

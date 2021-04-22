@@ -3,7 +3,6 @@
 # Contact: npc19@pitt.edu
 
 PairSummaries <- function(SyntenyLinks,
-                          GeneCalls,
                           DBPATH,
                           PIDs = FALSE,
                           IgnoreDefaultStringSet = FALSE,
@@ -11,7 +10,6 @@ PairSummaries <- function(SyntenyLinks,
                           Model = "Generic",
                           DefaultTranslationTable = "11",
                           AcceptContigNames = TRUE,
-                          AllowGaps = TRUE,
                           OffSetsAllowed = 2L,
                           ...) {
   if (Verbose) {
@@ -21,22 +19,31 @@ PairSummaries <- function(SyntenyLinks,
   
   ###### -- Overhead checking -------------------------------------------------
   
-  if (length(GeneCalls) != ncol(SyntenyLinks)) {
-    stop ("LinkedPairs object and gene predictions are not compatible")
-  }
+  # if (length(GeneCalls) != ncol(SyntenyLinks)) {
+  #   stop ("LinkedPairs object and gene predictions are not compatible")
+  # }
   if (!("DECIPHER" %in% .packages())) {
     stop ("Required package DECIPHER is not loaded")
   }
   if (!is(SyntenyLinks, "LinkedPairs")) {
     stop ("Object is not an LinkedPairs object.")
   }
-  GCallClasses <- sapply(GeneCalls,
-                         function(x) class(x),
-                         simplify = TRUE,
-                         USE.NAMES = FALSE)
-  if (any(GCallClasses == "GRanges")) {
-    warning("GRanges objects only support Nucleotide Alignments.")
+  if (any(OffSetsAllowed < 1L)) {
+    stop ("Gaps must be positive in size.")
   }
+  # GCallClasses <- sapply(GeneCalls,
+  #                        function(x) class(x),
+  #                        simplify = TRUE,
+  #                        USE.NAMES = FALSE)
+  # if (any(GCallClasses == "GRanges")) {
+  #   warning("GRanges objects only support Nucleotide Alignments.")
+  # }
+  
+  if (length(OffSetsAllowed) > 0L) {
+    AllowGaps <- TRUE
+  }
+  
+  GeneCalls <- attr(SyntenyLinks, "GeneCalls")
   
   ###### -- argument passing --------------------------------------------------
   # pass arguments through the ellipsis to either:
@@ -113,6 +120,16 @@ PairSummaries <- function(SyntenyLinks,
   #                             formals(AlignSeqs),
   #                             formals(DistanceMatrix))))
   # }
+  
+  ###### -- subset gene calls based on the names of the links object ----------
+  
+  if (length(GeneCalls) != nrow(SyntenyLinks)) {
+    GeneCalls <- GeneCalls[match(x = dimnames(SyntenyLinks)[[1]],
+                                 table = names(GeneCalls))]
+  }
+  
+  ###### -- extract genomes for stuff -----------------------------------------
+  
   if (PIDs) {
     if (Verbose) {
       cat("\nSelecting Genomes.\n")
@@ -130,6 +147,9 @@ PairSummaries <- function(SyntenyLinks,
       }
     }
     Genomes <- DNAStringSetList(Genomes)
+    if (Verbose) {
+      cat("\n")
+    }
   }
   
   ###### -- Indices present by name -------------------------------------------
@@ -140,247 +160,247 @@ PairSummaries <- function(SyntenyLinks,
   
   ###### -- Deal with Different GeneCall types --------------------------------
   
-  L <- length(GeneCalls)
-  FeatureRepresentations <- vector(mode = "list",
-                                   length = L)
-  ContigNames <- vector(mode = "list",
-                        length = L)
-  GCallClasses <- sapply(GeneCalls,
-                         function(x) class(x),
-                         USE.NAMES = FALSE,
-                         simplify = TRUE)
-  
-  if (Verbose) {
-    cat("\nReconciling Genecalls.\n")
-  }
-  
-  for (m1 in seq_along(GeneCalls)) {
-    if (is(GeneCalls[[m1]],
-           "GRanges")) {
-      ContigNames[[m1]] <- seq(length(GeneCalls[[m1]]@seqnames@lengths))
-      names(ContigNames[[m1]]) <- unique(as.character(GeneCalls[[m1]]@seqnames))
-      
-      if (any(is.na(match(x = names(ContigNames[[m1]]),
-                          table = ContigsPresent[[m1]])))) {
-        stop (paste0("Contig names imply incorrectly matched objects at diag position ",
-                     names(GeneCalls)[m1]))
-      }
-      
-      TypePlaceHolder <- as.character(GeneCalls[[m1]]$type)
-      GeneCalls[[m1]] <- GeneCalls[[m1]][TypePlaceHolder %in% c("gene",
-                                                                "pseudogene"), ]
-      StrandConversion <- ifelse(test = as.character(GeneCalls[[m1]]@strand == "+"),
-                                 yes = 0L,
-                                 no = 1L)
-      StartConversion <- GeneCalls[[m1]]@ranges@start
-      StopConversion <- GeneCalls[[m1]]@ranges@start + GeneCalls[[m1]]@ranges@width - 1L
-      IndexConversion <- rep(unname(ContigNames[[m1]]),
-                             GeneCalls[[m1]]@seqnames@lengths)
-      LengthsConversion <- StopConversion - StartConversion + 1L
-      C.Index <- IndexConversion
-      ph1 <- unname(ContigNames[[m1]])
-      ph2 <- match(x = names(ContigNames[[m1]]),
-                   table = ContigsPresent[[m1]])
-      ph3 <- vector(mode = "list",
-                    length = length(ph1))
-      for (m3 in seq_along(ph1)) {
-        ph3[[m3]] <- which(C.Index == ph1[m3])
-      }
-      for (m3 in seq_along(ph1)) {
-        if (length(ph3) > 0L) {
-          C.Index <- replace(x = C.Index,
-                             list = ph3[[m3]],
-                             values = ph2[m3])
-        }
-      }
-      rm(list = c("ph1",
-                  "ph2",
-                  "ph3"))
-      o <- order(C.Index,
-                 StartConversion)
-      StrandConversion <- StrandConversion[o]
-      IndexConversion <- C.Index[o]
-      StartConversion <- StartConversion[o]
-      StopConversion <- StopConversion[o]
-      LengthsConversion <- LengthsConversion[o]
-      StrandMax <- rep(unname(SyntenyLinks[[m1, m1]]),
-                       table(IndexConversion))
-      
-      R <- mapply(function(x, y) IRanges(start = x,
-                                         end = y),
-                  x = StartConversion,
-                  y = StopConversion,
-                  SIMPLIFY = FALSE)
-      
-      # FeatureRepresentations[[m1]] <- data.frame("Index" = IndexConversion,
-      #                                            "Strand" = StrandConversion,
-      #                                            "Start" = StartConversion,
-      #                                            "Stop" = StopConversion,
-      #                                            "Lengths" = LengthsConversion,
-      #                                            "Translation_Table" = rep(NA_character_,
-      #                                                                      length(o)),
-      #                                            "Coding" = rep(FALSE,
-      #                                                           length(o)),
-      #                                            stringsAsFactors = FALSE)
-      FeatureRepresentations[[m1]] <- DataFrame("Index" = IndexConversion,
-                                                "Strand" = StrandConversion,
-                                                "Start" = StartConversion,
-                                                "Stop" = StopConversion,
-                                                "Lengths" = LengthsConversion,
-                                                "Translation_Table" = rep(NA_character_,
-                                                                          length(o)),
-                                                "Coding" = rep(FALSE,
-                                                               length(o)),
-                                                "Range" = IRangesList(R))
-      FeatureRepresentations[[m1]] <- FeatureRepresentations[[m1]][StopConversion <= StrandMax, ]
-      # no synteny object requested, cannot perform this test ...
-      # if (any(StopConversion > SyntenyObject[[m1, m1]][1])) {
-      #   FeatureRepresentations[[m1]] <- FeatureRepresentations[[m1]][-which(StopConversion > SyntenyObject[[m1, m1]][1]), ]
-      # }
-      
-      rm(list = c("IndexConversion",
-                  "StrandConversion",
-                  "StartConversion",
-                  "StopConversion",
-                  "LengthsConversion"))
-      
-    } else if (is(GeneCalls[[m1]],
-                  "DFrame")) {
-      
-      # FeatureRepresentations[[m1]] <- GeneCalls[[m1]]
-      ph <- unique(GeneCalls[[m1]][, c("Index", "Contig")])
-      ContigNames[[m1]] <- ph$Index
-      names(ContigNames[[m1]]) <- ph$Contig
-      rm(list = c("ph"))
-      
-      CurrentIndices <- as.integer(GeneCalls[[m1]]$Index)
-      CurrentStarts <- as.integer(GeneCalls[[m1]]$Start)
-      if (AcceptContigNames) {
-        C.Index <- CurrentIndices
-        ph1 <- unname(ContigNames[[m1]])
-        ph2 <- match(x = names(ContigNames[[m1]]),
-                     table = ContigsPresent[[m1]])
-        ph3 <- vector(mode = "list",
-                      length = length(ph1))
-        for (m3 in seq_along(ph1)) {
-          ph3[[m3]] <- which(C.Index == ph1[m3])
-        }
-        for (m3 in seq_along(ph1)) {
-          if (length(ph3) > 0L) {
-            C.Index <- replace(x = C.Index,
-                               list = ph3[[m3]],
-                               values = ph2[m3])
-          }
-        }
-        rm(list = c("ph1",
-                    "ph2",
-                    "ph3"))
-        o <- order(C.Index,
-                   CurrentStarts)
-      } else {
-        o <- order(CurrentIndices,
-                   CurrentStarts)
-      }
-      FeatureRepresentations[[m1]] <- GeneCalls[[m1]][o, ]
-      # print(FeatureRepresentations[[m1]])
-      
-    } else if (is(GeneCalls[[m1]],
-                  "Genes")) {
-      # convert Erik's gene calls to a temporary DataFrame
-      # the column "Gene" assigns whether or not that particular line is the gene
-      # that the caller actually picked, calls must be subset to where Gene != 0
-      ans <- GeneCalls[[m1]]
-      
-      CurrentIndices <- as.integer(ans[, "Index"])
-      CurrentStarts <- as.integer(ans[, "Begin"])
-      CurrentStrand <- as.integer(ans[, "Strand"])
-      CurrentStops <- as.integer(ans[, "End"])
-      CurrentType <- rep("gene",
-                         nrow(ans))
-      CurrentGene <- as.integer(ans[, "Gene"])
-      CurrentCoding <- ifelse(test = CurrentGene > 0L,
-                              yes = TRUE,
-                              no = FALSE)
-      R <- mapply(function(x, y) IRanges(start = x,
-                                         end = y),
-                  x = ans[, "Begin"],
-                  y = ans[, "End"],
-                  SIMPLIFY = FALSE)
-      ContigNames[[m1]] <- unique(CurrentIndices)
-      names(ContigNames[[m1]]) <- gsub(x = names(attr(ans, "widths")),
-                                       pattern = " .+",
-                                       replacement = "")
-      if (AcceptContigNames) {
-        C.Index <- CurrentIndices
-        ph1 <- unname(ContigNames[[m1]])
-        ph2 <- match(x = names(ContigNames[[m1]]),
-                     table = ContigsPresent[[m1]])
-        ph3 <- vector(mode = "list",
-                      length = length(ph1))
-        for (m3 in seq_along(ph1)) {
-          ph3[[m3]] <- which(C.Index == ph1[m3])
-        }
-        for (m3 in seq_along(ph1)) {
-          if (length(ph3) > 0L) {
-            C.Index <- replace(x = C.Index,
-                               list = ph3[[m3]],
-                               values = ph2[m3])
-          }
-        }
-        rm(list = c("ph1",
-                    "ph2",
-                    "ph3"))
-        o <- order(C.Index,
-                   CurrentStarts)
-      } else {
-        # there should be no need to generically re-order a GeneCalls object
-        # unless it has been fiddled with by the user, but we'll include this anyway
-        o <- order(CurrentIndices,
-                   CurrentStarts)
-      }
-      D <- DataFrame("Index" = CurrentIndices,
-                     "Strand" = CurrentStrand,
-                     "Start" = CurrentStarts,
-                     "Stop" = CurrentStops,
-                     "Type" = CurrentType,
-                     "Range" = IRangesList(R),
-                     "Gene" = CurrentGene,
-                     "Coding" = CurrentCoding,
-                     "Translation_Table" = rep(NA_character_,
-                                               length(o)))
-      D <- D[o, ]
-      D <- D[as.vector(ans[, "Gene"]) != 0, ]
-      rownames(D) <- NULL
-      FeatureRepresentations[[m1]] <- D
-      ContigNames[[m1]] <- unique(D$Index)
-      names(ContigNames[[m1]]) <- ContigNames[[m1]]
-      
-      rm(list = c("D",
-                  "ans",
-                  "R",
-                  "CurrentIndices",
-                  "CurrentStarts",
-                  "CurrentStrand",
-                  "CurrentStops",
-                  "CurrentType",
-                  "CurrentGene",
-                  "CurrentCoding"))
-    }
-    if (Verbose) {
-      setTxtProgressBar(pb = pBar,
-                        value = m1 / length(GeneCalls))
-    }
-  }
-  if (Verbose) {
-    cat("\nGeneCalls reconciled.\n")
-  }
-  
-  LinkContigNames <- diag(SyntenyLinks)
-  names(FeatureRepresentations) <- names(GeneCalls)
-  GeneCalls <- FeatureRepresentations
-  
-  rm(list = c("FeatureRepresentations",
-              "L"))
+  # L <- length(GeneCalls)
+  # FeatureRepresentations <- vector(mode = "list",
+  #                                  length = L)
+  # ContigNames <- vector(mode = "list",
+  #                       length = L)
+  # GCallClasses <- sapply(GeneCalls,
+  #                        function(x) class(x),
+  #                        USE.NAMES = FALSE,
+  #                        simplify = TRUE)
+  # 
+  # if (Verbose) {
+  #   cat("\nReconciling Genecalls.\n")
+  # }
+  # 
+  # for (m1 in seq_along(GeneCalls)) {
+  #   if (is(GeneCalls[[m1]],
+  #          "GRanges")) {
+  #     ContigNames[[m1]] <- seq(length(GeneCalls[[m1]]@seqnames@lengths))
+  #     names(ContigNames[[m1]]) <- unique(as.character(GeneCalls[[m1]]@seqnames))
+  #     
+  #     if (any(is.na(match(x = names(ContigNames[[m1]]),
+  #                         table = ContigsPresent[[m1]])))) {
+  #       stop (paste0("Contig names imply incorrectly matched objects at diag position ",
+  #                    names(GeneCalls)[m1]))
+  #     }
+  #     
+  #     TypePlaceHolder <- as.character(GeneCalls[[m1]]$type)
+  #     GeneCalls[[m1]] <- GeneCalls[[m1]][TypePlaceHolder %in% c("gene",
+  #                                                               "pseudogene"), ]
+  #     StrandConversion <- ifelse(test = as.character(GeneCalls[[m1]]@strand == "+"),
+  #                                yes = 0L,
+  #                                no = 1L)
+  #     StartConversion <- GeneCalls[[m1]]@ranges@start
+  #     StopConversion <- GeneCalls[[m1]]@ranges@start + GeneCalls[[m1]]@ranges@width - 1L
+  #     IndexConversion <- rep(unname(ContigNames[[m1]]),
+  #                            GeneCalls[[m1]]@seqnames@lengths)
+  #     LengthsConversion <- StopConversion - StartConversion + 1L
+  #     C.Index <- IndexConversion
+  #     ph1 <- unname(ContigNames[[m1]])
+  #     ph2 <- match(x = names(ContigNames[[m1]]),
+  #                  table = ContigsPresent[[m1]])
+  #     ph3 <- vector(mode = "list",
+  #                   length = length(ph1))
+  #     for (m3 in seq_along(ph1)) {
+  #       ph3[[m3]] <- which(C.Index == ph1[m3])
+  #     }
+  #     for (m3 in seq_along(ph1)) {
+  #       if (length(ph3) > 0L) {
+  #         C.Index <- replace(x = C.Index,
+  #                            list = ph3[[m3]],
+  #                            values = ph2[m3])
+  #       }
+  #     }
+  #     rm(list = c("ph1",
+  #                 "ph2",
+  #                 "ph3"))
+  #     o <- order(C.Index,
+  #                StartConversion)
+  #     StrandConversion <- StrandConversion[o]
+  #     IndexConversion <- C.Index[o]
+  #     StartConversion <- StartConversion[o]
+  #     StopConversion <- StopConversion[o]
+  #     LengthsConversion <- LengthsConversion[o]
+  #     StrandMax <- rep(unname(SyntenyLinks[[m1, m1]]),
+  #                      table(IndexConversion))
+  #     
+  #     R <- mapply(function(x, y) IRanges(start = x,
+  #                                        end = y),
+  #                 x = StartConversion,
+  #                 y = StopConversion,
+  #                 SIMPLIFY = FALSE)
+  #     
+  #     # FeatureRepresentations[[m1]] <- data.frame("Index" = IndexConversion,
+  #     #                                            "Strand" = StrandConversion,
+  #     #                                            "Start" = StartConversion,
+  #     #                                            "Stop" = StopConversion,
+  #     #                                            "Lengths" = LengthsConversion,
+  #     #                                            "Translation_Table" = rep(NA_character_,
+  #     #                                                                      length(o)),
+  #     #                                            "Coding" = rep(FALSE,
+  #     #                                                           length(o)),
+  #     #                                            stringsAsFactors = FALSE)
+  #     FeatureRepresentations[[m1]] <- DataFrame("Index" = IndexConversion,
+  #                                               "Strand" = StrandConversion,
+  #                                               "Start" = StartConversion,
+  #                                               "Stop" = StopConversion,
+  #                                               "Lengths" = LengthsConversion,
+  #                                               "Translation_Table" = rep(NA_character_,
+  #                                                                         length(o)),
+  #                                               "Coding" = rep(FALSE,
+  #                                                              length(o)),
+  #                                               "Range" = IRangesList(R))
+  #     FeatureRepresentations[[m1]] <- FeatureRepresentations[[m1]][StopConversion <= StrandMax, ]
+  #     # no synteny object requested, cannot perform this test ...
+  #     # if (any(StopConversion > SyntenyObject[[m1, m1]][1])) {
+  #     #   FeatureRepresentations[[m1]] <- FeatureRepresentations[[m1]][-which(StopConversion > SyntenyObject[[m1, m1]][1]), ]
+  #     # }
+  #     
+  #     rm(list = c("IndexConversion",
+  #                 "StrandConversion",
+  #                 "StartConversion",
+  #                 "StopConversion",
+  #                 "LengthsConversion"))
+  #     
+  #   } else if (is(GeneCalls[[m1]],
+  #                 "DFrame")) {
+  #     
+  #     # FeatureRepresentations[[m1]] <- GeneCalls[[m1]]
+  #     ph <- unique(GeneCalls[[m1]][, c("Index", "Contig")])
+  #     ContigNames[[m1]] <- ph$Index
+  #     names(ContigNames[[m1]]) <- ph$Contig
+  #     rm(list = c("ph"))
+  #     
+  #     CurrentIndices <- as.integer(GeneCalls[[m1]]$Index)
+  #     CurrentStarts <- as.integer(GeneCalls[[m1]]$Start)
+  #     if (AcceptContigNames) {
+  #       C.Index <- CurrentIndices
+  #       ph1 <- unname(ContigNames[[m1]])
+  #       ph2 <- match(x = names(ContigNames[[m1]]),
+  #                    table = ContigsPresent[[m1]])
+  #       ph3 <- vector(mode = "list",
+  #                     length = length(ph1))
+  #       for (m3 in seq_along(ph1)) {
+  #         ph3[[m3]] <- which(C.Index == ph1[m3])
+  #       }
+  #       for (m3 in seq_along(ph1)) {
+  #         if (length(ph3) > 0L) {
+  #           C.Index <- replace(x = C.Index,
+  #                              list = ph3[[m3]],
+  #                              values = ph2[m3])
+  #         }
+  #       }
+  #       rm(list = c("ph1",
+  #                   "ph2",
+  #                   "ph3"))
+  #       o <- order(C.Index,
+  #                  CurrentStarts)
+  #     } else {
+  #       o <- order(CurrentIndices,
+  #                  CurrentStarts)
+  #     }
+  #     FeatureRepresentations[[m1]] <- GeneCalls[[m1]][o, ]
+  #     # print(FeatureRepresentations[[m1]])
+  #     
+  #   } else if (is(GeneCalls[[m1]],
+  #                 "Genes")) {
+  #     # convert Erik's gene calls to a temporary DataFrame
+  #     # the column "Gene" assigns whether or not that particular line is the gene
+  #     # that the caller actually picked, calls must be subset to where Gene != 0
+  #     ans <- GeneCalls[[m1]]
+  #     
+  #     CurrentIndices <- as.integer(ans[, "Index"])
+  #     CurrentStarts <- as.integer(ans[, "Begin"])
+  #     CurrentStrand <- as.integer(ans[, "Strand"])
+  #     CurrentStops <- as.integer(ans[, "End"])
+  #     CurrentType <- rep("gene",
+  #                        nrow(ans))
+  #     CurrentGene <- as.integer(ans[, "Gene"])
+  #     CurrentCoding <- ifelse(test = CurrentGene > 0L,
+  #                             yes = TRUE,
+  #                             no = FALSE)
+  #     R <- mapply(function(x, y) IRanges(start = x,
+  #                                        end = y),
+  #                 x = ans[, "Begin"],
+  #                 y = ans[, "End"],
+  #                 SIMPLIFY = FALSE)
+  #     ContigNames[[m1]] <- unique(CurrentIndices)
+  #     names(ContigNames[[m1]]) <- gsub(x = names(attr(ans, "widths")),
+  #                                      pattern = " .+",
+  #                                      replacement = "")
+  #     if (AcceptContigNames) {
+  #       C.Index <- CurrentIndices
+  #       ph1 <- unname(ContigNames[[m1]])
+  #       ph2 <- match(x = names(ContigNames[[m1]]),
+  #                    table = ContigsPresent[[m1]])
+  #       ph3 <- vector(mode = "list",
+  #                     length = length(ph1))
+  #       for (m3 in seq_along(ph1)) {
+  #         ph3[[m3]] <- which(C.Index == ph1[m3])
+  #       }
+  #       for (m3 in seq_along(ph1)) {
+  #         if (length(ph3) > 0L) {
+  #           C.Index <- replace(x = C.Index,
+  #                              list = ph3[[m3]],
+  #                              values = ph2[m3])
+  #         }
+  #       }
+  #       rm(list = c("ph1",
+  #                   "ph2",
+  #                   "ph3"))
+  #       o <- order(C.Index,
+  #                  CurrentStarts)
+  #     } else {
+  #       # there should be no need to generically re-order a GeneCalls object
+  #       # unless it has been fiddled with by the user, but we'll include this anyway
+  #       o <- order(CurrentIndices,
+  #                  CurrentStarts)
+  #     }
+  #     D <- DataFrame("Index" = CurrentIndices,
+  #                    "Strand" = CurrentStrand,
+  #                    "Start" = CurrentStarts,
+  #                    "Stop" = CurrentStops,
+  #                    "Type" = CurrentType,
+  #                    "Range" = IRangesList(R),
+  #                    "Gene" = CurrentGene,
+  #                    "Coding" = CurrentCoding,
+  #                    "Translation_Table" = rep(NA_character_,
+  #                                              length(o)))
+  #     D <- D[o, ]
+  #     D <- D[as.vector(ans[, "Gene"]) != 0, ]
+  #     rownames(D) <- NULL
+  #     FeatureRepresentations[[m1]] <- D
+  #     ContigNames[[m1]] <- unique(D$Index)
+  #     names(ContigNames[[m1]]) <- ContigNames[[m1]]
+  #     
+  #     rm(list = c("D",
+  #                 "ans",
+  #                 "R",
+  #                 "CurrentIndices",
+  #                 "CurrentStarts",
+  #                 "CurrentStrand",
+  #                 "CurrentStops",
+  #                 "CurrentType",
+  #                 "CurrentGene",
+  #                 "CurrentCoding"))
+  #   }
+  #   if (Verbose) {
+  #     setTxtProgressBar(pb = pBar,
+  #                       value = m1 / length(GeneCalls))
+  #   }
+  # }
+  # if (Verbose) {
+  #   cat("\nGeneCalls reconciled.\n")
+  # }
+  # 
+  # LinkContigNames <- diag(SyntenyLinks)
+  # names(FeatureRepresentations) <- names(GeneCalls)
+  # GeneCalls <- FeatureRepresentations
+  # 
+  # rm(list = c("FeatureRepresentations",
+  #             "L"))
   
   ###### -- End Gene call -----------------------------------------------------
   
@@ -409,7 +429,19 @@ PairSummaries <- function(SyntenyLinks,
   ###### -- Summary stuff -----------------------------------------------------
   
   Size <- dim(SyntenyLinks)[1]
-  Total <- (Size^2 - Size) / 2
+  if (PIDs) {
+    Total <- sum(sapply(SyntenyLinks[upper.tri(SyntenyLinks)],
+                        function(x) nrow(x),
+                        USE.NAMES = FALSE,
+                        simplify = TRUE))
+    
+    cat("Aligning pairs.\n")
+  } else {
+    Total <- (Size^2 - Size) / 2
+    
+    cat("Collecting pairs.\n")
+  }
+  
   Count <- 1L
   PH <- vector(mode = "list",
                length = Total)
@@ -440,38 +472,6 @@ PairSummaries <- function(SyntenyLinks,
         # links table is populated, do whatever
         PMatrix <- cbind(SyntenyLinks[[m1, m2]][, 1L],
                          SyntenyLinks[[m1, m2]][, 2L])
-        
-        # if (AcceptContigNames) {
-        #   ph1 <- SyntenyLinks[[m1, m2]][, 4L]
-        #   for (m3 in seq_along(unname(LinkContigNames[[m1]]))) {
-        #     ph1 <- replace(x = ph1,
-        #                    list = which(ph1 == unname(LinkContigNames[[m1]])[m3]),
-        #                    values = unname(ContigNames[[m1]])[m3])
-        #   }
-        #   ph2 <- SyntenyLinks[[m1, m2]][, 5L]
-        #   for (m3 in seq_along(unname(LinkContigNames[[m2]]))) {
-        #     ph2 <- replace(x = ph2,
-        #                    list = which(ph2 == unname(LinkContigNames[[m2]])[m3]),
-        #                    values = unname(ContigNames[[m2]])[m3])
-        #   }
-        #   IMatrix <- cbind(ph1,
-        #                    ph2)
-        #   rm(list = c("ph1",
-        #               "ph2"))
-        # } else {
-        #   IMatrix <- cbind(SyntenyLinks[[m1, m2]][, 4L],
-        #                    SyntenyLinks[[m1, m2]][, 5L])
-        # }
-        
-        # if (m1 == 4 &
-        #     m2 == 8) {
-        #   return(list(IMatrix,
-        #               cbind("m1" = SyntenyLinks[[m1, m2]][, 1L],
-        #                     "m2" = SyntenyLinks[[m1, m2]][, 2L]),
-        #               SyntenyLinks[[m1, m2]]))
-        # }
-        # rownames(IMatrix) <- NULL
-        # rownames(PMatrix) <- NULL
         
         IMatrix <- cbind(SyntenyLinks[[m1, m2]][, 4L],
                          SyntenyLinks[[m1, m2]][, 5L])
@@ -808,6 +808,12 @@ PairSummaries <- function(SyntenyLinks,
               }
               Pident[m3] <- 1 - do.call(what = DistanceMatrix,
                                         args = CurrentDMArgs)[1, 2]
+              
+              if (Verbose) {
+                setTxtProgressBar(pb = pBar,
+                                  value = Count / Total)
+                Count <- Count + 1L
+              }
               # Pident[m3] <- 1 - DistanceMatrix(myXStringSet = AlignSeqs(myXStringSet = c(QuerySeqs[m3],
               #                                                                            SubjectSeqs[m3]),
               #                                                           verbose = FALSE,
@@ -958,7 +964,13 @@ PairSummaries <- function(SyntenyLinks,
                 #                                  type = "matrix",
                 #                                  ...)[1, 2]
               }
-            }
+              
+              if (Verbose) {
+                setTxtProgressBar(pb = pBar,
+                                  value = Count / Total)
+                Count <- Count + 1L
+              }
+            } # end m3 loop
           }
           
           PH[[Count]] <- data.frame("p1" = names(QuerySeqs),
@@ -977,6 +989,7 @@ PairSummaries <- function(SyntenyLinks,
                                     "PIDType" = Atype,
                                     stringsAsFactors = FALSE)
         } else {
+          
           PH[[Count]] <- data.frame("p1" = paste(names(GeneCalls)[m1],
                                                  IMatrix[, 1L],
                                                  PMatrix[, 1L],
@@ -1004,7 +1017,8 @@ PairSummaries <- function(SyntenyLinks,
       } else {
         # no links in table, leave list position as NULL
       }
-      if (Verbose) {
+      if (Verbose &
+          !PIDs) {
         setTxtProgressBar(pb = pBar,
                           value = Count / Total)
       }
@@ -1037,7 +1051,7 @@ PairSummaries <- function(SyntenyLinks,
     cat("\n")
     print(TimeEnd - TimeStart)
   }
-  
+  attr(DF, "GeneCalls") <- attr(SyntenyLinks, "GeneCalls")
   return(DF)
 }
   

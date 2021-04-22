@@ -15,8 +15,10 @@
   if (length(I) >= 2 &&
       length(I)==length(J) &&
       all(I==J) &&
-      !any(duplicated(I)))
+      !any(duplicated(I))) {
     class(ans) <- "LinkedPairs"
+  }
+  attr(ans, "GeneCalls") <- attr(x, "GeneCalls")
   return(ans)
 }
 
