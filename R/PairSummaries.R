@@ -130,26 +130,24 @@ PairSummaries <- function(SyntenyLinks,
   
   ###### -- extract genomes for stuff -----------------------------------------
   
-  if (PIDs) {
+  if (Verbose) {
+    cat("\nSelecting Genomes.\n")
+  }
+  Genomes <- vector("list",
+                    length = length(GeneCalls))
+  for (i in seq_along(Genomes)) {
+    Genomes[[i]] <- SearchDB(dbFile = DBPATH,
+                             identifier = names(GeneCalls[i]),
+                             nameBy = "identifier",
+                             verbose = FALSE)
     if (Verbose) {
-      cat("\nSelecting Genomes.\n")
+      setTxtProgressBar(pb = pBar,
+                        value = i / length(Genomes))
     }
-    Genomes <- vector("list",
-                      length = length(GeneCalls))
-    for (i in seq_along(Genomes)) {
-      Genomes[[i]] <- SearchDB(dbFile = DBPATH,
-                               identifier = names(GeneCalls[i]),
-                               nameBy = "identifier",
-                               verbose = FALSE)
-      if (Verbose) {
-        setTxtProgressBar(pb = pBar,
-                          value = i / length(Genomes))
-      }
-    }
-    Genomes <- DNAStringSetList(Genomes)
-    if (Verbose) {
-      cat("\n")
-    }
+  }
+  Genomes <- DNAStringSetList(Genomes)
+  if (Verbose) {
+    cat("\n")
   }
   
   ###### -- if a model is specified, load it ----------------------------------
@@ -182,7 +180,7 @@ PairSummaries <- function(SyntenyLinks,
                         function(x) nrow(x),
                         USE.NAMES = FALSE,
                         simplify = TRUE))
-    
+    # read this message after neighbors and k-mer dists ?
     cat("Aligning pairs.\n")
   } else {
     Total <- (Size^2 - Size) / 2
@@ -556,127 +554,79 @@ PairSummaries <- function(SyntenyLinks,
         # as of the writing of this function extractAt does not recycle x,
         # if in the future it can recycle x, the rep calls interior to extractAt
         # can be removed
-        if (PIDs) {
-          
-          PresQI <- unique(IMatrix[, 1L])
-          PresSI <- unique(IMatrix[, 2L])
-          QuerySeqs <- vector(mode = "list",
-                              length = length(PresQI))
-          SubjectSeqs <- vector(mode = "list",
-                                length = length(PresSI))
-          PresentQRanges <- GeneCalls[[m1]]$Range[PMatrix[, 1L]]
-          PresentSRanges <- GeneCalls[[m2]]$Range[PMatrix[, 2L]]
-          
-          # return(list(IMatrix,
-          #             PMatrix,
-          #             PresQI,
-          #             PresSI,
-          #             PresentQRanges,
-          #             PresentSRanges,
-          #             GeneCalls[[m1]],
-          #             GeneCalls[[m2]],
-          #             Genomes[[m1]],
-          #             Genomes[[m2]]))
-          
-          # print(IMatrix)
-          # print(PMatrix)
-          
-          for (m3 in seq_along(PresQI)) {
-            # print(m3)
-            # print(c(m3, m2, m1))
-            # if (m1 == 1 &
-            #     m2 == 4 &
-            #     m3 == 2) {
-            #   return(list(IMatrix,
-            #               PMatrix,
-            #               PresQI,
-            #               PresentQRanges))
-            # }
-            CurrentRanges <- PresentQRanges[IMatrix[, 1L] == PresQI[m3]]
-            # if (m3 == 3L) {
-            #   return(list(PresentQRanges,
-            #               PresQI,
-            #               IMatrix,
-            #               Genomes[[m1]][PresQI[m3]],
-            #               CurrentRanges,
-            #               GeneCalls[[m1]]))
-            # }
-            QuerySeqs[[m3]] <- extractAt(x = rep(Genomes[[m1]][PresQI[m3]],
+        
+        PresQI <- unique(IMatrix[, 1L])
+        PresSI <- unique(IMatrix[, 2L])
+        QuerySeqs <- vector(mode = "list",
+                            length = length(PresQI))
+        SubjectSeqs <- vector(mode = "list",
+                              length = length(PresSI))
+        PresentQRanges <- GeneCalls[[m1]]$Range[PMatrix[, 1L]]
+        PresentSRanges <- GeneCalls[[m2]]$Range[PMatrix[, 2L]]
+        
+        for (m3 in seq_along(PresQI)) {
+          CurrentRanges <- PresentQRanges[IMatrix[, 1L] == PresQI[m3]]
+          QuerySeqs[[m3]] <- extractAt(x = rep(Genomes[[m1]][PresQI[m3]],
+                                               length(CurrentRanges)),
+                                       at = unname(CurrentRanges))
+          QuerySeqs[[m3]] <- DNAStringSet(sapply(QuerySeqs[[m3]],
+                                                 function(x) unlist(x)))
+          names(QuerySeqs[[m3]]) <- paste(names(GeneCalls)[m1],
+                                          PresQI[m3],
+                                          PMatrix[, 1L][IMatrix[, 1L] == PresQI[m3]],
+                                          sep = "_")
+        }
+        QuerySeqs <- do.call(c,
+                             QuerySeqs)
+        for (m3 in seq_along(PresSI)) {
+          CurrentRanges <- PresentSRanges[IMatrix[, 2L] == PresSI[m3]]
+          SubjectSeqs[[m3]] <- extractAt(x = rep(Genomes[[m2]][PresSI[m3]],
                                                  length(CurrentRanges)),
                                          at = unname(CurrentRanges))
-            QuerySeqs[[m3]] <- DNAStringSet(sapply(QuerySeqs[[m3]],
+          SubjectSeqs[[m3]] <- DNAStringSet(sapply(SubjectSeqs[[m3]],
                                                    function(x) unlist(x)))
-            names(QuerySeqs[[m3]]) <- paste(names(GeneCalls)[m1],
-                                            PresQI[m3],
-                                            PMatrix[, 1L][IMatrix[, 1L] == PresQI[m3]],
+          names(SubjectSeqs[[m3]]) <- paste(names(GeneCalls)[m2],
+                                            PresSI[m3],
+                                            PMatrix[, 2L][IMatrix[, 2L] == PresSI[m3]],
                                             sep = "_")
-          }
-          QuerySeqs <- do.call(c,
-                               QuerySeqs)
+        }
+        SubjectSeqs <- do.call(c,
+                               SubjectSeqs)
+        # return SubjectSeqs to the original order
+        o <- match(x = paste(names(GeneCalls)[m2],
+                             IMatrix[, 2L],
+                             PMatrix[, 2L],
+                             sep = "_"),
+                   table = names(SubjectSeqs))
+        SubjectSeqs <- SubjectSeqs[o]
+        if (length(QuerySeqs) != length(SubjectSeqs)) {
+          stop("Extracted Seqs have differing lengths.")
+        }
+        
+        # reverse complement seqs where necessary
+        QuerySeqs[QGeneStrand == 1L] <- reverseComplement(QuerySeqs[QGeneStrand == 1L])
+        SubjectSeqs[SGeneStrand == 1L] <- reverseComplement(SubjectSeqs[SGeneStrand == 1L])
+        
+        NucDist <- vector(mode = "numeric",
+                          length = length(QuerySeqs))
+        nuc1 <- oligonucleotideFrequency(x = QuerySeqs,
+                                         width = 4L,
+                                         as.prob = TRUE)
+        nuc2 <- oligonucleotideFrequency(x = SubjectSeqs,
+                                         width = 4L,
+                                         as.prob = TRUE)
+        for (m3 in seq_along(NucDist)) {
+          NucDist[m3] <- sqrt(sum((nuc1[m3, ] - nuc2[m3, ])^2)) / ((sum(nuc1[m3, ]) + sum(nuc2[m3, ])) / 2)
+        }
+        
+        
+        if (PIDs) {
           
-          for (m3 in seq_along(PresSI)) {
-            # print(c(m3, m2, m1))
-            
-            CurrentRanges <- PresentSRanges[IMatrix[, 2L] == PresSI[m3]]
-            # return(list(IMatrix,
-            #             PMatrix,
-            #             PresQI,
-            #             PresSI,
-            #             PresentQRanges,
-            #             PresentSRanges,
-            #             Genomes,
-            #             CurrentRanges,
-            #             GeneCalls[[m1]],
-            #             GeneCalls[[m2]],
-            #             m3))
-            SubjectSeqs[[m3]] <- extractAt(x = rep(Genomes[[m2]][PresSI[m3]],
-                                                   length(CurrentRanges)),
-                                           at = unname(CurrentRanges))
-            SubjectSeqs[[m3]] <- DNAStringSet(sapply(SubjectSeqs[[m3]],
-                                                     function(x) unlist(x)))
-            names(SubjectSeqs[[m3]]) <- paste(names(GeneCalls)[m2],
-                                              PresSI[m3],
-                                              PMatrix[, 2L][IMatrix[, 2L] == PresSI[m3]],
-                                              sep = "_")
-          }
-          SubjectSeqs <- do.call(c,
-                                 SubjectSeqs)
-          # return SubjectSeqs to the original order
-          o <- match(x = paste(names(GeneCalls)[m2],
-                               IMatrix[, 2L],
-                               PMatrix[, 2L],
-                               sep = "_"),
-                     table = names(SubjectSeqs))
-          SubjectSeqs <- SubjectSeqs[o]
-          if (length(QuerySeqs) != length(SubjectSeqs)) {
-            stop("Extracted Seqs have differing lengths.")
-          }
-          
-          # reverse complement seqs where necessary
-          QuerySeqs[QGeneStrand == 1L] <- reverseComplement(QuerySeqs[QGeneStrand == 1L])
-          SubjectSeqs[SGeneStrand == 1L] <- reverseComplement(SubjectSeqs[SGeneStrand == 1L])
-          
-          # return(list(QuerySeqs, SubjectSeqs, QGeneCoding, SGeneCoding))
           Pident <- vector(mode = "numeric",
                            length = length(QuerySeqs))
           Atype <- vector(mode = "character",
                           length = length(QuerySeqs))
           
-          # return(list(QuerySeqs,
-          #             SubjectSeqs,
-          #             QGeneCoding,
-          #             SGeneCoding,
-          #             QGeneLength,
-          #             SGeneLength,
-          #             PMatrix,
-          #             IMatrix,
-          #             PresQI,
-          #             PresSI,
-          #             o,
-          #             paste(names(GeneCalls)[m2],
-          #                   IMatrix[, 2L],
-          #                   PMatrix[, 2L],
-          #                   sep = "_")))
           if (IgnoreDefaultStringSet) {
             # perform all alignments in nucleotide space
             for (m3 in seq_along(SubjectSeqs)) {
@@ -886,6 +836,7 @@ PairSummaries <- function(SyntenyLinks,
                                     "p1FeatureLength" = QGeneLength,
                                     "p2FeatureLength" = SGeneLength,
                                     "Adjacent" = RKey + LKey,
+                                    "FourmerDist" = NucDist,
                                     "PID" = Pident,
                                     "PIDType" = Atype,
                                     stringsAsFactors = FALSE)
@@ -909,6 +860,7 @@ PairSummaries <- function(SyntenyLinks,
                                     "p1FeatureLength" = QGeneLength,
                                     "p2FeatureLength" = SGeneLength,
                                     "Adjacent" = RKey + LKey,
+                                    "FourmerDist" = NucDist,
                                     "PIDType" = ifelse(test = GeneCalls[[m1]][PMatrix[, 1L], "Coding"] &
                                                          GeneCalls[[m2]][PMatrix[, 2L], "Coding"],
                                                        yes = "AA",

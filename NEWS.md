@@ -1,3 +1,7 @@
+# SynExtend 1.3.12
+
+* `PairSummaries` now computes 4-mer distance between predicted pairs.
+
 # SynExtend 1.3.11
 
 * `PairSummaries` now returns a column titled Adjacent that provides the number of directly adjacent neighbor pairs to a predicted pair. Gap filling code adjusted.

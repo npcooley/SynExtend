@@ -26,7 +26,7 @@ Logical indicating whether or not to display a progress bar and print the time d
 \code{FindSets} uses a version of the union-find algorithm to collect single linkage clusters from a pairs list. Currently meant to be used inside a wrapper function, but left exposed for user convenience.
 }
 \value{
-An integer vector of representative nodes.
+A two column matrix with the first column being input nodes, and the second the node representing a single linkage cluster.
 }
 \author{
 Nicholas Cooley \email{npc19@pitt.edu}
