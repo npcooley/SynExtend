@@ -10,6 +10,7 @@ importFrom("stats", "predict")
 export(NucleotideOverlap)
 export(gffToDataFrame)
 export(PairSummaries)
+export(FindSets)
 
 S3method(`[`, "LinkedPairs")
 S3method(print, "LinkedPairs")

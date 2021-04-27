@@ -28,8 +28,8 @@ PairSummaries <- function(SyntenyLinks,
   if (!is(SyntenyLinks, "LinkedPairs")) {
     stop ("Object is not an LinkedPairs object.")
   }
-  if (any(OffSetsAllowed < 1L)) {
-    stop ("Gaps must be positive in size.")
+  if (any(OffSetsAllowed <= 1L)) {
+    stop ("Disallowed offsets.")
   }
   # GCallClasses <- sapply(GeneCalls,
   #                        function(x) class(x),
@@ -41,6 +41,9 @@ PairSummaries <- function(SyntenyLinks,
   
   if (length(OffSetsAllowed) > 0L) {
     AllowGaps <- TRUE
+  }
+  if (is.null(OffSetsAllowed)) {
+    AllowGaps <- FALSE
   }
   
   GeneCalls <- attr(SyntenyLinks, "GeneCalls")
@@ -91,9 +94,6 @@ PairSummaries <- function(SyntenyLinks,
              table = ArgNames)
   m <- m[!is.na(m)]
   if (length(m) > 0L) {
-    # myXStringSet = c(QuerySeqs[m3],
-    #                  SubjectSeqs[m3]),
-    # verbose = FALSE
     ASArgs <- Args[m]
     rm(PossibleASArgs)
   } else {
@@ -151,258 +151,6 @@ PairSummaries <- function(SyntenyLinks,
       cat("\n")
     }
   }
-  
-  ###### -- Indices present by name -------------------------------------------
-  
-  ContigsPresent <- sapply(diag(SyntenyLinks),
-                           function(x) names(x),
-                           simplify = FALSE)
-  
-  ###### -- Deal with Different GeneCall types --------------------------------
-  
-  # L <- length(GeneCalls)
-  # FeatureRepresentations <- vector(mode = "list",
-  #                                  length = L)
-  # ContigNames <- vector(mode = "list",
-  #                       length = L)
-  # GCallClasses <- sapply(GeneCalls,
-  #                        function(x) class(x),
-  #                        USE.NAMES = FALSE,
-  #                        simplify = TRUE)
-  # 
-  # if (Verbose) {
-  #   cat("\nReconciling Genecalls.\n")
-  # }
-  # 
-  # for (m1 in seq_along(GeneCalls)) {
-  #   if (is(GeneCalls[[m1]],
-  #          "GRanges")) {
-  #     ContigNames[[m1]] <- seq(length(GeneCalls[[m1]]@seqnames@lengths))
-  #     names(ContigNames[[m1]]) <- unique(as.character(GeneCalls[[m1]]@seqnames))
-  #     
-  #     if (any(is.na(match(x = names(ContigNames[[m1]]),
-  #                         table = ContigsPresent[[m1]])))) {
-  #       stop (paste0("Contig names imply incorrectly matched objects at diag position ",
-  #                    names(GeneCalls)[m1]))
-  #     }
-  #     
-  #     TypePlaceHolder <- as.character(GeneCalls[[m1]]$type)
-  #     GeneCalls[[m1]] <- GeneCalls[[m1]][TypePlaceHolder %in% c("gene",
-  #                                                               "pseudogene"), ]
-  #     StrandConversion <- ifelse(test = as.character(GeneCalls[[m1]]@strand == "+"),
-  #                                yes = 0L,
-  #                                no = 1L)
-  #     StartConversion <- GeneCalls[[m1]]@ranges@start
-  #     StopConversion <- GeneCalls[[m1]]@ranges@start + GeneCalls[[m1]]@ranges@width - 1L
-  #     IndexConversion <- rep(unname(ContigNames[[m1]]),
-  #                            GeneCalls[[m1]]@seqnames@lengths)
-  #     LengthsConversion <- StopConversion - StartConversion + 1L
-  #     C.Index <- IndexConversion
-  #     ph1 <- unname(ContigNames[[m1]])
-  #     ph2 <- match(x = names(ContigNames[[m1]]),
-  #                  table = ContigsPresent[[m1]])
-  #     ph3 <- vector(mode = "list",
-  #                   length = length(ph1))
-  #     for (m3 in seq_along(ph1)) {
-  #       ph3[[m3]] <- which(C.Index == ph1[m3])
-  #     }
-  #     for (m3 in seq_along(ph1)) {
-  #       if (length(ph3) > 0L) {
-  #         C.Index <- replace(x = C.Index,
-  #                            list = ph3[[m3]],
-  #                            values = ph2[m3])
-  #       }
-  #     }
-  #     rm(list = c("ph1",
-  #                 "ph2",
-  #                 "ph3"))
-  #     o <- order(C.Index,
-  #                StartConversion)
-  #     StrandConversion <- StrandConversion[o]
-  #     IndexConversion <- C.Index[o]
-  #     StartConversion <- StartConversion[o]
-  #     StopConversion <- StopConversion[o]
-  #     LengthsConversion <- LengthsConversion[o]
-  #     StrandMax <- rep(unname(SyntenyLinks[[m1, m1]]),
-  #                      table(IndexConversion))
-  #     
-  #     R <- mapply(function(x, y) IRanges(start = x,
-  #                                        end = y),
-  #                 x = StartConversion,
-  #                 y = StopConversion,
-  #                 SIMPLIFY = FALSE)
-  #     
-  #     # FeatureRepresentations[[m1]] <- data.frame("Index" = IndexConversion,
-  #     #                                            "Strand" = StrandConversion,
-  #     #                                            "Start" = StartConversion,
-  #     #                                            "Stop" = StopConversion,
-  #     #                                            "Lengths" = LengthsConversion,
-  #     #                                            "Translation_Table" = rep(NA_character_,
-  #     #                                                                      length(o)),
-  #     #                                            "Coding" = rep(FALSE,
-  #     #                                                           length(o)),
-  #     #                                            stringsAsFactors = FALSE)
-  #     FeatureRepresentations[[m1]] <- DataFrame("Index" = IndexConversion,
-  #                                               "Strand" = StrandConversion,
-  #                                               "Start" = StartConversion,
-  #                                               "Stop" = StopConversion,
-  #                                               "Lengths" = LengthsConversion,
-  #                                               "Translation_Table" = rep(NA_character_,
-  #                                                                         length(o)),
-  #                                               "Coding" = rep(FALSE,
-  #                                                              length(o)),
-  #                                               "Range" = IRangesList(R))
-  #     FeatureRepresentations[[m1]] <- FeatureRepresentations[[m1]][StopConversion <= StrandMax, ]
-  #     # no synteny object requested, cannot perform this test ...
-  #     # if (any(StopConversion > SyntenyObject[[m1, m1]][1])) {
-  #     #   FeatureRepresentations[[m1]] <- FeatureRepresentations[[m1]][-which(StopConversion > SyntenyObject[[m1, m1]][1]), ]
-  #     # }
-  #     
-  #     rm(list = c("IndexConversion",
-  #                 "StrandConversion",
-  #                 "StartConversion",
-  #                 "StopConversion",
-  #                 "LengthsConversion"))
-  #     
-  #   } else if (is(GeneCalls[[m1]],
-  #                 "DFrame")) {
-  #     
-  #     # FeatureRepresentations[[m1]] <- GeneCalls[[m1]]
-  #     ph <- unique(GeneCalls[[m1]][, c("Index", "Contig")])
-  #     ContigNames[[m1]] <- ph$Index
-  #     names(ContigNames[[m1]]) <- ph$Contig
-  #     rm(list = c("ph"))
-  #     
-  #     CurrentIndices <- as.integer(GeneCalls[[m1]]$Index)
-  #     CurrentStarts <- as.integer(GeneCalls[[m1]]$Start)
-  #     if (AcceptContigNames) {
-  #       C.Index <- CurrentIndices
-  #       ph1 <- unname(ContigNames[[m1]])
-  #       ph2 <- match(x = names(ContigNames[[m1]]),
-  #                    table = ContigsPresent[[m1]])
-  #       ph3 <- vector(mode = "list",
-  #                     length = length(ph1))
-  #       for (m3 in seq_along(ph1)) {
-  #         ph3[[m3]] <- which(C.Index == ph1[m3])
-  #       }
-  #       for (m3 in seq_along(ph1)) {
-  #         if (length(ph3) > 0L) {
-  #           C.Index <- replace(x = C.Index,
-  #                              list = ph3[[m3]],
-  #                              values = ph2[m3])
-  #         }
-  #       }
-  #       rm(list = c("ph1",
-  #                   "ph2",
-  #                   "ph3"))
-  #       o <- order(C.Index,
-  #                  CurrentStarts)
-  #     } else {
-  #       o <- order(CurrentIndices,
-  #                  CurrentStarts)
-  #     }
-  #     FeatureRepresentations[[m1]] <- GeneCalls[[m1]][o, ]
-  #     # print(FeatureRepresentations[[m1]])
-  #     
-  #   } else if (is(GeneCalls[[m1]],
-  #                 "Genes")) {
-  #     # convert Erik's gene calls to a temporary DataFrame
-  #     # the column "Gene" assigns whether or not that particular line is the gene
-  #     # that the caller actually picked, calls must be subset to where Gene != 0
-  #     ans <- GeneCalls[[m1]]
-  #     
-  #     CurrentIndices <- as.integer(ans[, "Index"])
-  #     CurrentStarts <- as.integer(ans[, "Begin"])
-  #     CurrentStrand <- as.integer(ans[, "Strand"])
-  #     CurrentStops <- as.integer(ans[, "End"])
-  #     CurrentType <- rep("gene",
-  #                        nrow(ans))
-  #     CurrentGene <- as.integer(ans[, "Gene"])
-  #     CurrentCoding <- ifelse(test = CurrentGene > 0L,
-  #                             yes = TRUE,
-  #                             no = FALSE)
-  #     R <- mapply(function(x, y) IRanges(start = x,
-  #                                        end = y),
-  #                 x = ans[, "Begin"],
-  #                 y = ans[, "End"],
-  #                 SIMPLIFY = FALSE)
-  #     ContigNames[[m1]] <- unique(CurrentIndices)
-  #     names(ContigNames[[m1]]) <- gsub(x = names(attr(ans, "widths")),
-  #                                      pattern = " .+",
-  #                                      replacement = "")
-  #     if (AcceptContigNames) {
-  #       C.Index <- CurrentIndices
-  #       ph1 <- unname(ContigNames[[m1]])
-  #       ph2 <- match(x = names(ContigNames[[m1]]),
-  #                    table = ContigsPresent[[m1]])
-  #       ph3 <- vector(mode = "list",
-  #                     length = length(ph1))
-  #       for (m3 in seq_along(ph1)) {
-  #         ph3[[m3]] <- which(C.Index == ph1[m3])
-  #       }
-  #       for (m3 in seq_along(ph1)) {
-  #         if (length(ph3) > 0L) {
-  #           C.Index <- replace(x = C.Index,
-  #                              list = ph3[[m3]],
-  #                              values = ph2[m3])
-  #         }
-  #       }
-  #       rm(list = c("ph1",
-  #                   "ph2",
-  #                   "ph3"))
-  #       o <- order(C.Index,
-  #                  CurrentStarts)
-  #     } else {
-  #       # there should be no need to generically re-order a GeneCalls object
-  #       # unless it has been fiddled with by the user, but we'll include this anyway
-  #       o <- order(CurrentIndices,
-  #                  CurrentStarts)
-  #     }
-  #     D <- DataFrame("Index" = CurrentIndices,
-  #                    "Strand" = CurrentStrand,
-  #                    "Start" = CurrentStarts,
-  #                    "Stop" = CurrentStops,
-  #                    "Type" = CurrentType,
-  #                    "Range" = IRangesList(R),
-  #                    "Gene" = CurrentGene,
-  #                    "Coding" = CurrentCoding,
-  #                    "Translation_Table" = rep(NA_character_,
-  #                                              length(o)))
-  #     D <- D[o, ]
-  #     D <- D[as.vector(ans[, "Gene"]) != 0, ]
-  #     rownames(D) <- NULL
-  #     FeatureRepresentations[[m1]] <- D
-  #     ContigNames[[m1]] <- unique(D$Index)
-  #     names(ContigNames[[m1]]) <- ContigNames[[m1]]
-  #     
-  #     rm(list = c("D",
-  #                 "ans",
-  #                 "R",
-  #                 "CurrentIndices",
-  #                 "CurrentStarts",
-  #                 "CurrentStrand",
-  #                 "CurrentStops",
-  #                 "CurrentType",
-  #                 "CurrentGene",
-  #                 "CurrentCoding"))
-  #   }
-  #   if (Verbose) {
-  #     setTxtProgressBar(pb = pBar,
-  #                       value = m1 / length(GeneCalls))
-  #   }
-  # }
-  # if (Verbose) {
-  #   cat("\nGeneCalls reconciled.\n")
-  # }
-  # 
-  # LinkContigNames <- diag(SyntenyLinks)
-  # names(FeatureRepresentations) <- names(GeneCalls)
-  # GeneCalls <- FeatureRepresentations
-  # 
-  # rm(list = c("FeatureRepresentations",
-  #             "L"))
-  
-  ###### -- End Gene call -----------------------------------------------------
   
   ###### -- if a model is specified, load it ----------------------------------
   
@@ -476,27 +224,128 @@ PairSummaries <- function(SyntenyLinks,
         IMatrix <- cbind(SyntenyLinks[[m1, m2]][, 4L],
                          SyntenyLinks[[m1, m2]][, 5L])
         
-        # index matching
-        QGeneLength <- GeneCalls[[m1]][PMatrix[, 1L], "Stop"] - GeneCalls[[m1]][PMatrix[, 1L], "Start"] + 1L
-        SGeneLength <- GeneCalls[[m2]][PMatrix[, 2L], "Stop"] - GeneCalls[[m2]][PMatrix[, 2L], "Start"] + 1L
-        ExactOverLap <- SyntenyLinks[[m1, m2]][, 3L]
-        # MinGap <- abs(QGeneLength - SGeneLength)
-        TotalKmers <- SyntenyLinks[[m1, m2]][, 11L]
-        MaxKmer <- SyntenyLinks[[m1, m2]][, 10L]
-        ExteriorMissQuery <- SyntenyLinks[[m2, m1]][, 1L] + SyntenyLinks[[m2, m1]][, 2L]
-        ExteriorMissSubject <- SyntenyLinks[[m2, m1]][, 3L] + SyntenyLinks[[m2, m1]][, 4L]
-        InteriorMissQuery <- QGeneLength - (ExactOverLap + ExteriorMissQuery)
-        InteriorMissSubject <- SGeneLength - (ExactOverLap + ExteriorMissSubject)
-        QGeneStrand <- GeneCalls[[m1]][PMatrix[, 1L], "Strand"]
-        QGeneCoding <- GeneCalls[[m1]][PMatrix[, 1L], "Coding"]
-        QGeneTransl <- GeneCalls[[m1]][PMatrix[, 1L], "Translation_Table"]
-        SGeneStrand <- GeneCalls[[m2]][PMatrix[, 2L], "Strand"]
-        SGeneCoding <- GeneCalls[[m2]][PMatrix[, 2L], "Coding"]
-        SGeneTransl <- GeneCalls[[m2]][PMatrix[, 2L], "Translation_Table"]
+        # map neighbors here - generate LN + RN columns
+        # loop through possible index combos
+        # then remap PMatrix and IMatrix
+        # include gap fills here? or later?
+        UIM <- unique(IMatrix) # unique index matrix
+        IndexKey <- match(x = data.frame(t(IMatrix)),
+                          table = data.frame(t(UIM)))
+        UIK <- unique(IndexKey)
+        
+        # return(list(UIM,
+        #             UIK,
+        #             IndexKey,
+        #             IMatrix))
+        
+        LKey <- RKey <- NeighborMat <- vector(mode = "list",
+                                              length = nrow(UIM))
+        for (m3 in seq_len(nrow(UIM))) {
+          # don't need to bother with subsetting index matrix here
+          CIM <- IMatrix[IndexKey == UIK[m3], , drop = FALSE] # current index matrix
+          CPM <- PMatrix[IndexKey == UIK[m3], , drop = FALSE] # current index matrix
+          
+          if (nrow(CPM) > 1L) {
+            p1 <- CPM[, 1]
+            p2 <- CPM[, 2]
+            i1 <- CIM[, 1]
+            i2 <- CIM[, 2]
+            
+            p1e <- rle(p1)
+            up1 <- p1e$values
+            p2e <- rle(p2)
+            up2 <- p2e$values
+            
+            # if one id is present while being present many times just rep zero
+            # else solve
+            if (length(up1) > 1L) {
+              # successive rightward p1
+              rdp1 <- c(up1[2L:length(up1)] - up1[1L:(length(up1) - 1L)], 0L)
+              # successive leftward p1
+              ldp1 <- abs(c(0L, up1[1L:(length(up1) - 1L)] - up1[2L:length(up1)]))
+              # expand unique diffs back to pair list size
+              rdp1 <- rep(rdp1,
+                          p1e$lengths)
+              ldp1 <- rep(ldp1,
+                          p1e$lengths)
+            } else {
+              rdp1 <- rep(0L, p1e$lengths)
+              ldp1 <- rep(0L, p1e$lengths)
+            }
+            
+            if (length(up2) > 1L) {
+              # successive rightward p2
+              rdp2 <- c(up2[2L:length(up2)] - up2[1L:(length(up2) - 1L)], 0L)
+              # successive leftward p2
+              ldp2 <- c(0L, up2[1L:(length(up2) - 1L)] - up2[2L:length(up2)]) * -1L
+              # expand unique diffs back to pair list size
+              rdp2 <- rep(rdp2,
+                          p2e$lengths)
+              ldp2 <- rep(ldp2,
+                          p2e$lengths)
+            } else {
+              rdp2 <- rep(0L, p2e$lengths)
+              ldp2 <- rep(0L, p2e$lengths)
+            }
+            
+            # left and right are absolute in p1
+            # but left and right are relative to diagonal / anti-diagonal in p2
+            # when p2 left or right is negative it is pointing along the anti-diagonal
+            # you can have neighbors on either diagonal, but to have a gap, those neighbors must
+            # be on the same diagonal
+            
+            NeighborMat[[m3]] <- cbind("p1" = p1,
+                                       "p2" = p2,
+                                       "i1" = i1,
+                                       "i2" = i2,
+                                       "p1rd" = rdp1,
+                                       "p1ld" = ldp1,
+                                       "p2rd" = rdp2,
+                                       "p2ld" = ldp2)
+            RKey[[m3]] <- as.integer(NeighborMat[[m3]][, 5L] == 1L & abs(NeighborMat[[m3]][, 7L]) == 1L)
+            LKey[[m3]] <- as.integer(NeighborMat[[m3]][, 6L] == 1L & abs(NeighborMat[[m3]][, 8L]) == 1L)
+            
+          } else if (nrow(CPM) == 1L) {
+            # only a single gene appears in this index combo
+            LKey[[m3]] <- RKey[[m3]] <- 0L # assign keys as false
+            NeighborMat[[m3]] <- cbind("p1" = CPM[, 1L],
+                                       "p2" = CPM[, 2L],
+                                       "i1" = CIM[, 1L],
+                                       "i2" = CIM[, 2L],
+                                       "p1rd" = 0L,
+                                       "p1ld" = 0L,
+                                       "p2rd" = 0L,
+                                       "p2ld" = 0L)
+          }
+        } # end first first pass of neighbor assignment
+        
+        RKey <- unlist(RKey)
+        LKey <- unlist(LKey)
+        NeighborMat <- do.call(rbind,
+                               NeighborMat)
+        
+        o1 <- order(NeighborMat[, 3L],
+                    NeighborMat[, 1L],
+                    NeighborMat[, 2L])
+        NeighborMat <- NeighborMat[o1, ]
+        
+        # return(list(NeighborMat,
+        #             RKey,
+        #             LKey,
+        #             PMatrix,
+        #             IMatrix,
+        #             o1,
+        #             UIK,
+        #             IndexKey))
         
         # Create a matrix of gap filled positions
         # if PID calc is specified, calculate them
         # if not, don't bother?
+        
+        
+        # if gaps are allowed fill them
+        # the choice is being made here to leave gap fills as neighborless
+        # this is intentional
         
         if (AllowGaps &
             nrow(PMatrix) > 1L) {
@@ -505,14 +354,15 @@ PairSummaries <- function(SyntenyLinks,
                             length = length(OffSetsAllowed))
           
           # diff gives absolute difference to next neighbor
-          p1R <- c(as.integer(abs(diff(PMatrix[, 1L]))), 0L)
-          p2R <- c(as.integer(abs(diff(PMatrix[, 2L]))), 0L)
+          # already exists in the neighbors matrix
+          p1R <- NeighborMat[, 5L]
+          p2R <- NeighborMat[, 7L]
           
           # for each gap size allowed:
           for (g1 in seq_along(OffSetsAllowed)) {
             # find where gap size equals allowed size
-            w1 <- p1R == OffSetsAllowed[g1]
-            w2 <- p2R == OffSetsAllowed[g1]
+            w1 <- abs(p1R) == OffSetsAllowed[g1]
+            w2 <- abs(p2R) == OffSetsAllowed[g1]
             # check that the gap does not span indices
             
             w3 <- w1 & w2
@@ -525,24 +375,21 @@ PairSummaries <- function(SyntenyLinks,
               GapFill[[g1]] <- vector(mode = "list",
                                       length = sum(w3))
               w4 <- which(w3) + 1L
-              i1l <- IMatrix[w3, 1L]
-              i1r <- IMatrix[w4, 1L]
-              i2l <- IMatrix[w3, 2L]
-              i2r <- IMatrix[w4, 2L]
-              p1l <- PMatrix[w3, 1L]
-              p1r <- PMatrix[w4, 1L]
-              p2l <- PMatrix[w3, 2L]
-              p2r <- PMatrix[w4, 2L]
+              i1l <- NeighborMat[w3, 3L]
+              i1r <- NeighborMat[w4, 3L]
+              i2l <- NeighborMat[w3, 4L]
+              i2r <- NeighborMat[w4, 4L]
+              p1l <- NeighborMat[w3, 1L]
+              p1r <- NeighborMat[w4, 1L]
+              p2l <- NeighborMat[w3, 2L]
+              p2r <- NeighborMat[w4, 2L]
               # create new pair partner lines
               # if gap does not span indices
               for (g2 in seq_along(p1l)) {
                 if (i1l[g2] == i1r[g2] &
                     i2l[g2] == i2r[g2]) {
                   # gap does not span indices fill in based on gap size
-                  # conversion to characters is unlikely to be necessary at this step ...
-                  # was coded this way originally because it made the most sense logically
-                  # indices, parter indices, and associated statistics must be eventually folded into
-                  # the matching vectors from the originally extracted pairs
+                  # this is already checked earlier and might not be necessary?
                   gp1 <- seq(from = p1l[g2],
                              to = p1r[g2],
                              by = if (p1l[g2] < p1r[g2]) {
@@ -550,10 +397,6 @@ PairSummaries <- function(SyntenyLinks,
                              } else {
                                -1L
                              })
-                  gp1 <- paste(rep(m1, OffSetsAllowed[g1] - 1L),
-                               rep(i1l[g2], OffSetsAllowed[g1] - 1L),
-                               gp1[-c(1, length(gp1))],
-                               sep = "_")
                   gp2 <- seq(from = p2l[g2],
                              to = p2r[g2],
                              by = if (p2l[g2] < p2r[g2]) {
@@ -561,39 +404,42 @@ PairSummaries <- function(SyntenyLinks,
                              } else {
                                -1L
                              })
-                  gp2 <- paste(rep(m2, OffSetsAllowed[g1] - 1L),
-                               rep(i2l[g2], OffSetsAllowed[g1] - 1L),
-                               gp2[-c(1, length(gp2))],
-                               sep = "_")
-                  GapFill[[g1]][[g2]] <- matrix(data = c(gp1, gp2),
-                                                nrow = length(gp1))
+                  # if (length(gp1) != length(gp2)) {
+                  #   return(list(gp1,
+                  #               gp2,
+                  #               p1l[g2],
+                  #               p1r[g2],
+                  #               p2l[g2],
+                  #               p2r[g2],
+                  #               i1l[g2],
+                  #               i1r[g2],
+                  #               i2l[g2],
+                  #               i2r[g2],
+                  #               NeighborMat))
+                  # }
+                  GapFill[[g1]][[g2]] <- cbind("g1" = rep(m1, OffSetsAllowed[g1] - 1L),
+                                               "i1" = rep(i1l[g2], OffSetsAllowed[g1] - 1L),
+                                               "p1" = gp1[-c(1, length(gp1))],
+                                               "g2" = rep(m2, OffSetsAllowed[g1] - 1L),
+                                               "i2" = rep(i2l[g2], OffSetsAllowed[g1] - 1L),
+                                               "p2" = gp2[-c(1, length(gp2))])
+                  
                 }
               }
+              # return(GapFill)
               GapFill[[g1]] <- do.call(rbind,
                                        GapFill[[g1]])
-              RMat1 <- do.call(rbind,
-                               strsplit(x = GapFill[[g1]][, 1L],
-                                        split = "_",
-                                        fixed = TRUE))
-              RMat2 <- do.call(rbind,
-                               strsplit(x = GapFill[[g1]][, 2L],
-                                        split = "_",
-                                        fixed = TRUE))
-              RMat1 <- matrix(data = as.integer(RMat1),
-                              nrow = nrow(RMat1))
-              RMat2 <- matrix(data = as.integer(RMat2),
-                              nrow = nrow(RMat2))
-              Ins1Str <- GeneCalls[[m1]][RMat1[, 3L], "Strand"]
-              Ins1Coding <- GeneCalls[[m1]][RMat1[, 3L], "Coding"]
-              Ins1Transl <- GeneCalls[[m1]][RMat1[, 3L], "Translation_Table"]
-              Ins2Str <- GeneCalls[[m2]][RMat2[, 3L], "Strand"]
-              Ins2Coding <- GeneCalls[[m2]][RMat2[, 3L], "Coding"]
-              Ins2Transl <- GeneCalls[[m2]][RMat2[, 3L], "Translation_Table"]
-              Ins1GLength <- GeneCalls[[m1]][RMat1[, 3L], "Stop"] - GeneCalls[[m1]][RMat1[, 3L], "Start"] + 1L
-              Ins2GLength <- GeneCalls[[m2]][RMat2[, 3L], "Stop"] - GeneCalls[[m2]][RMat2[, 3L], "Start"] + 1L
+              Ins1Str <- GeneCalls[[m1]][GapFill[[g1]][, 3L], "Strand"]
+              Ins1Coding <- GeneCalls[[m1]][GapFill[[g1]][, 3L], "Coding"]
+              Ins1Transl <- GeneCalls[[m1]][GapFill[[g1]][, 3L], "Translation_Table"]
+              Ins2Str <- GeneCalls[[m2]][GapFill[[g1]][, 6L], "Strand"]
+              Ins2Coding <- GeneCalls[[m2]][GapFill[[g1]][, 6L], "Coding"]
+              Ins2Transl <- GeneCalls[[m2]][GapFill[[g1]][, 6L], "Translation_Table"]
+              Ins1GLength <- GeneCalls[[m1]][GapFill[[g1]][, 3L], "Stop"] - GeneCalls[[m1]][GapFill[[g1]][, 3L], "Start"] + 1L
+              Ins2GLength <- GeneCalls[[m2]][GapFill[[g1]][, 6L], "Stop"] - GeneCalls[[m2]][GapFill[[g1]][, 6L], "Start"] + 1L
               Ins1IMiss <- Ins1EMiss <- Ins1GLength
               Ins2IMiss <- Ins2EMiss <- Ins2GLength
-              InsOv <- InsMax <- InsTot <- rep(0L, nrow(RMat1))
+              InsOv <- InsMax <- InsTot <- rep(0L, nrow(GapFill[[g1]]))
             } else {
               # in this case do ... something?
               # leave list position as null
@@ -607,49 +453,103 @@ PairSummaries <- function(SyntenyLinks,
           if (!is.null(GapFill)) {
             # gaps were spanned
             # combine and order vectors
-            RMat1 <- do.call(rbind,
-                             strsplit(x = GapFill[, 1L],
-                                      split = "_",
-                                      fixed = TRUE))
-            RMat2 <- do.call(rbind,
-                             strsplit(x = GapFill[, 2L],
-                                      split = "_",
-                                      fixed = TRUE))
-            RMat1 <- matrix(data = as.integer(RMat1),
-                            nrow = nrow(RMat1))
-            RMat2 <- matrix(data = as.integer(RMat2),
-                            nrow = nrow(RMat2))
             
             pmat1 <- rbind(IMatrix,
-                           cbind(RMat1[, 2L],
-                                 RMat2[, 2L]))
+                           GapFill[, c(2,5)])
             pmat2 <- rbind(PMatrix,
-                           cbind(RMat1[, 3L],
-                                 RMat2[, 3L]))
+                           GapFill[, c(3,6)])
+            ExactOverLap <- c(SyntenyLinks[[m1, m2]][, 3L],
+                              rep(0L, nrow(GapFill)))
+            TotalKmers <- c(SyntenyLinks[[m1, m2]][, 11L],
+                            rep(0L, nrow(GapFill)))
+            MaxKmer <- c(SyntenyLinks[[m1, m2]][, 10L],
+                         rep(0L, nrow(GapFill)))
+            ExteriorMissQuery <- c(SyntenyLinks[[m2, m1]][, 1L] + SyntenyLinks[[m2, m1]][, 2L],
+                                   GeneCalls[[m1]][GapFill[, 3L], "Stop"] - GeneCalls[[m1]][GapFill[, 3L], "Start"] + 1L)
+            ExteriorMissSubject <- c(SyntenyLinks[[m2, m1]][, 3L] + SyntenyLinks[[m2, m1]][, 4L],
+                                     GeneCalls[[m2]][GapFill[, 6L], "Stop"] - GeneCalls[[m2]][GapFill[, 6L], "Start"] + 1L)
+            
             o1 <- order(pmat1[, 1L],
-                        pmat2[, 1L])
+                        pmat2[, 1L],
+                        pmat2[, 2L])
+            ExactOverLap <- ExactOverLap[o1]
+            TotalKmers <- TotalKmers[o1]
+            MaxKmer <- MaxKmer[o1]
+            ExteriorMissQuery <- ExteriorMissQuery[o1]
+            ExteriorMissSubject <- ExteriorMissSubject[o1]
             
             IMatrix <- pmat1[o1, ]
             PMatrix <- pmat2[o1, ]
-            QGeneLength <- c(QGeneLength, Ins1GLength)[o1]
-            SGeneLength <- c(SGeneLength, Ins2GLength)[o1]
-            ExactOverLap <- c(ExactOverLap, InsOv)[o1]
-            TotalKmers <- c(TotalKmers, InsTot)[o1]
-            MaxKmer <- c(MaxKmer, InsMax)[o1]
-            ExteriorMissQuery <- c(ExteriorMissQuery, Ins1EMiss)[o1]
-            ExteriorMissSubject <- c(ExteriorMissSubject, Ins2EMiss)[o1]
-            InteriorMissQuery <- c(InteriorMissQuery, Ins1IMiss)[o1]
-            InteriorMissSubject <- c(InteriorMissSubject, Ins2IMiss)[o1]
-            QGeneStrand <- c(QGeneStrand, Ins1Str)[o1]
-            QGeneCoding <- c(QGeneCoding, Ins1Coding)[o1]
-            QGeneTransl <- c(QGeneTransl, Ins1Transl)[o1]
-            SGeneStrand <- c(SGeneStrand, Ins2Str)[o1]
-            SGeneCoding <- c(SGeneCoding, Ins2Coding)[o1]
-            SGeneTransl <- c(SGeneTransl, Ins2Transl)[o1]
+            # regenerate neighbor key 
+            RKey <- c(RKey, rep(0L, nrow(GapFill)))
+            LKey <- c(LKey, rep(0L, nrow(GapFill)))
+            RKey <- RKey[o1]
+            LKey <- LKey[o1]
+            # return(list(IMatrix,
+            #             PMatrix))
+            # index matching
+            QGeneLength <- GeneCalls[[m1]][PMatrix[, 1L], "Stop"] - GeneCalls[[m1]][PMatrix[, 1L], "Start"] + 1L
+            SGeneLength <- GeneCalls[[m2]][PMatrix[, 2L], "Stop"] - GeneCalls[[m2]][PMatrix[, 2L], "Start"] + 1L
+            # ExactOverLap <- SyntenyLinks[[m1, m2]][, 3L]
+            # MinGap <- abs(QGeneLength - SGeneLength)
+            # TotalKmers <- SyntenyLinks[[m1, m2]][, 11L]
+            # MaxKmer <- SyntenyLinks[[m1, m2]][, 10L]
+            # ExteriorMissQuery <- SyntenyLinks[[m2, m1]][, 1L] + SyntenyLinks[[m2, m1]][, 2L]
+            # ExteriorMissSubject <- SyntenyLinks[[m2, m1]][, 3L] + SyntenyLinks[[m2, m1]][, 4L]
+            InteriorMissQuery <- QGeneLength - (ExactOverLap + ExteriorMissQuery)
+            InteriorMissSubject <- SGeneLength - (ExactOverLap + ExteriorMissSubject)
+            QGeneStrand <- GeneCalls[[m1]][PMatrix[, 1L], "Strand"]
+            QGeneCoding <- GeneCalls[[m1]][PMatrix[, 1L], "Coding"]
+            QGeneTransl <- GeneCalls[[m1]][PMatrix[, 1L], "Translation_Table"]
+            SGeneStrand <- GeneCalls[[m2]][PMatrix[, 2L], "Strand"]
+            SGeneCoding <- GeneCalls[[m2]][PMatrix[, 2L], "Coding"]
+            SGeneTransl <- GeneCalls[[m2]][PMatrix[, 2L], "Translation_Table"]
+            PairLeft <- LKey
+            PairRight <- RKey
             
           } else {
             # do nothing, no gaps discovered
+            # index matching
+            QGeneLength <- GeneCalls[[m1]][PMatrix[, 1L], "Stop"] - GeneCalls[[m1]][PMatrix[, 1L], "Start"] + 1L
+            SGeneLength <- GeneCalls[[m2]][PMatrix[, 2L], "Stop"] - GeneCalls[[m2]][PMatrix[, 2L], "Start"] + 1L
+            ExactOverLap <- SyntenyLinks[[m1, m2]][, 3L]
+            # MinGap <- abs(QGeneLength - SGeneLength)
+            TotalKmers <- SyntenyLinks[[m1, m2]][, 11L]
+            MaxKmer <- SyntenyLinks[[m1, m2]][, 10L]
+            ExteriorMissQuery <- SyntenyLinks[[m2, m1]][, 1L] + SyntenyLinks[[m2, m1]][, 2L]
+            ExteriorMissSubject <- SyntenyLinks[[m2, m1]][, 3L] + SyntenyLinks[[m2, m1]][, 4L]
+            InteriorMissQuery <- QGeneLength - (ExactOverLap + ExteriorMissQuery)
+            InteriorMissSubject <- SGeneLength - (ExactOverLap + ExteriorMissSubject)
+            QGeneStrand <- GeneCalls[[m1]][PMatrix[, 1L], "Strand"]
+            QGeneCoding <- GeneCalls[[m1]][PMatrix[, 1L], "Coding"]
+            QGeneTransl <- GeneCalls[[m1]][PMatrix[, 1L], "Translation_Table"]
+            SGeneStrand <- GeneCalls[[m2]][PMatrix[, 2L], "Strand"]
+            SGeneCoding <- GeneCalls[[m2]][PMatrix[, 2L], "Coding"]
+            SGeneTransl <- GeneCalls[[m2]][PMatrix[, 2L], "Translation_Table"]
+            PairLeft <- LKey
+            PairRight <- RKey
           }
+        } else if (!AllowGaps |
+                   nrow(PMatrix) == 1L) {
+          # index matching
+          QGeneLength <- GeneCalls[[m1]][PMatrix[, 1L], "Stop"] - GeneCalls[[m1]][PMatrix[, 1L], "Start"] + 1L
+          SGeneLength <- GeneCalls[[m2]][PMatrix[, 2L], "Stop"] - GeneCalls[[m2]][PMatrix[, 2L], "Start"] + 1L
+          ExactOverLap <- SyntenyLinks[[m1, m2]][, 3L]
+          # MinGap <- abs(QGeneLength - SGeneLength)
+          TotalKmers <- SyntenyLinks[[m1, m2]][, 11L]
+          MaxKmer <- SyntenyLinks[[m1, m2]][, 10L]
+          ExteriorMissQuery <- SyntenyLinks[[m2, m1]][, 1L] + SyntenyLinks[[m2, m1]][, 2L]
+          ExteriorMissSubject <- SyntenyLinks[[m2, m1]][, 3L] + SyntenyLinks[[m2, m1]][, 4L]
+          InteriorMissQuery <- QGeneLength - (ExactOverLap + ExteriorMissQuery)
+          InteriorMissSubject <- SGeneLength - (ExactOverLap + ExteriorMissSubject)
+          QGeneStrand <- GeneCalls[[m1]][PMatrix[, 1L], "Strand"]
+          QGeneCoding <- GeneCalls[[m1]][PMatrix[, 1L], "Coding"]
+          QGeneTransl <- GeneCalls[[m1]][PMatrix[, 1L], "Translation_Table"]
+          SGeneStrand <- GeneCalls[[m2]][PMatrix[, 2L], "Strand"]
+          SGeneCoding <- GeneCalls[[m2]][PMatrix[, 2L], "Coding"]
+          SGeneTransl <- GeneCalls[[m2]][PMatrix[, 2L], "Translation_Table"]
+          PairLeft <- LKey
+          PairRight <- RKey
         } # End gap checking
         
         # collect PIDs if user requests
@@ -985,11 +885,11 @@ PairSummaries <- function(SyntenyLinks,
                                     "p2ExteriorMiss" = ExteriorMissSubject,
                                     "p1FeatureLength" = QGeneLength,
                                     "p2FeatureLength" = SGeneLength,
+                                    "Adjacent" = RKey + LKey,
                                     "PID" = Pident,
                                     "PIDType" = Atype,
                                     stringsAsFactors = FALSE)
         } else {
-          
           PH[[Count]] <- data.frame("p1" = paste(names(GeneCalls)[m1],
                                                  IMatrix[, 1L],
                                                  PMatrix[, 1L],
@@ -1008,6 +908,7 @@ PairSummaries <- function(SyntenyLinks,
                                     "p2ExteriorMiss" = ExteriorMissSubject,
                                     "p1FeatureLength" = QGeneLength,
                                     "p2FeatureLength" = SGeneLength,
+                                    "Adjacent" = RKey + LKey,
                                     "PIDType" = ifelse(test = GeneCalls[[m1]][PMatrix[, 1L], "Coding"] &
                                                          GeneCalls[[m2]][PMatrix[, 2L], "Coding"],
                                                        yes = "AA",
@@ -1052,6 +953,7 @@ PairSummaries <- function(SyntenyLinks,
     print(TimeEnd - TimeStart)
   }
   attr(DF, "GeneCalls") <- attr(SyntenyLinks, "GeneCalls")
+  class(DF) <- c("data.frame", "PairSummaries")
   return(DF)
 }
   
