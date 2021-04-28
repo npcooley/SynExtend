@@ -415,29 +415,30 @@ PairSummaries <- function(SyntenyLinks,
                   #               i2r[g2],
                   #               NeighborMat))
                   # }
-                  GapFill[[g1]][[g2]] <- cbind("g1" = rep(m1, OffSetsAllowed[g1] - 1L),
-                                               "i1" = rep(i1l[g2], OffSetsAllowed[g1] - 1L),
-                                               "p1" = gp1[-c(1, length(gp1))],
-                                               "g2" = rep(m2, OffSetsAllowed[g1] - 1L),
-                                               "i2" = rep(i2l[g2], OffSetsAllowed[g1] - 1L),
-                                               "p2" = gp2[-c(1, length(gp2))])
-                  
+                  if (length(gp1) == length(gp2)) {
+                    GapFill[[g1]][[g2]] <- cbind("g1" = rep(m1, OffSetsAllowed[g1] - 1L),
+                                                 "i1" = rep(i1l[g2], OffSetsAllowed[g1] - 1L),
+                                                 "p1" = gp1[-c(1, length(gp1))],
+                                                 "g2" = rep(m2, OffSetsAllowed[g1] - 1L),
+                                                 "i2" = rep(i2l[g2], OffSetsAllowed[g1] - 1L),
+                                                 "p2" = gp2[-c(1, length(gp2))])
+                  }
                 }
               }
               # return(GapFill)
               GapFill[[g1]] <- do.call(rbind,
                                        GapFill[[g1]])
-              Ins1Str <- GeneCalls[[m1]][GapFill[[g1]][, 3L], "Strand"]
-              Ins1Coding <- GeneCalls[[m1]][GapFill[[g1]][, 3L], "Coding"]
-              Ins1Transl <- GeneCalls[[m1]][GapFill[[g1]][, 3L], "Translation_Table"]
-              Ins2Str <- GeneCalls[[m2]][GapFill[[g1]][, 6L], "Strand"]
-              Ins2Coding <- GeneCalls[[m2]][GapFill[[g1]][, 6L], "Coding"]
-              Ins2Transl <- GeneCalls[[m2]][GapFill[[g1]][, 6L], "Translation_Table"]
-              Ins1GLength <- GeneCalls[[m1]][GapFill[[g1]][, 3L], "Stop"] - GeneCalls[[m1]][GapFill[[g1]][, 3L], "Start"] + 1L
-              Ins2GLength <- GeneCalls[[m2]][GapFill[[g1]][, 6L], "Stop"] - GeneCalls[[m2]][GapFill[[g1]][, 6L], "Start"] + 1L
-              Ins1IMiss <- Ins1EMiss <- Ins1GLength
-              Ins2IMiss <- Ins2EMiss <- Ins2GLength
-              InsOv <- InsMax <- InsTot <- rep(0L, nrow(GapFill[[g1]]))
+              # Ins1Str <- GeneCalls[[m1]][GapFill[[g1]][, 3L], "Strand"]
+              # Ins1Coding <- GeneCalls[[m1]][GapFill[[g1]][, 3L], "Coding"]
+              # Ins1Transl <- GeneCalls[[m1]][GapFill[[g1]][, 3L], "Translation_Table"]
+              # Ins2Str <- GeneCalls[[m2]][GapFill[[g1]][, 6L], "Strand"]
+              # Ins2Coding <- GeneCalls[[m2]][GapFill[[g1]][, 6L], "Coding"]
+              # Ins2Transl <- GeneCalls[[m2]][GapFill[[g1]][, 6L], "Translation_Table"]
+              # Ins1GLength <- GeneCalls[[m1]][GapFill[[g1]][, 3L], "Stop"] - GeneCalls[[m1]][GapFill[[g1]][, 3L], "Start"] + 1L
+              # Ins2GLength <- GeneCalls[[m2]][GapFill[[g1]][, 6L], "Stop"] - GeneCalls[[m2]][GapFill[[g1]][, 6L], "Start"] + 1L
+              # Ins1IMiss <- Ins1EMiss <- Ins1GLength
+              # Ins2IMiss <- Ins2EMiss <- Ins2GLength
+              # InsOv <- InsMax <- InsTot <- rep(0L, nrow(GapFill[[g1]]))
             } else {
               # in this case do ... something?
               # leave list position as null
@@ -836,7 +837,7 @@ PairSummaries <- function(SyntenyLinks,
                                     "p1FeatureLength" = QGeneLength,
                                     "p2FeatureLength" = SGeneLength,
                                     "Adjacent" = RKey + LKey,
-                                    "FourmerDist" = NucDist,
+                                    "DistBy4mer" = NucDist,
                                     "PID" = Pident,
                                     "PIDType" = Atype,
                                     stringsAsFactors = FALSE)
@@ -860,7 +861,7 @@ PairSummaries <- function(SyntenyLinks,
                                     "p1FeatureLength" = QGeneLength,
                                     "p2FeatureLength" = SGeneLength,
                                     "Adjacent" = RKey + LKey,
-                                    "FourmerDist" = NucDist,
+                                    "DistBy4mer" = NucDist,
                                     "PIDType" = ifelse(test = GeneCalls[[m1]][PMatrix[, 1L], "Coding"] &
                                                          GeneCalls[[m2]][PMatrix[, 2L], "Coding"],
                                                        yes = "AA",
