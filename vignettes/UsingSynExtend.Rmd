@@ -140,6 +140,22 @@ print(head(LinkedPairs1))
 
 PairSummaries includes arguments that allow for aligning all pairs that are predicted, via `PIDs = TRUE`, while `IgnoreDefaultStringSet = FALSE` indicates that alignments should be performed in nucleotide or amino acid space as is appropriate for the linked sequences. Setting `IgnoreDefaultStringSet = TRUE` will force all alignments into nucleotide space.
 
+As of SynExtend v 1.3.13, the functions `ExtractBy` and `DisjointSet` have been added to provide users with direct tools to work with `PairSummaries` objects.
+
+```{r, pairsummariesoperations}
+SingleLinkageClusters <- DisjointSet(Pairs = LinkedPairs1,
+                                     Verbose = TRUE)
+```
+
+```{r, clusters}
+SeqsByCluster <- ExtractBy(x = LinkedPairs1,
+                           y = SingleLinkageClusters,
+                           Method = "clusters",
+                           DBPATH = DBPATH,
+                           Verbose = TRUE)
+
+head(SeqsByCluster)
+```
 
 Session Info:
 

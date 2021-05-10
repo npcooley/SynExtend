@@ -140,11 +140,21 @@ And positions on the grid of gene calls that are occupied by syntenic hits are r
 
 ```r
 PairedGenes <- PairSummaries(SyntenyLinks = Links,
-                             DBPATH = DBPATH,
                              PIDs = FALSE,
                              Model = "Generic",
                              AcceptContigNames =  TRUE,
                              Verbose = TRUE)
+```
+
+As of SynExtend v 1.3.13 functions for extracting single linkage clusters from `PairSummaries` objects have been added.
+
+```r
+SingleLinkageClusters <- DisjointSet(Pairs = PairedGenes,
+                                     Verbose = TRUE)
+                                     
+ClusterSeqs <- ExtractBy(x = PairedGenes,
+                         y = SingleLinkageClusters,
+                         Verbose = TRUE)
 ```
 
 A more self-contained example is maintained in this package's Bioconductor vignette, and can be found [here](https://www.bioconductor.org/packages/release/bioc/html/SynExtend.html)

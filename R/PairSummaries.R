@@ -165,7 +165,7 @@ PairSummaries <- function(SyntenyLinks,
                       verbose = FALSE))
       if (!is(object = MOD,
               class2 = "glm")) {
-        stop ("\nUser specified model is not a glm?")
+        stop ("\nUser specified model is not a glm?\n")
       }
     } else {
       stop ("\nUser specified file does not appear to exist.\n")

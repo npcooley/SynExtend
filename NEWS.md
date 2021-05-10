@@ -1,3 +1,8 @@
+# SynExtend 1.3.13
+
+* `ExtractBy` function has been added. Allows extraction of feature sequences into `XStingSet`s organized by the a `PairSummaries` object or the single linkage clusters implied by pairings within the `PairSummaries` objects.
+* `DisjointSet` function added to extract single linkage clusters from a `PairSummaries` object.
+
 # SynExtend 1.3.12
 
 * `PairSummaries` now computes 4-mer distance between predicted pairs.

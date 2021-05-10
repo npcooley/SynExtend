@@ -4,13 +4,15 @@ import(Biostrings)
 import(DECIPHER)
 import(S4Vectors)
 
-importFrom("utils", "setTxtProgressBar", "txtProgressBar", "data")
+importFrom("utils", "setTxtProgressBar", "txtProgressBar", "data", "object.size")
 importFrom("stats", "predict")
 
 export(NucleotideOverlap)
 export(gffToDataFrame)
 export(PairSummaries)
 export(FindSets)
+export(DisjointSet)
+export(ExtractBy)
 
 S3method(`[`, "LinkedPairs")
 S3method(print, "LinkedPairs")
