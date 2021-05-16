@@ -75,7 +75,7 @@ NucleotideOverlap <- function(SyntenyObject,
                           length = length(GeneCalls))
   
   if (Verbose) {
-    cat("\nReconciling Genecalls.\n")
+    cat("\nReconciling genecalls.\n")
   }
   for (m1 in seq_along(GeneCalls)) {
     if (!is(GeneCalls[[m1]],
@@ -341,7 +341,7 @@ NucleotideOverlap <- function(SyntenyObject,
   }
   
   if (Verbose) {
-    cat("\nGeneCalls reconciled.\n")
+    cat("\nFinding connected features.\n")
   }
   
   if (AcceptContigNames) {
@@ -1055,24 +1055,33 @@ NucleotideOverlap <- function(SyntenyObject,
                                   "SRightPos",
                                   "MaxKmerSize",
                                   "TotalKmerHits")
+      colnames(OverLapMatrix) <- c("QueryGene",
+                                   "SubjectGene",
+                                   "ExactOverlap",
+                                   "QueryIndex",
+                                   "SubjectIndex",
+                                   "QLeftPos",
+                                   "QRightPos",
+                                   "SLeftPos",
+                                   "SRightPos")
       # return(list(OverLapMatrix,
       #             OutPutMatrix))
-      QueryStartDisplacement <- ifelse(test = QG.Strand[OutPutMatrix[, "QueryGene"]] == 1L,
-                                       yes = abs(OutPutMatrix[, 7L] - Q.Stop[OutPutMatrix[, 1L]]),
-                                       no = abs(OutPutMatrix[, 6L] - Q.Start[OutPutMatrix[, 1L]]))
-      QueryStopDisplacement <- ifelse(test = QG.Strand[OutPutMatrix[, "QueryGene"]] == 1L,
-                                      yes = abs(OutPutMatrix[, 6L] - Q.Start[OutPutMatrix[, 1L]]),
-                                      no = abs(OutPutMatrix[, 7L] - Q.Stop[OutPutMatrix[, 1L]]))
-      SubjectStartDisplacement <- ifelse(test = SG.Strand[OutPutMatrix[, "SubjectGene"]] == 1L,
-                                         yes = abs(OutPutMatrix[, 9L] - S.Stop[OutPutMatrix[, 2L]]),
-                                         no = abs(OutPutMatrix[, 8L] - S.Start[OutPutMatrix[, 2L]]))
-      SubjectStopDisplacement <- ifelse(test = SG.Strand[OutPutMatrix[, "SubjectGene"]] == 1L,
-                                        yes = abs(OutPutMatrix[, 8L] - S.Start[OutPutMatrix[, 2L]]),
-                                        no = abs(OutPutMatrix[, 9L] - S.Stop[OutPutMatrix[, 2L]]))
-      DisplacementMatrix <- cbind(QueryStartDisplacement,
-                                  QueryStopDisplacement,
-                                  SubjectStartDisplacement,
-                                  SubjectStopDisplacement)
+      # QueryStartDisplacement <- ifelse(test = QG.Strand[OutPutMatrix[, "QueryGene"]] == 1L,
+      #                                  yes = abs(OutPutMatrix[, 7L] - Q.Stop[OutPutMatrix[, 1L]]),
+      #                                  no = abs(OutPutMatrix[, 6L] - Q.Start[OutPutMatrix[, 1L]]))
+      # QueryStopDisplacement <- ifelse(test = QG.Strand[OutPutMatrix[, "QueryGene"]] == 1L,
+      #                                 yes = abs(OutPutMatrix[, 6L] - Q.Start[OutPutMatrix[, 1L]]),
+      #                                 no = abs(OutPutMatrix[, 7L] - Q.Stop[OutPutMatrix[, 1L]]))
+      # SubjectStartDisplacement <- ifelse(test = SG.Strand[OutPutMatrix[, "SubjectGene"]] == 1L,
+      #                                    yes = abs(OutPutMatrix[, 9L] - S.Stop[OutPutMatrix[, 2L]]),
+      #                                    no = abs(OutPutMatrix[, 8L] - S.Start[OutPutMatrix[, 2L]]))
+      # SubjectStopDisplacement <- ifelse(test = SG.Strand[OutPutMatrix[, "SubjectGene"]] == 1L,
+      #                                   yes = abs(OutPutMatrix[, 8L] - S.Start[OutPutMatrix[, 2L]]),
+      #                                   no = abs(OutPutMatrix[, 9L] - S.Stop[OutPutMatrix[, 2L]]))
+      # DisplacementMatrix <- cbind(QueryStartDisplacement,
+      #                             QueryStopDisplacement,
+      #                             SubjectStartDisplacement,
+      #                             SubjectStopDisplacement)
       
       if (Verbose) {
         TotalCounter <- TotalCounter + 1L
@@ -1082,10 +1091,11 @@ NucleotideOverlap <- function(SyntenyObject,
       if (nrow(OutPutMatrix) == 1L &
           all(is.na(OutPutMatrix))) {
         OutPutMatrix <- OutPutMatrix[-1L, ]
-        DisplacementMatrix[1, ] <- rep(0L, ncol(DisplacementMatrix))
+        # DisplacementMatrix[1, ] <- rep(0L, ncol(DisplacementMatrix))
+        OverLapMatrix[1, ] <- rep(0L, ncol(OverLapMatrix))
       }
       ResultMatrix[m1, m2] <- list(OutPutMatrix)
-      ResultMatrix[m2, m1] <- list(DisplacementMatrix)
+      ResultMatrix[m2, m1] <- list(OverLapMatrix)
     } # end of columns loop
   } # end of rows loop
   if (Verbose) {

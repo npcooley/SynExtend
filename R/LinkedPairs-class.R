@@ -41,11 +41,11 @@ print.LinkedPairs <- function(x,
         ######
         # Lower Triangle
         ######
-        k <- sum(x[m2, m1][[1]][, "ExactOverlap"])
+        k <- nrow(x[m1, m2][[1]])
         m[m1, m2] <- paste(k,
                            ifelse(k == 1,
-                                  "NT",
-                                  "NTs"),
+                                  "Kmer",
+                                  "Kmers"),
                            sep = " ")
       } else if (m1 < m2) {
         ######

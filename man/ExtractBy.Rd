@@ -36,7 +36,7 @@ If \code{TRUE} return \code{AAStringSet}s where possible.
 Currently Not Implemented! When implemented will allow for designation of a specific translation table if one is not indicated in the \code{GeneCalls} attribute of the \code{PairSummaries} object.
 }
   \item{Storage}{
-Numeric indicating the approximate memory a user wishes to allow for holding \code{StringSet}s in memory to extract gene sequences, in gigabytes. The lower \code{Storage} is set, the more likely that \code{ExtractBy} will need to reaccess stringsets when extracting gene sequences. The higher \code{Storage} is set, the more sequences \code{ExtractBy} will attempt to hold in memory, avoiding needing to re-access the source database many times. Set to 1 by default.
+Numeric indicating the approximate size a user wishes to allow for holding \code{StringSet}s in memory to extract gene sequences, in ``Gigabytes''. The lower \code{Storage} is set, the more likely that \code{ExtractBy} will need to reaccess \code{StringSet}s when extracting gene sequences. The higher \code{Storage} is set, the more sequences \code{ExtractBy} will attempt to hold in memory, avoiding the need to re-access the source database many times. Set to 1 by default, indicating that \code{ExtractBy} can store a ``Gigabyte'' of sequences in memory at a time.
 }
   \item{Verbose}{
 Logical indicating whether to print progress bars and messages. Defaults to \code{FALSE}.

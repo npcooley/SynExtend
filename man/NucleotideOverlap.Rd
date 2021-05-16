@@ -34,7 +34,7 @@ Logical indicating whether or not to display a progress bar and print the time d
 Builds a matrix of lists that contain information about linked pairs of genomic features.
 }
 \value{
-An object of class ``LinkedPairs''.
+An object of class ``LinkedPairs''. ``LinkedPairs'' is fundamentally just a list in the form of a matrix. The lower triangle of the matrix is populated with matrices that contain all kmer hits from the ``Synteny'' object that link features from the ``GeneCalls'' object. The upper triangle is populated by matrices of the summaries of those hits by feature. The diagonal is populated by named vectors of the lengths of the contigs, much like in the ``Synteny'' object. The ``LinkedPairs'' object also contains a ``GeneCalls'' attribute that contains the user supplied features in a slightly more trimmed down form. This allows users to only need to supply gene calls once and not again in the ``PairSummaries'' function.
 }
 \author{
 Nicholas Cooley \email{npc19@pitt.edu}

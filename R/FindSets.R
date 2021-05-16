@@ -23,7 +23,7 @@ FindSets <- function(p1,
     TimeStart <- Sys.time()
     pBar <- txtProgressBar(style = 1L)
     L1 <- length(p1)
-    cat("\nPass 1:\n")
+    cat("\nAssigning initial root:\n")
   }
   Origins <- sort(unique(c(unique(p1),
                            unique(p2))))
@@ -73,7 +73,7 @@ FindSets <- function(p1,
     cat("\n")
     print(TimeEnd - TimeStart)
     TimeStart <- Sys.time()
-    cat("\nPass 2:\n")
+    cat("\nAssigning final root:\n")
     L2 <- length(Nodes)
   }
   # end first pass, nodes are pointed upward only so far as paths have been explored

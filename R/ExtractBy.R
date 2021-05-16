@@ -151,7 +151,7 @@ ExtractBy <- function(x,
         
         Res[[m1]] <- extractAt(x = rep(s1[CurrentContigs],
                                        length(IList[[m1]])),
-                               at = RList[[m1]])
+                               at = unname(RList[[m1]]))
         Res[[m1]] <- DNAStringSet(sapply(Res[[m1]],
                                          function(x) unlist(x),
                                          simplify = FALSE,
@@ -177,7 +177,7 @@ ExtractBy <- function(x,
           CSum <- sum(CPos)
           Res[[m1]][[m2]] <- extractAt(x = rep(s1[CurrentContigs[m2]],
                                                CSum),
-                                       at = RList[[m1]][CPos])
+                                       at = unname(RList[[m1]][CPos]))
           Res[[m1]][[m2]] <- DNAStringSet(sapply(Res[[m1]][[m2]],
                                                  function(x) unlist(x),
                                                  simplify = FALSE,
@@ -235,9 +235,8 @@ ExtractBy <- function(x,
     AllPresentPartners <- unique(c(unique(x$p1),
                                    unique(x$p2)))
     
-    if (!all(AllPresentClusters %in% AllPresentPartners) |
-        !all(AllPresentPartners %in% AllPresentClusters)) {
-      stop ("Discrepency in identifiers.")
+    if (!all(AllPresentClusters %in% AllPresentPartners)) {
+      stop ("An identifier in y is not present in x.")
     }
     
     # build GList ahead of cluster parsing from GeneCalls attribute
@@ -337,7 +336,7 @@ ExtractBy <- function(x,
           
           Res[[m1]][[m2]] <- extractAt(x = rep(s1[CurrentContigs],
                                                length(IList[[m2]])),
-                                       at = RList[[m2]])
+                                       at = unname(RList[[m2]]))
           Res[[m1]][[m2]] <- DNAStringSet(sapply(Res[[m1]][[m2]],
                                                  function(x) unlist(x),
                                                  simplify = FALSE,
@@ -363,7 +362,7 @@ ExtractBy <- function(x,
             CSum <- sum(CPos)
             Res[[m1]][[m2]][[m3]] <- extractAt(x = rep(s1[CurrentContigs[m3]],
                                                        CSum),
-                                               at = RList[[m2]][CPos])
+                                               at = unname(RList[[m2]][CPos]))
             Res[[m1]][[m2]][[m3]] <- DNAStringSet(sapply(Res[[m1]][[m2]][[m3]],
                                                          function(x) unlist(x),
                                                          simplify = FALSE,

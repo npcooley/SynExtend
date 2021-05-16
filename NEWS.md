@@ -1,3 +1,7 @@
+# SynExtend 1.3.14
+
+* Major changes to the `PairSummaries` function and minor changes to `NucleotideOverlaps`, `ExtractBy`, and `FindSets`. Adjustments to the model that `PairSummaries` calls on to predict PIDs.
+
 # SynExtend 1.3.13
 
 * `ExtractBy` function has been added. Allows extraction of feature sequences into `XStingSet`s organized by the a `PairSummaries` object or the single linkage clusters implied by pairings within the `PairSummaries` objects.
