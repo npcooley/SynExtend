@@ -146,6 +146,12 @@ PairSummaries <- function(SyntenyLinks,
                        nameBy = "description",
                        verbose = FALSE)
     PresentIndices <- unique(GeneCalls[[Count]]$Index)
+    
+    # return(list(Genome,
+    #             PresentIndices,
+    #             GeneCalls[[Count]],
+    #             Count,
+    #             GeneCalls))
     if (length(PresentIndices) > 1L) {
       # many indices, loop through present indices and extract
       # slam together at the end
@@ -289,28 +295,29 @@ PairSummaries <- function(SyntenyLinks,
         # find the concensus of linking ks
         p1l <- GeneCalls[[m1]]$Stop[SyntenyLinks[[m2, m1]][, 1L]] - GeneCalls[[m1]]$Start[SyntenyLinks[[m2, m1]][, 1L]] + 1L
         p2l <- GeneCalls[[m2]]$Stop[SyntenyLinks[[m2, m1]][, 2L]] - GeneCalls[[m2]]$Start[SyntenyLinks[[m2, m1]][, 2L]] + 1L
-        a1 <- SyntenyLinks[[m2, m1]][, 6L] - GeneCalls[[m1]]$Start[SyntenyLinks[[m2, m1]][, 1L]]
-        a2 <- GeneCalls[[m1]]$Stop[SyntenyLinks[[m2, m1]][, 1L]] - SyntenyLinks[[m2, m1]][, 7L]
-        b1 <- SyntenyLinks[[m2, m1]][, 8L] - GeneCalls[[m2]]$Start[SyntenyLinks[[m2, m1]][, 2L]]
-        b2 <- GeneCalls[[m2]]$Stop[SyntenyLinks[[m2, m1]][, 2L]] - SyntenyLinks[[m2, m1]][, 8L]
+        a1 <- SyntenyLinks[[m2, m1]][, 6L]
+        a2 <- SyntenyLinks[[m2, m1]][, 7L]
+        b1 <- SyntenyLinks[[m2, m1]][, 8L]
+        b2 <- SyntenyLinks[[m2, m1]][, 9L]
+        c1 <- GeneCalls[[m1]]$Start[SyntenyLinks[[m2, m1]][, 1L]]
+        c2 <- GeneCalls[[m1]]$Stop[SyntenyLinks[[m2, m1]][, 1L]]
+        d1 <- GeneCalls[[m2]]$Start[SyntenyLinks[[m2, m1]][, 2L]]
+        d2 <- GeneCalls[[m2]]$Stop[SyntenyLinks[[m2, m1]][, 2L]]
         
-        diff1 <- mapply(FUN = function(s, t, u, v, w, x, y, z) if (s & t) {
-          mean(c(abs(( w / u) - (y / v)), abs((x / u) - (z / v))))
-        } else if (s & !t) {
-          mean(c(abs(( w / u) - (z / v)), abs((x / u) - (y / v))))
-        } else if (!s & t) {
-          mean(c(abs(( x / u) - (y / v)), abs((w / u) - (z / v))))
-        } else if (!s & !t) {
-          mean(c(abs(( w / u) - (y / v)), abs((x / u) - (z / v))))
+        diff1 <- mapply(function(q, r, s, t, u, v, w, x, y, z) {
+          mean(c(abs((abs(w - s) / q) - (abs(y - u) / r)),
+                 abs((abs(t - x) / q) - (abs(v - z) / r))))
         },
-        s = GeneCalls[[m1]]$Strand[SyntenyLinks[[m2, m1]][, 1L]] == 0L,
-        t = GeneCalls[[m2]]$Strand[SyntenyLinks[[m2, m1]][, 2L]] == 0L,
-        u = p1l,
-        v = p2l,
-        w = a1,
-        x = a2,
-        y = b1,
-        z = b2)
+        q = p1l,
+        r = p2l,
+        s = a1,
+        t = a2,
+        u = b1,
+        v = b2,
+        w = c1,
+        x = c2,
+        y = d1,
+        z = d2)
         
         diff2 <- vector(mode = "numeric",
                         length = nrow(SyntenyLinks[[m1, m2]]))

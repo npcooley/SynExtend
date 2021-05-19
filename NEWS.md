@@ -1,3 +1,7 @@
+# SynExtend 1.3.15
+
+* Changes to concensus score in `PairSummaries`.
+
 # SynExtend 1.3.14
 
 * Major changes to the `PairSummaries` function and minor changes to `NucleotideOverlaps`, `ExtractBy`, and `FindSets`. Adjustments to the model that `PairSummaries` calls on to predict PIDs.
