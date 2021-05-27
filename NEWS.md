@@ -1,3 +1,7 @@
+# SynExtend 1.4.1
+
+* Fixed a small bug in consensus scores in `PairSummaries` where features facing on different strands had their score computed incorrectly.
+
 # SynExtend 1.3.15
 
 * Changes to concensus score in `PairSummaries`.

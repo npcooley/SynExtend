@@ -277,10 +277,8 @@ PairSummaries <- function(SyntenyLinks,
   # TotalKmer == 11
   
   # lower key!
-  # QStartDisp == 1
-  # QStopDisp == 2
-  # SStartDisp == 3
-  # SStopDisp == 4
+  # same minus max and total, but for individual linking kmers
+  # not all linking kmers
   
   for (m1 in seq_len(Size - 1L)) {
     for (m2 in (m1 + 1L):Size) {
@@ -303,11 +301,20 @@ PairSummaries <- function(SyntenyLinks,
         c2 <- GeneCalls[[m1]]$Stop[SyntenyLinks[[m2, m1]][, 1L]]
         d1 <- GeneCalls[[m2]]$Start[SyntenyLinks[[m2, m1]][, 2L]]
         d2 <- GeneCalls[[m2]]$Stop[SyntenyLinks[[m2, m1]][, 2L]]
+        s1 <- GeneCalls[[m1]]$Strand[SyntenyLinks[[m2, m1]][, 1L]] == 0L
+        s2 <- GeneCalls[[m2]]$Strand[SyntenyLinks[[m2, m1]][, 2L]] == 0L
         
-        diff1 <- mapply(function(q, r, s, t, u, v, w, x, y, z) {
-          mean(c(abs((abs(w - s) / q) - (abs(y - u) / r)),
-                 abs((abs(t - x) / q) - (abs(v - z) / r))))
+        diff1 <- mapply(function(o, p, q, r, s, t, u, v, w, x, y, z) {
+          if (o == p) {
+            mean(c(abs((abs(w - s) / q) - (abs(y - u) / r)),
+                   abs((abs(t - x) / q) - (abs(v - z) / r))))
+          } else {
+            mean(c(abs((abs(w - s) / q) - (abs(v - z) / r)),
+                   abs((abs(t - x) / q) - (abs(y - u) / r))))
+          }
         },
+        o = s1,
+        p = s2,
         q = p1l,
         r = p2l,
         s = a1,
