@@ -44,7 +44,9 @@ DisjointSet <- function(Pairs,
     FinRes <- vector(mode = "list",
                      length = L)
     
-    cat("\nAssigning single linkage clusters.\n")
+    if (Verbose) {
+      cat("\nAssigning single linkage clusters.\n")
+    }
     for (m1 in seq_along(UClusts)) {
       # IntRes[, 1L] is the integer representations of character ids
       # present in p1
