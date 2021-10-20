@@ -290,7 +290,7 @@ PairSummaries <- function(SyntenyLinks,
         
         IMatrix <- cbind(SyntenyLinks[[m1, m2]][, 4L],
                          SyntenyLinks[[m1, m2]][, 5L])
-        # find the concensus of linking ks
+        # find the Consensus of linking ks
         p1l <- GeneCalls[[m1]]$Stop[SyntenyLinks[[m2, m1]][, 1L]] - GeneCalls[[m1]]$Start[SyntenyLinks[[m2, m1]][, 1L]] + 1L
         p2l <- GeneCalls[[m2]]$Stop[SyntenyLinks[[m2, m1]][, 2L]] - GeneCalls[[m2]]$Start[SyntenyLinks[[m2, m1]][, 2L]] + 1L
         a1 <- SyntenyLinks[[m2, m1]][, 6L]
@@ -995,7 +995,7 @@ PairSummaries <- function(SyntenyLinks,
                                     "ExactMatch" = ExactOverLap,
                                     "TotalKmers" = TotalKmers,
                                     "MaxKmer" = MaxKmer,
-                                    "Concensus" = diff2,
+                                    "Consensus" = diff2,
                                     "p1FeatureLength" = QGeneLength,
                                     "p2FeatureLength" = SGeneLength,
                                     "Adjacent" = RKey + LKey,
@@ -1013,7 +1013,7 @@ PairSummaries <- function(SyntenyLinks,
                                                  PMatrix[, 2L],
                                                  sep = "_"),
                                     "ExactMatch" = ExactOverLap,
-                                    "Concensus" = diff2,
+                                    "Consensus" = diff2,
                                     "TotalKmers" = TotalKmers,
                                     "MaxKmer" = MaxKmer,
                                     "p1FeatureLength" = QGeneLength,

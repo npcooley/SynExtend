@@ -29,41 +29,52 @@ DisjointSet <- function(Pairs,
     P2Ids <- unique(p2)
     AllIds <- unique(c(P1Ids,
                        P2Ids))
-    F1 <- as.integer(factor(p1,
-                            levels = AllIds))
-    F2 <- as.integer(factor(p2,
-                            levels = AllIds))
+    F1 <- factor(p1,
+                 levels = AllIds)
+    F2 <- factor(p2,
+                 levels = AllIds)
+    
+    FI1 <- as.integer(F1)
+    FI2 <- as.integer(F2)
+    FC1 <- as.character(F1)
+    FC2 <- as.character(F2)
+    
+    FInts <- c(FI1, FI2)
+    FChars <- c(FC1, FC2)
+    Key1 <- !duplicated(FInts)
+    IntMap <- cbind("FactorRep" = FInts[Key1],
+                    "UniqueIDs" = FChars[Key1])
     
     # run FindSets
-    IntRes <- FindSets(p1 = F1,
-                       p2 = F2,
-                       Verbose = Verbose)
+    IntRes <- FindSets(p1 = FI1,
+                       p2 = FI2,
+                       Verbose = TRUE)
     
-    UClusts <- unique(IntRes[, 2L])
-    L <- length(UClusts)
-    FinRes <- vector(mode = "list",
-                     length = L)
+    rm(list = c("FI1",
+                "FI2",
+                "FC1",
+                "FC2",
+                "FInts",
+                "FChars",
+                "Key1"))
     
     if (Verbose) {
       cat("\nAssigning single linkage clusters.\n")
     }
-    for (m1 in seq_along(UClusts)) {
-      # IntRes[, 1L] is the integer representations of character ids
-      # present in p1
-      # IntRes[, 2L] is the integer representation of the "parent" node for
-      # a given cluster
-      # for each parent node select all associated nodes
-      # then extract the character ids of those nodes
-      FinRes[[m1]] <- IntRes[IntRes[, 2L, drop = TRUE] == UClusts[m1], 1L, drop = TRUE]
-      # grab IDs from p1
-      # grap IDs from p2
-      # unique them
-      FinRes[[m1]] <- unique(c(p1[F1 %in% FinRes[[m1]]],
-                               p2[F1 %in% FinRes[[m1]]]))
-      if (Verbose) {
-        setTxtProgressBar(pb = pBar,
-                          value = m1 / L)
-      }
+    
+    # all nodes
+    Nodes <- IntRes[, 1L, drop = TRUE]
+    # all representatives
+    Reps <- IntRes[, 2L, drop = TRUE]
+    # set the order to the unique reps
+    AllIds <- IntMap[match(x = IntMap[, 1L],
+                           table = Nodes), 2L]
+    
+    UClusts <- split(x = AllIds,
+                     f = Reps)
+    
+    if (Verbose) {
+      cat("Assignments complete.\n")
     }
     if (Verbose) {
       cat("\n")
@@ -71,7 +82,7 @@ DisjointSet <- function(Pairs,
       print(TimeEnd - TimeStart)
     }
     
-    names(FinRes) <- seq(length(FinRes))
+    names(UClusts) <- seq(length(UClusts))
     
   } else {
     stop ("No method exists for object.")
@@ -79,6 +90,6 @@ DisjointSet <- function(Pairs,
   
   # return a list of character identifiers for disjoint sets
   
-  return(FinRes)
+  return(UClusts)
   
 }

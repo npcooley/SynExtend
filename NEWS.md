@@ -1,3 +1,7 @@
+# SynExtend 1.5.3
+
+* Added the function `SequenceSimilarity` and made improvements to runtime in `DisjointSet`.
+
 # SynExtend 1.4.1
 
 * Fixed a small bug in consensus scores in `PairSummaries` where features facing on different strands had their score computed incorrectly.
