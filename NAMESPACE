@@ -5,7 +5,7 @@ import(DECIPHER)
 import(S4Vectors)
 
 importFrom("utils", "setTxtProgressBar", "txtProgressBar", "data", "object.size")
-importFrom("stats", "predict")
+importFrom("stats", "predict", "runif", "setNames")
 
 export(NucleotideOverlap)
 export(gffToDataFrame)
@@ -15,6 +15,7 @@ export(DisjointSet)
 export(ExtractBy)
 export(SequenceSimilarity)
 export(SubSetPairs)
+export(EstimateRearrangementScenarios)
 
 S3method(`[`, "LinkedPairs")
 S3method(print, "LinkedPairs")

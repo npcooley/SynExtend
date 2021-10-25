@@ -1,3 +1,8 @@
+# SynExtend 1.5.4
+
+* Added the function `SubSetPairs` that allows for easy trimming of predicted pairs based on conflicting predictions and / or prediction statistics.
+* Added the function `EstimageGenomeRearrangements` that generates rearrangement scenarios of large scale genomic events using the double cut and join model.
+
 # SynExtend 1.5.3
 
 * Added the function `SequenceSimilarity` and made improvements to runtime in `DisjointSet`.
