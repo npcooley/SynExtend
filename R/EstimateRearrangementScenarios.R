@@ -453,6 +453,11 @@ EstimateRearrangementScenarios <- function(synt,
     num_blocks <- length(genome)
     if (length(indices_to_remove) > 0){
       block_key <- block_key[-indices_to_remove,]
+      if (!('array' %in% class(block_key))){
+        return(list('counts'=c(0, 0, 0),
+                    'scenario'='none',
+                    'block_key'=as.matrix(block_key)))
+      }
       block_key[,5] <- 1:nrow(block_key)
     }
     block_key <- block_key[,-6]
