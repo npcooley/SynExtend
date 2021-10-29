@@ -387,6 +387,12 @@ EstimateRearrangementScenarios <- function(synt,
     # ==== Blocks to Permutation Matrix ====
     sorted_mat <- block_matrix
     
+    if (!('array' %in% class(sorted_mat))){
+      return(list('counts'=c(0, 0, 0),
+                  'scenario'='none',
+                  'block_key'=as.matrix(sorted_mat)))
+    }
+    
     sorted_mat <- sorted_mat[order(sorted_mat[,1]),] #sort based on the first genome
     indices <- 1:nrow(block_matrix) #simple vector from 1 to {n}, to order the blocks
     sorted_mat <- cbind(sorted_mat, indices) #attach the indices, now sorted_mat[,5] represents permutation order for genome1
@@ -447,6 +453,11 @@ EstimateRearrangementScenarios <- function(synt,
     num_blocks <- length(genome)
     if (length(indices_to_remove) > 0){
       block_key <- block_key[-indices_to_remove,]
+      if (!('array' %in% class(block_key))){
+        return(list('counts'=c(0, 0, 0),
+                    'scenario'='none',
+                    'block_key'=as.matrix(block_key)))
+      }
       block_key[,5] <- 1:nrow(block_key)
     }
     block_key <- block_key[,-6]
