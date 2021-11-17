@@ -1,3 +1,11 @@
+# SynExtend 1.7.1
+
+* Large changes under the hood to `PairSummaries`.
+* Failure to accurately assign neighbors in some cases should now be fixed.
+* Extraction of genomic features is now faster.
+* `OffSetsAllowed` argument now defaults to `FALSE`. This argument may be dropped in the future in favor of a more complex function post-summary.
+* Small edits to `SequenceSimilarity`
+
 # SynExtend 1.5.4
 
 * Added the function `SubSetPairs` that allows for easy trimming of predicted pairs based on conflicting predictions and / or prediction statistics.

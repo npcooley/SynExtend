@@ -28,19 +28,18 @@ SequenceSimilarity <- function(Seqs,
     if (is(object = Seqs,
            class2 = "DNAStringSet")) {
       # build a generic DNA Substitution matrix where all substitutions are equal
-      SubMat <- diag(4)
-      dimnames(SubMat) <- list(DNA_BASES,
-                               DNA_BASES)
+      SubMat <- diag(length(DNA_ALPHABET))
+      dimnames(SubMat) <- list(DNA_ALPHABET,
+                               DNA_ALPHABET)
     } else if (is(object = Seqs,
                   class2 = "AAStringSet")) {
       # use the 40th PFASUM matrix
-      # if it is not in the workspace, load it
-      if ("PFASUM" %in% ls()) {
-        SubMat <- PFASUM[1:20, 1:20, 40]
-      } else {
-        data("PFASUM")
-        SubMat <- PFASUM[1:20, 1:20, 40]
-      }
+      # PFASUM data object loads an object named `PFASUM` but this form ensures
+      # that there is a visible binding for check and bioccheck
+      PFASUM <- get(data(list = "PFASUM",
+                         envir = environment(),
+                         package = "DECIPHER"))
+      SubMat <- PFASUM[1:20, 1:20, 40]
     }
   }
   

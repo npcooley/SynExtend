@@ -10,7 +10,8 @@ PairSummaries <- function(SyntenyLinks,
                           Model = "Generic",
                           DefaultTranslationTable = "11",
                           AcceptContigNames = TRUE,
-                          OffSetsAllowed = 2L,
+                          OffSetsAllowed = NULL,
+                          # ExpandBlocks = c(2, 0.95, .5),
                           Storage = 1,
                           ...) {
   if (Verbose) {
@@ -52,6 +53,26 @@ PairSummaries <- function(SyntenyLinks,
   if (is.null(OffSetsAllowed)) {
     AllowGaps <- FALSE
   }
+  # if (!is.null(ExpandBlocks)) {
+  #   # set logical to enter gap fill / block expansion loops
+  #   AttemptExpansion <- TRUE
+  #   if (length(ExpandBlocks) > 3L) {
+  #     stop ("ExpandBlocks argument requires three criteria.")
+  #   }
+  #   if (!is.numeric(ExpandBlocks)) {
+  #     stop ("ExpandBlocks criteria must be numerics.")
+  #   }
+  #   if (any(ExpandBlocks[2:3] > 1 |
+  #           ExpandBlocks[2:3] < 0)) {
+  #     stop ("ExpandBlocks criteria 2 and 3 must be between 0 and 1.")
+  #   }
+  #   GapSpan <- as.integer(ExpandBlocks[1L]) + 1L
+  #   ExpandTolerance <- ExpandBlocks[2L]
+  #   ExpandLimit <- ExpandBlocks[3L]
+  # } else {
+  #   AttemptExpansion <- FALSE
+  #   # set logical to not enter gap fill / block expansion loops
+  # }
   
   GeneCalls <- attr(SyntenyLinks, "GeneCalls")
   
@@ -132,18 +153,19 @@ PairSummaries <- function(SyntenyLinks,
   if (Verbose) {
     cat("\nPreparing overhead data.\n")
   }
-  Features <- vector("list",
-                     length = length(GeneCalls))
+  Features01 <- Features02 <- vector("list",
+                                     length = length(GeneCalls))
   L <- length(GeneCalls)
   
   Count <- 1L
-  while (object.size(Features) < Storage &
+  while (object.size(Features01) < Storage &
          Count <= L) {
-    # print(object.size(Features))
+    # print(object.size(Features01))
     # print(Count)
     Genome <- SearchDB(dbFile = DBPATH,
                        identifier = names(GeneCalls[Count]),
                        nameBy = "description",
+                       type = "DNAStringSet",
                        verbose = FALSE)
     PresentIndices <- unique(GeneCalls[[Count]]$Index)
     
@@ -155,49 +177,198 @@ PairSummaries <- function(SyntenyLinks,
     if (length(PresentIndices) > 1L) {
       # many indices, loop through present indices and extract
       # slam together at the end
-      Features[[Count]] <- vector(mode = "list",
+      Features01[[Count]] <- vector(mode = "list",
                                   length = length(PresentIndices))
       for (m3 in seq_along(PresentIndices)) {
         ph <- GeneCalls[[Count]]$Index == PresentIndices[m3]
-        Features[[Count]][[m3]] <- extractAt(x = rep(Genome[PresentIndices[m3]],
-                                                     sum(ph)),
-                                             at = unname(GeneCalls[[Count]]$Range[ph]))
-        Features[[Count]][[m3]] <- DNAStringSet(sapply(Features[[Count]][[m3]],
-                                                       function(x) unlist(x)))
+        
+        # original implementation - very slow
+        # Features01[[Count]][[m3]] <- extractAt(x = rep(Genome[PresentIndices[m3]],
+        #                                              sum(ph)),
+        #                                      at = unname(GeneCalls[[Count]]$Range[ph]))
+        # Features01[[Count]][[m3]] <- DNAStringSet(sapply(Features01[[Count]][[m3]],
+        #                                                function(x) unlist(x)))
+        
+        # implementation 3 - faster so far
+        # set up the succinct extraction
+        # build an index of where stringset positions need to be collapsed
+        z1 <- unname(GeneCalls[[Count]]$Range[ph])
+        z2 <- lengths(z1)
+        # convert IRangesList to IRanges object for simple extractAt
+        z1 <- unlist(z1,
+                     recursive = FALSE)
+        Features01[[Count]][[m3]] <- extractAt(x = Genome[[PresentIndices[m3]]],
+                                               at = z1)
+        CollapseCount <- 0L
+        w <- which(z2 > 1L)
+        # if no collapsing needs to occur, do not enter loop
+        if (length(w) > 0L) {
+          # if collapsing must take place build a placeholder of positions to remove
+          # once collapsing correct positions has occurred
+          remove <- vector(mode = "integer",
+                           length = sum(z2[w]) - length(w))
+          for (m4 in w) {
+            Features01[[Count]][[m3]][[m4 + CollapseCount]] <- unlist(Features01[[Count]][[m3]][m4:(m4 + z2[m4] - 1L) + CollapseCount])
+            remove[(CollapseCount + 1L):(CollapseCount + z2[m4] - 1L)] <- (m4 + 1L):(m4 + z2[m4] - 1L) + CollapseCount
+            CollapseCount <- CollapseCount + z2[m4] - 1L
+          }
+          # return(list(w,
+          #             z2[w],
+          #             remove))
+          Features01[[Count]][[m3]][remove] <- NULL
+        }
+        
+        # iteration 2 - slightly faster
+        # z1 <- GeneCalls[[Count]]$Range[ph]
+        # z2 <- unlist(z1, recursive = FALSE)
+        # z3 <- lengths(z1)
+        # z4 <- seq(length(z3))
+        # z5 <- rep(x = z4,
+        #           times = z3)
+        # FeaturePlaceHolder <- extractAt(x = Genome[[PresentIndices[m3]]],
+        #                                 at = z2)
+        # Features01[[Count]][[m3]] <- vector(mode = "list",
+        #                                     length = length(z4))
+        # INITIAL <- 1L
+        # for (m4 in seq_along(z4)) {
+        #   w <- INITIAL:(INITIAL + z3[m4] - 1L)
+        #   if (length(w) == 1) {
+        #     Features01[[Count]][[m3]][[m4]] <- FeaturePlaceHolder[[w]]
+        #   } else {
+        #     Features01[[Count]][[m3]][[m4]] <- unlist(FeaturePlaceHolder[w])
+        #   }
+        #   INITIAL <- INITIAL + z3[m4]
+        # }
+        # Features01[[Count]][[m3]] <- DNAStringSet(Features01[[Count]][[m3]])
+        
         FlipMe <- GeneCalls[[Count]]$Strand[ph] == 1L
         if (any(FlipMe)) {
-          Features[[Count]][[m3]][FlipMe] <- reverseComplement(Features[[Count]][[m3]][FlipMe])
+          Features01[[Count]][[m3]][FlipMe] <- reverseComplement(Features01[[Count]][[m3]][FlipMe])
         }
       }
-      Features[[Count]] <- do.call(c,
-                                   Features[[Count]])
+      Features01[[Count]] <- do.call(c,
+                                     Features01[[Count]])
       
     } else {
+      # original implementation - pretty slow
       # only 1 index present in gene calls
-      Features[[Count]] <- extractAt(x = rep(Genome[PresentIndices],
-                                             nrow(GeneCalls[[Count]])),
-                                     at = unname(GeneCalls[[Count]]$Range))
-      Features[[Count]] <- DNAStringSet(sapply(Features[[Count]],
-                                               function(x) unlist(x)))
+      # Features01[[Count]] <- extractAt(x = rep(Genome[PresentIndices],
+      #                                        nrow(GeneCalls[[Count]])),
+      #                                at = unname(GeneCalls[[Count]]$Range))
+      # Features01[[Count]] <- DNAStringSet(sapply(Features01[[Count]],
+      #                                          function(x) unlist(x)))
+      
+      # implementation 2 - faster, but not as efficient as possible
+      # z1 <- GeneCalls[[Count]]$Range
+      # z2 <- unlist(z1, recursive = FALSE)
+      # z3 <- lengths(z1)
+      # z4 <- seq(length(z3))
+      # z5 <- rep(x = z4,
+      #           times = z3)
+      # FeaturePlaceHolder <- extractAt(x = Genome[[PresentIndices]],
+      #                                 at = z2)
+      # Features01[[Count]] <- vector(mode = "list",
+      #                               length = length(z4))
+      # for (m4 in seq_along(z4)) {
+      #   w <- INITIAL:(INITIAL + z3[m4] - 1L)
+      #   if (length(w) == 1) {
+      #     Features01[[Count]][[m4]] <- FeaturePlaceHolder[[w]]
+      #   } else {
+      #     Features01[[Count]][[m4]] <- unlist(FeaturePlaceHolder[w])
+      #   }
+      #   INITIAL <- INITIAL + z3[m4]
+      # }
+      # Features01[[Count]] <- DNAStringSet(Features01[[Count]])
+      
+      # implementation 3 - shortest possible collapse loops and fewest copies - so far
+      z1 <- unname(GeneCalls[[Count]]$Range)
+      z2 <- lengths(z1)
+      z1 <- unlist(z1,
+                   recursive = FALSE)
+      Features01[[Count]] <- extractAt(x = Genome[[PresentIndices]],
+                                       at = z1)
+      CollapseCount <- 0L
+      w <- which(z2 > 1)
+      if (length(w) > 0) {
+        remove <- vector(mode = "integer",
+                         length = sum(z2[w]) - length(w))
+        for (m4 in w) {
+          Features01[[Count]][[m4 + CollapseCount]] <- unlist(Features01[[Count]][m4:(m4 + z2[m4] - 1L) + CollapseCount])
+          remove[(CollapseCount + 1L):(CollapseCount + z2[m4] - 1L)] <- (m4 + 1L):(m4 + z2[m4] - 1L) + CollapseCount
+          CollapseCount <- CollapseCount + z2[m4] - 1L
+        }
+        Features01[[Count]][remove] <- NULL
+      }
+      
       FlipMe <- GeneCalls[[Count]]$Strand == 1L
       if (any(FlipMe)) {
-        Features[[Count]][FlipMe] <- reverseComplement(Features[[Count]][FlipMe])
+        Features01[[Count]][FlipMe] <- reverseComplement(Features01[[Count]][FlipMe])
       }
       
     }
-    names(Features[[Count]]) <- paste(rep(names(GeneCalls)[Count], length(Features[[Count]])),
-                                   GeneCalls[[Count]]$Index,
-                                   seq(length(Features[[Count]])),
-                                   sep = "_")
+    names(Features01[[Count]]) <- paste(rep(names(GeneCalls)[Count], length(Features01[[Count]])),
+                                        GeneCalls[[Count]]$Index,
+                                        seq(length(Features01[[Count]])),
+                                        sep = "_")
+    
+    # translate all translatable features with as few calls as possible
+    ph <- unique(GeneCalls[[Count]]$Translation_Table)
+    
+    ph <- ph[!is.na(ph)]
+    if (length(ph) < 1L) {
+      ph <- DefaultTranslationTable
+      phkey <- which(GeneCalls[[Count]]$Coding &
+                       GeneCalls[[Count]]$Type == "gene")
+      CurrentGeneticCode <- getGeneticCode(id_or_name2 = ph,
+                                           full.search = FALSE,
+                                           as.data.frame = FALSE)
+      Features02[[Count]] <- translate(x = Features01[[Count]][phkey],
+                                       genetic.code = CurrentGeneticCode,
+                                       if.fuzzy.codon = "solve")
+    } else {
+      Features02[[Count]] <- vector(mode = "list",
+                                    length = length(ph))
+      phkey <- vector(mode = "list",
+                      length = length(ph))
+      for (m4 in seq_along(ph)) {
+        matchph <- which(GeneCalls[[Count]]$Translation_Table == ph &
+                           GeneCalls[[Count]]$Coding &
+                           GeneCalls[[Count]]$Type == "gene")
+        phkey[[m4]] <- matchph
+        CurrentGeneticCode <- getGeneticCode(id_or_name2 = ph[m4],
+                                             full.search = FALSE,
+                                             as.data.frame = FALSE)
+        Features02[[Count]][[m4]] <- translate(x = Features01[[Count]][matchph],
+                                               genetic.code = CurrentGeneticCode,
+                                               if.fuzzy.codon = "solve")
+      }
+      Features02[[Count]] <- do.call(c,
+                                     Features02[[Count]])
+      phkey <- unlist(phkey)
+      Features02[[Count]] <- Features02[[Count]][order(phkey)]
+      
+    }
+    # rewrite ph to provide the correct names for the features
+    ph <- GeneCalls[[Count]]$Coding & GeneCalls[[Count]]$Type == "gene"
+    Features02[[Count]] <- Features02[[Count]][order(phkey)]
+    names(Features02[[Count]]) <- paste(rep(names(GeneCalls)[Count], length(Features02[[Count]])),
+                                        GeneCalls[[Count]]$Index[ph],
+                                        seq(length(Features01[[Count]]))[ph],
+                                        sep = "_")
     Count <- Count + 1L
     # will extract till storage is exceeded
     # will not cap at storage
   }
+  # return(list(Features01,
+  #             Features02,
+  #             GeneCalls))
   if (Verbose) {
     if (Count < L) {
       cat("Overhead is too large to keep entirely in memory.\nPrimary loop will include database lookups.\n")
+      RemoveWhenAble <- TRUE
     } else {
       cat("Overhead complete.\n")
+      RemoveWhenAble <- FALSE
     }
   }
   
@@ -247,6 +418,9 @@ PairSummaries <- function(SyntenyLinks,
   ###### -- Summary stuff -----------------------------------------------------
   
   if (PIDs) {
+    Total <- (Size^2 - Size) / 2
+    PH <- vector(mode = "list",
+                 length = Total)
     Total <- sum(sapply(SyntenyLinks[upper.tri(SyntenyLinks)],
                         function(x) nrow(x),
                         USE.NAMES = FALSE,
@@ -255,13 +429,13 @@ PairSummaries <- function(SyntenyLinks,
     cat("Aligning pairs.\n")
   } else {
     Total <- (Size^2 - Size) / 2
-    
+    PH <- vector(mode = "list",
+                 length = Total)
     cat("Collecting pairs.\n")
   }
   
   Count <- 1L
-  PH <- vector(mode = "list",
-               length = Total)
+  
   
   # upper key!
   # QueryGene == 1
@@ -341,17 +515,12 @@ PairSummaries <- function(SyntenyLinks,
                           table = data.frame(t(UIM)))
         UIK <- unique(IndexKey)
         
-        # return(list(UIM,
-        #             UIK,
-        #             IndexKey,
-        #             IMatrix))
-        
         LKey <- RKey <- NeighborMat <- vector(mode = "list",
                                               length = nrow(UIM))
         for (m3 in seq_len(nrow(UIM))) {
           # don't need to bother with subsetting index matrix here
           CIM <- IMatrix[IndexKey == UIK[m3], , drop = FALSE] # current index matrix
-          CPM <- PMatrix[IndexKey == UIK[m3], , drop = FALSE] # current index matrix
+          CPM <- PMatrix[IndexKey == UIK[m3], , drop = FALSE] # current pairs/features matrix
           
           if (nrow(CPM) > 1L) {
             p1 <- CPM[, 1]
@@ -359,41 +528,47 @@ PairSummaries <- function(SyntenyLinks,
             i1 <- CIM[, 1]
             i2 <- CIM[, 2]
             
-            p1e <- rle(p1)
-            up1 <- p1e$values
-            p2e <- rle(p2)
-            up2 <- p2e$values
-            
-            # if one id is present while being present many times just rep zero
-            # else solve
-            if (length(up1) > 1L) {
-              # successive rightward p1
-              rdp1 <- c(up1[2L:length(up1)] - up1[1L:(length(up1) - 1L)], 0L)
-              # successive leftward p1
-              ldp1 <- abs(c(0L, up1[1L:(length(up1) - 1L)] - up1[2L:length(up1)]))
-              # expand unique diffs back to pair list size
-              rdp1 <- rep(rdp1,
-                          p1e$lengths)
-              ldp1 <- rep(ldp1,
-                          p1e$lengths)
-            } else {
-              rdp1 <- rep(0L, p1e$lengths)
-              ldp1 <- rep(0L, p1e$lengths)
+            # be better at assigning neighbors across conflicting feature predictions
+            rdp1 <- rdp2 <- vector(mode = "integer",
+                                   length = nrow(CPM))
+            MAX <- nrow(CPM)
+            it1 <- 1L
+            for (m4 in seq_len(nrow(CPM) - 1L)) {
+              p <- p1[m4 + it1] - p1[m4]
+              while (p == 0L) {
+                it1 <- it1 + 1L
+                if ((it1 + m4) > MAX) {
+                  it1 <- it1 - 1L
+                  break
+                }
+                p <- p1[m4 + it1] - p1[m4]
+              }
+              # p is now the forward lookup
+              rdp1[m4] <- p
+              rdp2[m4] <- p2[m4 + it1] - p2[m4]
+              # reset it1
+              it1 <- 1L
             }
             
-            if (length(up2) > 1L) {
-              # successive rightward p2
-              rdp2 <- c(up2[2L:length(up2)] - up2[1L:(length(up2) - 1L)], 0L)
-              # successive leftward p2
-              ldp2 <- c(0L, up2[1L:(length(up2) - 1L)] - up2[2L:length(up2)]) * -1L
-              # expand unique diffs back to pair list size
-              rdp2 <- rep(rdp2,
-                          p2e$lengths)
-              ldp2 <- rep(ldp2,
-                          p2e$lengths)
-            } else {
-              rdp2 <- rep(0L, p2e$lengths)
-              ldp2 <- rep(0L, p2e$lengths)
+            ldp1 <- ldp2 <- vector(mode = "integer",
+                                   length = nrow(CPM))
+            MIN <- 1L
+            it1 <- 1L
+            for (m4 in 2:nrow(CPM)) {
+              p <- p1[m4 - it1] - p1[m4]
+              while (p == 0L) {
+                it1 <- it1 + 1L
+                if ((m1 - it1) < MIN) {
+                  it1 <- it1 - 1L
+                  break
+                }
+                p <- p1[m4 - it1] - p1[m4]
+              }
+              # p is the backwards lookup
+              ldp1[m4] <- p
+              ldp2[m4] <- p2[m4 - it1] - p2[m4]
+              # reset it1
+              it1 <- 1L
             }
             
             # left and right are absolute in p1
@@ -411,7 +586,7 @@ PairSummaries <- function(SyntenyLinks,
                                        "p2rd" = rdp2,
                                        "p2ld" = ldp2)
             RKey[[m3]] <- as.integer(NeighborMat[[m3]][, 5L] == 1L & abs(NeighborMat[[m3]][, 7L]) == 1L)
-            LKey[[m3]] <- as.integer(NeighborMat[[m3]][, 6L] == 1L & abs(NeighborMat[[m3]][, 8L]) == 1L)
+            LKey[[m3]] <- as.integer(NeighborMat[[m3]][, 6L] == -1L & abs(NeighborMat[[m3]][, 8L]) == 1L)
             
           } else if (nrow(CPM) == 1L) {
             # only a single gene appears in this index combo
@@ -436,15 +611,6 @@ PairSummaries <- function(SyntenyLinks,
                     NeighborMat[, 1L],
                     NeighborMat[, 2L])
         NeighborMat <- NeighborMat[o1, ]
-        
-        # return(list(NeighborMat,
-        #             RKey,
-        #             LKey,
-        #             PMatrix,
-        #             IMatrix,
-        #             o1,
-        #             UIK,
-        #             IndexKey))
         
         # Create a matrix of gap filled positions
         # if PID calc is specified, calculate them
@@ -636,57 +802,9 @@ PairSummaries <- function(SyntenyLinks,
         # if in the future it can recycle x, the rep calls interior to extractAt
         # can be removed
         
-        # PresQI <- unique(IMatrix[, 1L])
-        # PresSI <- unique(IMatrix[, 2L])
-        # QuerySeqs <- vector(mode = "list",
-        #                     length = length(PresQI))
-        # SubjectSeqs <- vector(mode = "list",
-        #                       length = length(PresSI))
-        # PresentQRanges <- GeneCalls[[m1]]$Range[PMatrix[, 1L]]
-        # PresentSRanges <- GeneCalls[[m2]]$Range[PMatrix[, 2L]]
-        # 
-        # for (m3 in seq_along(PresQI)) {
-        #   CurrentRanges <- PresentQRanges[IMatrix[, 1L] == PresQI[m3]]
-        #   QuerySeqs[[m3]] <- extractAt(x = rep(Genomes[[m1]][PresQI[m3]],
-        #                                        length(CurrentRanges)),
-        #                                at = unname(CurrentRanges))
-        #   QuerySeqs[[m3]] <- DNAStringSet(sapply(QuerySeqs[[m3]],
-        #                                          function(x) unlist(x)))
-        #   names(QuerySeqs[[m3]]) <- paste(names(GeneCalls)[m1],
-        #                                   PresQI[m3],
-        #                                   PMatrix[, 1L][IMatrix[, 1L] == PresQI[m3]],
-        #                                   sep = "_")
-        # }
-        # QuerySeqs <- do.call(c,
-        #                      QuerySeqs)
-        # for (m3 in seq_along(PresSI)) {
-        #   CurrentRanges <- PresentSRanges[IMatrix[, 2L] == PresSI[m3]]
-        #   SubjectSeqs[[m3]] <- extractAt(x = rep(Genomes[[m2]][PresSI[m3]],
-        #                                          length(CurrentRanges)),
-        #                                  at = unname(CurrentRanges))
-        #   SubjectSeqs[[m3]] <- DNAStringSet(sapply(SubjectSeqs[[m3]],
-        #                                            function(x) unlist(x)))
-        #   names(SubjectSeqs[[m3]]) <- paste(names(GeneCalls)[m2],
-        #                                     PresSI[m3],
-        #                                     PMatrix[, 2L][IMatrix[, 2L] == PresSI[m3]],
-        #                                     sep = "_")
-        # }
-        # SubjectSeqs <- do.call(c,
-        #                        SubjectSeqs)
-        # # return SubjectSeqs to the original order
-        # o <- match(x = paste(names(GeneCalls)[m2],
-        #                      IMatrix[, 2L],
-        #                      PMatrix[, 2L],
-        #                      sep = "_"),
-        #            table = names(SubjectSeqs))
-        # SubjectSeqs <- SubjectSeqs[o]
-        # if (length(QuerySeqs) != length(SubjectSeqs)) {
-        #   stop("Extracted Seqs have differing lengths.")
-        # }
-        
         # ask if features were pulled initially
         # if not grab them
-        if (is.null(Features[[m1]])) {
+        if (is.null(Features01[[m1]])) {
           # hypothetically, we shouldn't go here unless only one 
           # set of features is pulled in at a time,
           # in which case only one set of sequences will be held in memory at a time
@@ -699,46 +817,79 @@ PairSummaries <- function(SyntenyLinks,
           if (length(PresentIndices) > 1L) {
             # many indices, loop through present indices and extract
             # slam together at the end
-            Features[[m1]] <- vector(mode = "list",
+            Features01[[m1]] <- vector(mode = "list",
                                         length = length(PresentIndices))
             for (m3 in seq_along(PresentIndices)) {
               ph <- GeneCalls[[m1]]$Index == PresentIndices[m3]
-              Features[[m1]][[m3]] <- extractAt(x = rep(Genome[PresentIndices[m3]],
-                                                        sum(ph)),
-                                                at = unname(GeneCalls[[m1]]$Range[ph]))
-              Features[[m1]][[m3]] <- DNAStringSet(sapply(Features[[m1]][[m3]],
-                                                          function(x) unlist(x)))
+              
+              z1 <- unname(GeneCalls[[m1]]$Range[ph])
+              z2 <- lengths(z1)
+              # convert IRangesList to IRanges object for simple extractAt
+              z1 <- unlist(z1,
+                           recursive = FALSE)
+              Features01[[m1]][[m3]] <- extractAt(x = Genome[[PresentIndices[m3]]],
+                                                  at = z1)
+              CollapseCount <- 0L
+              w <- which(z2 > 1L)
+              # if no collapsing needs to occur, do not enter loop
+              if (length(w) > 0L) {
+                # if collapsing must take place build a placeholder of positions to remove
+                # once collapsing correct positions has occurred
+                remove <- vector(mode = "integer",
+                                 length = sum(z2[w]) - length(w))
+                for (m4 in w) {
+                  Features01[[m1]][[m3]][[m4 + CollapseCount]] <- unlist(Features01[[m1]][[m3]][m4:(m4 + z2[m4] - 1L) + CollapseCount])
+                  remove[(CollapseCount + 1L):(CollapseCount + z2[m4] - 1L)] <- (m4 + 1L):(m4 + z2[m4] - 1L) + CollapseCount
+                  CollapseCount <- CollapseCount + z2[m4] - 1L
+                }
+                Features01[[m1]][[m3]][remove] <- NULL
+              }
+              
               FlipMe <- GeneCalls[[m1]]$Strand[ph] == 1L
               if (any(FlipMe)) {
-                Features[[m1]][[m3]][FlipMe] <- reverseComplement(Features[[m1]][[m3]][FlipMe])
+                Features01[[m1]][[m3]][FlipMe] <- reverseComplement(Features01[[m1]][[m3]][FlipMe])
               }
             }
-            Features[[m1]] <- do.call(c,
-                                      Features[[m1]])
+            Features01[[m1]] <- do.call(c,
+                                      Features01[[m1]])
           } else {
             # only 1 index present in gene calls
-            Features[[m1]] <- extractAt(x = rep(Genome[PresentIndices],
-                                                nrow(GeneCalls[[m1]])),
-                                        at = unname(GeneCalls[[m1]]$Range))
-            Features[[m1]] <- DNAStringSet(sapply(Features[[m1]],
-                                                  function(x) unlist(x)))
+            z1 <- unname(GeneCalls[[m1]]$Range)
+            z2 <- lengths(z1)
+            z1 <- unlist(z1,
+                         recursive = FALSE)
+            Features01[[m1]] <- extractAt(x = Genome[[PresentIndices]],
+                                          at = z1)
+            CollapseCount <- 0L
+            w <- which(z2 > 1)
+            if (length(w) > 0) {
+              remove <- vector(mode = "integer",
+                               length = sum(z2[w]) - length(w))
+              for (m4 in w) {
+                Features01[[m1]][[m4 + CollapseCount]] <- unlist(Features01[[m1]][m4:(m4 + z2[m4] - 1L) + CollapseCount])
+                remove[(CollapseCount + 1L):(CollapseCount + z2[m4] - 1L)] <- (m4 + 1L):(m4 + z2[m4] - 1L) + CollapseCount
+                CollapseCount <- CollapseCount + z2[m4] - 1L
+              }
+              Features01[[m1]][remove] <- NULL
+            }
             FlipMe <- GeneCalls[[m1]]$Strand == 1L
             if (any(FlipMe)) {
-              Features[[m1]][FlipMe] <- reverseComplement(Features[[m1]][FlipMe])
+              Features01[[m1]][FlipMe] <- reverseComplement(Features01[[m1]][FlipMe])
             }
-            
           }
-          names(Features[[m1]]) <- paste(rep(names(GeneCalls)[m1], length(Features[[m1]])),
+          names(Features01[[m1]]) <- paste(rep(names(GeneCalls)[m1], length(Features01[[m1]])),
                                          GeneCalls[[m1]]$Index,
-                                         seq(length(Features[[m1]])),
+                                         seq(length(Features01[[m1]])),
                                          sep = "_")
-          QuerySeqs <- Features[[m1]][PMatrix[, 1L]]
-          Features[m1] <- list(NULL)
+          QuerySeqs <- Features01[[m1]][PMatrix[, 1L]]
+          QuerySeqsAA <- Features02[[m1]]
+          Features01[m1] <- list(NULL)
         } else {
-          QuerySeqs <- Features[[m1]][PMatrix[, 1L]]
+          QuerySeqs <- Features01[[m1]][PMatrix[, 1L]]
+          QuerySeqsAA <- Features02[[m1]]
         }
         
-        if (is.null(Features[[m2]])) {
+        if (is.null(Features01[[m2]])) {
           Genome <- SearchDB(dbFile = DBPATH,
                              identifier = names(GeneCalls[m2]),
                              nameBy = "description",
@@ -747,41 +898,73 @@ PairSummaries <- function(SyntenyLinks,
           if (length(PresentIndices) > 1L) {
             # many indices, loop through present indices and extract
             # slam together at the end
-            Features[[m2]] <- vector(mode = "list",
+            Features01[[m2]] <- vector(mode = "list",
                                      length = length(PresentIndices))
             for (m3 in seq_along(PresentIndices)) {
               ph <- GeneCalls[[m2]]$Index == PresentIndices[m3]
-              Features[[m2]][[m3]] <- extractAt(x = rep(Genome[PresentIndices[m3]],
-                                                        sum(ph)),
-                                                at = unname(GeneCalls[[m2]]$Range[ph]))
-              Features[[m2]][[m3]] <- DNAStringSet(sapply(Features[[m2]][[m3]],
-                                                          function(x) unlist(x)))
+              
+              z1 <- unname(GeneCalls[[m2]]$Range[ph])
+              z2 <- lengths(z1)
+              # convert IRangesList to IRanges object for simple extractAt
+              z1 <- unlist(z1,
+                           recursive = FALSE)
+              Features01[[m2]][[m3]] <- extractAt(x = Genome[[PresentIndices[m3]]],
+                                                  at = z1)
+              CollapseCount <- 0L
+              w <- which(z2 > 1L)
+              # if no collapsing needs to occur, do not enter loop
+              if (length(w) > 0L) {
+                # if collapsing must take place build a placeholder of positions to remove
+                # once collapsing correct positions has occurred
+                remove <- vector(mode = "integer",
+                                 length = sum(z2[w]) - length(w))
+                for (m4 in w) {
+                  Features01[[m2]][[m3]][[m4 + CollapseCount]] <- unlist(Features01[[m2]][[m3]][m4:(m4 + z2[m4] - 1L) + CollapseCount])
+                  remove[(CollapseCount + 1L):(CollapseCount + z2[m4] - 1L)] <- (m4 + 1L):(m4 + z2[m4] - 1L) + CollapseCount
+                  CollapseCount <- CollapseCount + z2[m4] - 1L
+                }
+                Features01[[m2]][[m3]][remove] <- NULL
+              }
+              
               FlipMe <- GeneCalls[[m2]]$Strand[ph] == 1L
               if (any(FlipMe)) {
-                Features[[m2]][[m3]][FlipMe] <- reverseComplement(Features[[m2]][[m3]][FlipMe])
+                Features01[[m2]][[m3]][FlipMe] <- reverseComplement(Features01[[m2]][[m3]][FlipMe])
               }
             }
-            Features[[m2]] <- do.call(c,
-                                      Features[[m2]])
+            Features01[[m2]] <- do.call(c,
+                                      Features01[[m2]])
           } else {
             # only 1 index present in gene calls
-            Features[[m2]] <- extractAt(x = rep(Genome[PresentIndices],
-                                                nrow(GeneCalls[[m2]])),
-                                        at = unname(GeneCalls[[m2]]$Range))
-            Features[[m2]] <- DNAStringSet(sapply(Features[[m2]],
-                                                  function(x) unlist(x)))
+            z1 <- unname(GeneCalls[[m2]]$Range)
+            z2 <- lengths(z1)
+            z1 <- unlist(z1,
+                         recursive = FALSE)
+            Features01[[m2]] <- extractAt(x = Genome[[PresentIndices]],
+                                          at = z1)
+            CollapseCount <- 0L
+            w <- which(z2 > 1)
+            if (length(w) > 0) {
+              remove <- vector(mode = "integer",
+                               length = sum(z2[w]) - length(w))
+              for (m4 in w) {
+                Features01[[m2]][[m4 + CollapseCount]] <- unlist(Features01[[m2]][m4:(m4 + z2[m4] - 1L) + CollapseCount])
+                remove[(CollapseCount + 1L):(CollapseCount + z2[m4] - 1L)] <- (m4 + 1L):(m4 + z2[m4] - 1L) + CollapseCount
+                CollapseCount <- CollapseCount + z2[m4] - 1L
+              }
+              Features01[[m2]][remove] <- NULL
+            }
             FlipMe <- GeneCalls[[m2]]$Strand == 1L
             if (any(FlipMe)) {
-              Features[[m2]][FlipMe] <- reverseComplement(Features[[m2]][FlipMe])
+              Features01[[m2]][FlipMe] <- reverseComplement(Features01[[m2]][FlipMe])
             }
             
           }
-          names(Features[[m2]]) <- paste(rep(names(GeneCalls)[m2], length(Features[[m2]])),
+          names(Features01[[m2]]) <- paste(rep(names(GeneCalls)[m2], length(Features01[[m2]])),
                                          GeneCalls[[m2]]$Index,
-                                         seq(length(Features[[m2]])),
+                                         seq(length(Features01[[m2]])),
                                          sep = "_")
-          SubjectSeqs <- Features[[m2]][PMatrix[, 2L]]
-          PresentFeatures <- unname(sapply(Features,
+          SubjectSeqs <- Features01[[m2]][PMatrix[, 2L]]
+          PresentFeatures <- unname(sapply(Features01,
                                            function(x) !is.null(x),
                                            simplify = TRUE,
                                            USE.NAMES = FALSE))
@@ -790,28 +973,28 @@ PairSummaries <- function(SyntenyLinks,
             # if any of the features that will no longer be visited are not NULL
             # NULL one of those as opposed to what was just loaded in
             if (any(PresentFeatures[1L:(m1 - 1L)])) {
-              SubjectSeqs <- Features[[m2]][PMatrix[, 2L]]
-              Features[min(which(PresentFeatures))] <- list(NULL)
+              SubjectSeqs <- Features01[[m2]][PMatrix[, 2L]]
+              Features01[min(which(PresentFeatures))] <- list(NULL)
             } else {
-              SubjectSeqs <- Features[[m2]][PMatrix[, 2L]]
-              Features[m2] <- list(NULL)
+              SubjectSeqs <- Features01[[m2]][PMatrix[, 2L]]
+              SubjectSeqsAA <- Features02[[m2]]
+              Features01[m2] <- list(NULL)
             }
           } else {
-            SubjectSeqs <- Features[[m2]][PMatrix[, 2L]]
-            Features[m2] <- list(NULL)
+            SubjectSeqs <- Features01[[m2]][PMatrix[, 2L]]
+            SubjectSeqsAA <- Features02[[m2]]
+            Features01[m2] <- list(NULL)
           }
           
         } else {
-          SubjectSeqs <- Features[[m2]][PMatrix[, 2L]]
+          SubjectSeqs <- Features01[[m2]][PMatrix[, 2L]]
+          SubjectSeqsAA <- Features02[[m2]]
         }
         # reverse complement seqs where necessary
         # not necessary anymore, rC was performed at pull
         # QuerySeqs[QGeneStrand == 1L] <- reverseComplement(QuerySeqs[QGeneStrand == 1L])
         # SubjectSeqs[SGeneStrand == 1L] <- reverseComplement(SubjectSeqs[SGeneStrand == 1L])
         
-        # return(list(Features,
-        #             SubjectSeqs,
-        #             QuerySeqs))
         NucDist <- vector(mode = "numeric",
                           length = length(QuerySeqs))
         nuc1 <- oligonucleotideFrequency(x = QuerySeqs,
@@ -869,118 +1052,59 @@ PairSummaries <- function(SyntenyLinks,
             }
           } else {
             # perform amino acid alignments where possible
+            w1 <- match(x = names(QuerySeqs),
+                        table = names(QuerySeqsAA))
+            w2 <- match(x = names(SubjectSeqs),
+                        table = names(SubjectSeqsAA))
+            if ("APArgs" %in% ls()) {
+              CurrentAPArgs <- c(list("pattern" = NULL,
+                                      "subject" = NULL),
+                                 APArgs)
+            } else {
+              CurrentAPArgs <- c(list("pattern" = NULL,
+                                      "subject" = NULL))
+            }
+            if ("DMArgs" %in% ls()) {
+              CurrentDMArgs <- c(list("myXStringSet" = NULL,
+                                      "includeTerminalGaps" = TRUE,
+                                      "verbose" = FALSE,
+                                      "type" = "matrix"),
+                                 DMArgs)
+            } else {
+              CurrentDMArgs <- list("myXStringSet" = NULL,
+                                    "includeTerminalGaps" = TRUE,
+                                    "verbose" = FALSE,
+                                    "type" = "matrix")
+            }
+            
+            # return(list(QuerySeqs,
+            #             SubjectSeqs,
+            #             QuerySeqsAA,
+            #             SubjectSeqsAA,
+            #             w1,
+            #             w2,
+            #             CurrentDMArgs,
+            #             CurrentAPArgs))
             for (m3 in seq_along(SubjectSeqs)) {
-              if (QGeneCoding[m3] &
-                  SGeneCoding[m3] &
-                  width(SubjectSeqs[m3]) %% 3 == 0 &
-                  width(QuerySeqs[m3]) %% 3 == 0 &
-                  !grepl(pattern = "[^ATCG]",
-                         x = QuerySeqs[m3]) &
-                  !grepl(pattern = "[^ATCG]",
-                         x = SubjectSeqs[m3])) {
-                Atype[m3] <- "AA"
-                if ("APArgs" %in% ls()) {
-                  gC1 <- if (is.na(QGeneTransl[m3])) {
-                    getGeneticCode(id_or_name2 = DefaultTranslationTable,
-                                   full.search = FALSE,
-                                   as.data.frame = FALSE)
-                  } else {
-                    getGeneticCode(id_or_name2 = QGeneTransl[m3],
-                                   full.search = FALSE,
-                                   as.data.frame = FALSE)
-                  }
-                  gC2 <- if (is.na(SGeneTransl[m3])) {
-                    getGeneticCode(id_or_name2 = DefaultTranslationTable,
-                                   full.search = FALSE,
-                                   as.data.frame = FALSE)
-                  } else {
-                    getGeneticCode(id_or_name2 = SGeneTransl[m3],
-                                   full.search = FALSE,
-                                   as.data.frame = FALSE)
-                  }
-                  CurrentAPArgs <- c(list("pattern" = translate(QuerySeqs[m3],
-                                                                genetic.code = gC1),
-                                          "subject" = translate(SubjectSeqs[m3],
-                                                                genetic.code = gC2)),
-                                     APArgs)
-                  
-                } else {
-                  gC1 <- if (is.na(QGeneTransl[m3])) {
-                    getGeneticCode(id_or_name2 = DefaultTranslationTable,
-                                   full.search = FALSE,
-                                   as.data.frame = FALSE)
-                  } else {
-                    getGeneticCode(id_or_name2 = QGeneTransl[m3],
-                                   full.search = FALSE,
-                                   as.data.frame = FALSE)
-                  }
-                  gC2 <- if (is.na(SGeneTransl[m3])) {
-                    getGeneticCode(id_or_name2 = DefaultTranslationTable,
-                                   full.search = FALSE,
-                                   as.data.frame = FALSE)
-                  } else {
-                    getGeneticCode(id_or_name2 = SGeneTransl[m3],
-                                   full.search = FALSE,
-                                   as.data.frame = FALSE)
-                  }
-                  CurrentAPArgs <- list("pattern" = translate(QuerySeqs[m3],
-                                                              genetic.code = gC1),
-                                        "subject" = translate(SubjectSeqs[m3],
-                                                              genetic.code = gC2))
-                }
-                # return(CurrentATArgs)
-                ph01 <- do.call(what = AlignProfiles,
-                                args = CurrentAPArgs)
-                if ("DMArgs" %in% ls()) {
-                  CurrentDMArgs <- c(list("myXStringSet" = ph01,
-                                          "includeTerminalGaps" = TRUE,
-                                          "verbose" = FALSE,
-                                          "type" = "matrix"),
-                                     DMArgs)
-                } else {
-                  CurrentDMArgs <- list("myXStringSet" = ph01,
-                                        "includeTerminalGaps" = TRUE,
-                                        "verbose" = FALSE,
-                                        "type" = "matrix")
-                }
-                Pident[m3] <- 1 - do.call(what = DistanceMatrix,
-                                          args = CurrentDMArgs)[1, 2]
-              } else {
+              
+              if(is.na(w1[m3]) | is.na(w2[m3])) {
+                # either of pair is not translated
+                CurrentAPArgs$pattern <- QuerySeqs[m3]
+                CurrentAPArgs$subject <- SubjectSeqs[m3]
                 Atype[m3] <- "NT"
-                if ("APArgs" %in% ls()) {
-                  CurrentAPArgs <- c(list("pattern" = QuerySeqs[m3],
-                                          "subject" = SubjectSeqs[m3]),
-                                     APArgs)
-                  
-                } else {
-                  CurrentAPArgs <- list("pattern" = QuerySeqs[m3],
-                                        "subject" = SubjectSeqs[m3])
-                }
-                ph01 <- do.call(what = AlignProfiles,
-                                args = CurrentAPArgs)
-                if ("DMArgs" %in% ls()) {
-                  CurrentDMArgs <- c(list("myXStringSet" = ph01,
-                                          "includeTerminalGaps" = TRUE,
-                                          "verbose" = FALSE,
-                                          "type" = "matrix"),
-                                     DMArgs)
-                } else {
-                  CurrentDMArgs <- list("myXStringSet" = ph01,
-                                        "includeTerminalGaps" = TRUE,
-                                        "verbose" = FALSE,
-                                        "type" = "matrix")
-                }
-                Pident[m3] <- 1 - do.call(what = DistanceMatrix,
-                                          args = CurrentDMArgs)[1, 2]
-                # Pident[m3] <- 1 - DistanceMatrix(myXStringSet = AlignSeqs(myXStringSet = c(QuerySeqs[m3],
-                #                                                                            SubjectSeqs[m3]),
-                #                                                           verbose = FALSE,
-                #                                                           ...),
-                #                                  includeTerminalGaps = TRUE,
-                #                                  verbose = FALSE,
-                #                                  type = "matrix",
-                #                                  ...)[1, 2]
+                # print(paste(class(CurrentAPArgs$pattern)[1], "+", class(CurrentAPArgs$subject)[1]))
+              } else {
+                # both seqs have translated seqs
+                CurrentAPArgs$pattern <- QuerySeqsAA[w1[m3]]
+                CurrentAPArgs$subject <- SubjectSeqsAA[w2[m3]]
+                Atype[m3] <- "AA"
+                # print(paste(class(CurrentAPArgs$pattern)[1], "+", class(CurrentAPArgs$subject)[1]))
               }
+              ph01 <- do.call(what = AlignProfiles,
+                              args = CurrentAPArgs)
+              CurrentDMArgs$myXStringSet <- ph01
+              Pident[m3] <- 1 - do.call(what = DistanceMatrix,
+                                        args = CurrentDMArgs)[1, 2]
               
               if (Verbose) {
                 setTxtProgressBar(pb = pBar,
@@ -989,6 +1113,12 @@ PairSummaries <- function(SyntenyLinks,
               }
             } # end m3 loop
           }
+          
+          # when users specify a storage limit that prevents all data from being pulled in
+          # initially
+          # feature removal when requested by user must occur here as opposed to
+          # when it formerly occured above
+          # using the logical assigned as RemoveWhenAble
           
           PH[[Count]] <- data.frame("p1" = names(QuerySeqs),
                                     "p2" = names(SubjectSeqs),
@@ -1067,13 +1197,7 @@ PairSummaries <- function(SyntenyLinks,
   class(DF) <- c("data.frame", "PairSummaries")
   return(DF)
 }
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+
+
+
+

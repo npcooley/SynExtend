@@ -15,7 +15,7 @@ PairSummaries(SyntenyLinks,
               Model = "Generic",
               DefaultTranslationTable = "11",
               AcceptContigNames = TRUE,
-              OffSetsAllowed = 2L,
+              OffSetsAllowed = NULL,
               Storage = 1,
               ...)
 }
@@ -48,7 +48,7 @@ A character used to set the default translation table for \code{translate}. Is p
 Match names of contigs between gene calls object and synteny object. Where relevant, the first white space and everything following are removed from contig names. If \code{TRUE}, PairSummaries assumes that the contigs at each position in the synteny object and ``GeneCalls'' object are in the same order. Is automatically set to \code{TRUE} when ``GeneCalls'' are of class ``GRanges''. Is currently \code{TRUE} by default.
 }
   \item{OffSetsAllowed}{
-Integer vector defaulting to ``2L'' that sets the gap size that is allowed to be filled, if gaps are queried. The default value queries gaps of size 1. If set to ``NULL'' no gaps are queried. Setting to ``c(2L, 3L)'' would query all gaps of size 1 and 2.
+Defaults to \code{NULL}. Supplying an integer vector will indicate gap sizes to attempt to fill. A value of \code{2} will attempt to span gaps of size 1. If a vector larger than 1 is provided, i.e. \code{c(2, 3)}, will attempt to query all gap sizes implied by the vector, in this case gaps of size 1 and 2.
 }
   \item{Storage}{
 Numeric indicating the approximate size a user wishes to allow for holding \code{StringSet}s in memory to extract gene sequences, in ``Gigabytes''. The lower \code{Storage} is set, the more likely that \code{PairSummaries} will need to reaccess \code{StringSet}s when extracting gene sequences. The higher \code{Storage} is set, the more sequences \code{PairSummaries} will attempt to hold in memory, avoiding the need to re-access the source database many times. Set to 1 by default, indicating that \code{PairSummaries} can store a ``Gigabyte'' of sequences in memory at a time.
