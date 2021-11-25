@@ -1,3 +1,7 @@
+# SynExtend 1.7.2
+
+* Adjustment in how `PairSummaries` handles default translation tables and GFF derived gene calls.
+
 # SynExtend 1.7.1
 
 * Large changes under the hood to `PairSummaries`.

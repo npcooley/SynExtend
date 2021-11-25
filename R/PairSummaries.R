@@ -168,7 +168,15 @@ PairSummaries <- function(SyntenyLinks,
                        type = "DNAStringSet",
                        verbose = FALSE)
     PresentIndices <- unique(GeneCalls[[Count]]$Index)
-    
+    # Reset any coding & non-translation table features to the default
+    # move this somewhere else eventually...
+    if (any(is.na(GeneCalls[[Count]]$Translation_Table))) {
+      w <- which(is.na(GeneCalls[[Count]]$Translation_Table) &
+                   GeneCalls[[Count]]$Coding)
+      if (length(w) > 0) {
+        GeneCalls[[Count]]$Translation_Table[w] <- DefaultTranslationTable
+      }
+    }
     # return(list(Genome,
     #             PresentIndices,
     #             GeneCalls[[Count]],
@@ -199,6 +207,10 @@ PairSummaries <- function(SyntenyLinks,
                      recursive = FALSE)
         Features01[[Count]][[m3]] <- extractAt(x = Genome[[PresentIndices[m3]]],
                                                at = z1)
+        
+        # return(list(z1,
+        #             z2,
+        #             Features01[[Count]][[m3]]))
         CollapseCount <- 0L
         w <- which(z2 > 1L)
         # if no collapsing needs to occur, do not enter loop
@@ -325,11 +337,19 @@ PairSummaries <- function(SyntenyLinks,
       Features02[[Count]] <- translate(x = Features01[[Count]][phkey],
                                        genetic.code = CurrentGeneticCode,
                                        if.fuzzy.codon = "solve")
+      # print(length(Features02[[Count]]))
     } else {
       Features02[[Count]] <- vector(mode = "list",
                                     length = length(ph))
       phkey <- vector(mode = "list",
                       length = length(ph))
+      # if (Count == 2L) {
+      #   return(list(Features01[[Count]],
+      #               Features02[[Count]],
+      #               GeneCalls[[Count]],
+      #               ph,
+      #               phkey))
+      # }
       for (m4 in seq_along(ph)) {
         matchph <- which(GeneCalls[[Count]]$Translation_Table == ph &
                            GeneCalls[[Count]]$Coding &
@@ -358,6 +378,7 @@ PairSummaries <- function(SyntenyLinks,
     Count <- Count + 1L
     # will extract till storage is exceeded
     # will not cap at storage
+    # print(Count)
   }
   # return(list(Features01,
   #             Features02,
