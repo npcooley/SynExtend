@@ -1214,7 +1214,7 @@ PairSummaries <- function(SyntenyLinks,
     cat("\n")
     print(TimeEnd - TimeStart)
   }
-  attr(DF, "GeneCalls") <- attr(SyntenyLinks, "GeneCalls")
+  attr(DF, "GeneCalls") <- GeneCalls
   class(DF) <- c("data.frame", "PairSummaries")
   return(DF)
 }

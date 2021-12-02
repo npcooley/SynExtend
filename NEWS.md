@@ -1,3 +1,7 @@
+# SynExtend 1.7.3
+
+* Added `BlockExpansion` function.
+
 # SynExtend 1.7.2
 
 * Adjustment in how `PairSummaries` handles default translation tables and GFF derived gene calls.

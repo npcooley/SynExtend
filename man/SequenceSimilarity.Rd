@@ -45,8 +45,8 @@ Nicholas Cooley \email{npc19@pitt.edu}
 \code{\link{AlignSeqs}}, \code{\link{AlignProfiles}}, \code{\link{AlignTranslation}}, \code{\link{DistanceMatrix}}
 }
 \examples{
-db <- system.file("extdata", "Bacteria_175seqs.sqlite", package="DECIPHER")
-dna <- SearchDB(db, remove="all")
+db <- system.file("extdata", "Bacteria_175seqs.sqlite", package = "DECIPHER")
+dna <- SearchDB(db, remove = "all")
 alignedDNA <- AlignSeqs(dna[1:2])
 
 DNAPlaceholder <- diag(15)
