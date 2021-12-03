@@ -452,7 +452,9 @@ PairSummaries <- function(SyntenyLinks,
     Total <- (Size^2 - Size) / 2
     PH <- vector(mode = "list",
                  length = Total)
-    cat("Collecting pairs.\n")
+    if (Verbose) {
+      cat("Collecting pairs.\n")
+    }
   }
   
   Count <- 1L
@@ -477,7 +479,6 @@ PairSummaries <- function(SyntenyLinks,
   
   for (m1 in seq_len(Size - 1L)) {
     for (m2 in (m1 + 1L):Size) {
-      
       if (nrow(SyntenyLinks[[m1, m2]]) > 0L) {
         # links table is populated, do whatever
         PMatrix <- cbind(SyntenyLinks[[m1, m2]][, 1L],
@@ -538,6 +539,7 @@ PairSummaries <- function(SyntenyLinks,
         
         LKey <- RKey <- NeighborMat <- vector(mode = "list",
                                               length = nrow(UIM))
+        
         for (m3 in seq_len(nrow(UIM))) {
           # don't need to bother with subsetting index matrix here
           CIM <- IMatrix[IndexKey == UIK[m3], , drop = FALSE] # current index matrix
@@ -579,7 +581,7 @@ PairSummaries <- function(SyntenyLinks,
               p <- p1[m4 - it1] - p1[m4]
               while (p == 0L) {
                 it1 <- it1 + 1L
-                if ((m1 - it1) < MIN) {
+                if ((m4 - it1) < MIN) {
                   it1 <- it1 - 1L
                   break
                 }

@@ -1,3 +1,7 @@
+# SynExtend 1.7.4
+
+* Fixed a bug in `PairSummaries` function.
+
 # SynExtend 1.7.3
 
 * Added `BlockExpansion` function.
