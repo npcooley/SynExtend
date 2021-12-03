@@ -14,7 +14,7 @@ EstimateRearrangementScenarios <- function(synt,
                                            actual = c(),
                                            test_run = 0) { #internal parameters
 
-  if(class(synt)[1] != "Synteny")
+  if(!is(synt, "Synteny")
     stop("Expected class of type 'Synteny'")
   
   rearrange_chromosome <- function(synblocks, syn, num_runs=-1,
@@ -387,7 +387,7 @@ EstimateRearrangementScenarios <- function(synt,
     # ==== Blocks to Permutation Matrix ====
     sorted_mat <- block_matrix
     
-    if (!('array' %in% class(sorted_mat))){
+    if (!is(sorted_mat, 'array')){
       return(list('counts'=c(0, 0, 0),
                   'scenario'='none',
                   'block_key'=as.matrix(sorted_mat)))
