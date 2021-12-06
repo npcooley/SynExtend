@@ -14,8 +14,12 @@ EstimateRearrangementScenarios <- function(synt,
                                            actual = c(),
                                            test_run = 0) { #internal parameters
 
-  if(!is(synt, "Synteny")
-    stop("Expected class of type 'Synteny'")
+  if (is(object = synt,
+         class2 = "Synteny")) {
+    stop ("Expected class of type 'Synteny'.")
+  }
+  # if(!is(synt, "Synteny")
+  #   stop("Expected class of type 'Synteny'")
   
   rearrange_chromosome <- function(synblocks, syn, num_runs=-1,
                                    verbose = FALSE, mean = FALSE, #main user parameters
