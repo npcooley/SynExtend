@@ -14,8 +14,8 @@ EstimateRearrangementScenarios <- function(synt,
                                            actual = c(),
                                            test_run = 0) { #internal parameters
 
-  if (is(object = synt,
-         class2 = "Synteny")) {
+  if (!is(object = synt,
+          class2 = "Synteny")) {
     stop ("Expected class of type 'Synteny'.")
   }
   # if(!is(synt, "Synteny")
