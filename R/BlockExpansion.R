@@ -2,15 +2,15 @@
 # author: nicholas cooley
 # contact: npc19@pitt.edu / npcooley@gmail.com
 
-BlockExpansion <- function(PairsObject,
-                           GapTolerance = 2L,
+BlockExpansion <- function(Pairs,
+                           GapTolerance = 4L,
                            DropSingletons = FALSE,
                            Floor = 0.5,
-                           Verbose = FALSE,
                            NewPairsOnly = TRUE,
-                           DBPATH) {
+                           DBPATH,
+                           Verbose = FALSE) {
   
-  if (!("PID" %in% colnames(PairsObject))) {
+  if (!("PID" %in% colnames(Pairs))) {
     stop ("PairSummaries Object must have PIDs calculated.")
   }
   if (missing(DBPATH)) {
@@ -18,7 +18,7 @@ BlockExpansion <- function(PairsObject,
   }
   # given the gap tolerance, split diags where appropriate
   if (is.null(GapTolerance)) {
-    GapTolerance <- 1L
+    GapTolerance <- 2L
   }
   if (GapTolerance <= 1L) {
     stop ("GapTolerance defines the diff() of features within a block. It cannot be <= 1.")
@@ -33,13 +33,13 @@ BlockExpansion <- function(PairsObject,
   
   # break PairSummaries object down into a workable format
   # build overhead data in a way that makes sense
-  GeneCalls <- attr(x = PairsObject,
+  GeneCalls <- attr(x = Pairs,
                     which = "GeneCalls")
   GCIDs <- as.integer(names(GeneCalls))
   L <- length(GeneCalls)
   L2 <- (L * (L - 1L)) / 2L
-  POIDs <- paste(PairsObject$p1,
-                 PairsObject$p2,
+  POIDs <- paste(Pairs$p1,
+                 Pairs$p2,
                  sep = "_")
   FeaturesMat <- do.call(rbind,
                          strsplit(x = POIDs,
@@ -458,7 +458,7 @@ BlockExpansion <- function(PairsObject,
         if (length(f1s) == 1L) {
           # singleton pair
           dr6[[m3]] <- data.frame("f1" = c(f1s - 1L, f1s - 1L, f1s + 1L, f1s + 1L),
-                                  "f2" = c(f2s - 1L, f2s + 1L, f2s - 1L, f2s + 1L),
+                                  "f2" = c(f2s - 1L, f2s + 1L, f2s + 1L, f2s - 1L),
                                   "direction" = c(1L, 2L, 3L, 4L))
         } else {
           # a contiguous block of pairs
@@ -665,6 +665,17 @@ BlockExpansion <- function(PairsObject,
               f2 <- f2 - 1L
             } # end advancement if elses 
             
+            # if (f1 == 1572 &
+            #     f2 == 5750) {
+            #   return(list(f1,
+            #               f2,
+            #               Count,
+            #               m3,
+            #               p1placeholder[Count],
+            #               p2placeholder[Count],
+            #               dr6))
+            # }
+            
             Count <- Count + 1L
             if (Count >= VSize) {
               # if Count exceeds VSize, increase size
@@ -806,7 +817,7 @@ BlockExpansion <- function(PairsObject,
                   FeaturesMat3[, 1L],
                   FeaturesMat3[, 3L])
       
-      Res2 <- rbind(PairsObject,
+      Res2 <- rbind(Pairs,
                     Res)
       Res2 <- Res2[o1, ]
       rownames(Res2) <- NULL
@@ -820,7 +831,7 @@ BlockExpansion <- function(PairsObject,
         TimeEnd <- Sys.time()
         print(TimeEnd - TimeStart)
       }
-      return(PairsObject)
+      return(Pairs)
     }
   }
   
