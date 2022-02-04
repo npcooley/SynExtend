@@ -5,6 +5,7 @@
 PairSummaries <- function(SyntenyLinks,
                           DBPATH,
                           PIDs = FALSE,
+                          Score = FALSE,
                           IgnoreDefaultStringSet = FALSE,
                           Verbose = FALSE,
                           Model = "Generic",
@@ -13,6 +14,7 @@ PairSummaries <- function(SyntenyLinks,
                           OffSetsAllowed = NULL,
                           # ExpandBlocks = c(2, 0.95, .5),
                           Storage = 1,
+                          AAMat = "BLOSUM50",
                           ...) {
   if (Verbose) {
     TimeStart <- Sys.time()
@@ -84,6 +86,17 @@ PairSummaries <- function(SyntenyLinks,
   # if a user supplies an argument that is problematic, such as verbose
   # ignore it
   
+  # print(AAMat)
+  if (!is(object = AAMat,
+          class2 = "array")) {
+    AAMat <- get(data(list = AAMat,
+                                   envir = environment(),
+                                   package = "Biostrings"))
+  }
+  NTMat <- diag(length(DNA_ALPHABET))
+  dimnames(NTMat) <- list(DNA_ALPHABET,
+                          DNA_ALPHABET)
+  
   # step one, parse to different functions
   Args <- list(...)
   ArgNames <- names(Args)
@@ -127,7 +140,6 @@ PairSummaries <- function(SyntenyLinks,
   } else {
     rm(PossibleDMArgs)
   }
-  
   # lifted almost whole cloth from AlignSeqs ...
   # args <- list(...)
   # n <- names(args)
@@ -153,8 +165,15 @@ PairSummaries <- function(SyntenyLinks,
   if (Verbose) {
     cat("\nPreparing overhead data.\n")
   }
-  Features01 <- Features02 <- vector("list",
-                                     length = length(GeneCalls))
+  # load in structure matrices once for PredictHEC
+  MAT1 <- get(data("HEC_MI1",
+                   package = "DECIPHER",
+                   envir = environment()))
+  MAT2 <- get(data("HEC_MI2",
+                   package = "DECIPHER",
+                   envir = environment()))
+  Features01 <- Features02 <- AAStruct <- vector("list",
+                                                 length = length(GeneCalls))
   L <- length(GeneCalls)
   
   Count <- 1L
@@ -337,6 +356,7 @@ PairSummaries <- function(SyntenyLinks,
       Features02[[Count]] <- translate(x = Features01[[Count]][phkey],
                                        genetic.code = CurrentGeneticCode,
                                        if.fuzzy.codon = "solve")
+      Features02[[Count]] <- Features02[[Count]][order(phkey)]
       # print(length(Features02[[Count]]))
     } else {
       Features02[[Count]] <- vector(mode = "list",
@@ -351,7 +371,7 @@ PairSummaries <- function(SyntenyLinks,
       #               phkey))
       # }
       for (m4 in seq_along(ph)) {
-        matchph <- which(GeneCalls[[Count]]$Translation_Table == ph &
+        matchph <- which(GeneCalls[[Count]]$Translation_Table == ph[m4] &
                            GeneCalls[[Count]]$Coding &
                            GeneCalls[[Count]]$Type == "gene")
         phkey[[m4]] <- matchph
@@ -370,16 +390,36 @@ PairSummaries <- function(SyntenyLinks,
     }
     # rewrite ph to provide the correct names for the features
     ph <- GeneCalls[[Count]]$Coding & GeneCalls[[Count]]$Type == "gene"
-    Features02[[Count]] <- Features02[[Count]][order(phkey)]
+    
+    # if (Count == 26) {
+    #   return(list(Features02[[Count]],
+    #               Features01[[Count]],
+    #               GeneCalls[[Count]],
+    #               ph,
+    #               phkey))
+    # }
+    
+    # Features02[[Count]] <- Features02[[Count]][order(phkey)]
+    
     names(Features02[[Count]]) <- paste(rep(names(GeneCalls)[Count], length(Features02[[Count]])),
                                         GeneCalls[[Count]]$Index[ph],
                                         seq(length(Features01[[Count]]))[ph],
                                         sep = "_")
+    
+    # generate structures for aa alignments if there are 
+    if (!is.null(Features02[[Count]])) {
+      AAStruct[[Count]] <- PredictHEC(myAAStringSet = Features02[[Count]],
+                                      type = "probabilities",
+                                      HEC_MI1 = MAT1,
+                                      HEC_MI2 = MAT2)
+    }
+    
     Count <- Count + 1L
     # will extract till storage is exceeded
     # will not cap at storage
     # print(Count)
   }
+  
   # return(list(Features01,
   #             Features02,
   #             GeneCalls))
@@ -906,10 +946,12 @@ PairSummaries <- function(SyntenyLinks,
                                          sep = "_")
           QuerySeqs <- Features01[[m1]][PMatrix[, 1L]]
           QuerySeqsAA <- Features02[[m1]]
+          QueryStruct <- AAStruct[[m1]]
           Features01[m1] <- list(NULL)
         } else {
           QuerySeqs <- Features01[[m1]][PMatrix[, 1L]]
           QuerySeqsAA <- Features02[[m1]]
+          QueryStruct <- AAStruct[[m1]]
         }
         
         if (is.null(Features01[[m2]])) {
@@ -987,6 +1029,7 @@ PairSummaries <- function(SyntenyLinks,
                                          seq(length(Features01[[m2]])),
                                          sep = "_")
           SubjectSeqs <- Features01[[m2]][PMatrix[, 2L]]
+          SubjectStruct <- AAStruct[[m2]]
           PresentFeatures <- unname(sapply(Features01,
                                            function(x) !is.null(x),
                                            simplify = TRUE,
@@ -1001,17 +1044,20 @@ PairSummaries <- function(SyntenyLinks,
             } else {
               SubjectSeqs <- Features01[[m2]][PMatrix[, 2L]]
               SubjectSeqsAA <- Features02[[m2]]
+              SubjectStruct <- AAStruct[[m2]]
               Features01[m2] <- list(NULL)
             }
           } else {
             SubjectSeqs <- Features01[[m2]][PMatrix[, 2L]]
             SubjectSeqsAA <- Features02[[m2]]
+            SubjectStruct <- AAStruct[[m2]]
             Features01[m2] <- list(NULL)
           }
           
         } else {
           SubjectSeqs <- Features01[[m2]][PMatrix[, 2L]]
           SubjectSeqsAA <- Features02[[m2]]
+          SubjectStruct <- AAStruct[[m2]]
         }
         # reverse complement seqs where necessary
         # not necessary anymore, rC was performed at pull
@@ -1030,12 +1076,14 @@ PairSummaries <- function(SyntenyLinks,
           NucDist[m3] <- sqrt(sum((nuc1[m3, ] - nuc2[m3, ])^2)) / ((sum(nuc1[m3, ]) + sum(nuc2[m3, ])) / 2)
         }
         
-        if (PIDs) {
+        if (PIDs | Score) {
           
           Pident <- vector(mode = "numeric",
                            length = length(QuerySeqs))
           Atype <- vector(mode = "character",
                           length = length(QuerySeqs))
+          SCORE <- SCORE2 <- vector(mode = "numeric",
+                                    length = length(QuerySeqs))
           
           if (IgnoreDefaultStringSet) {
             # perform all alignments in nucleotide space
@@ -1064,8 +1112,18 @@ PairSummaries <- function(SyntenyLinks,
                                       "verbose" = FALSE,
                                       "type" = "matrix")
               }
-              Pident[m3] <- 1 - do.call(what = DistanceMatrix,
-                                        args = CurrentDMArgs)[1, 2]
+              if (PIDs) {
+                Pident[m3] <- 1 - do.call(what = DistanceMatrix,
+                                          args = CurrentDMArgs)[1, 2]
+              }
+              if (Score) {
+                UW <- unique(width(ph01))
+                SCORE[m3] <- ScoreAlignment(myXStringSet = ph01,
+                                            includeTerminalGaps = TRUE,
+                                            substitutionMatrix = NTMat) / UW
+                # SCORE2[m3] <- SequenceSimilarity(Seqs = ph01,
+                #                                  SubMat = NTMat)
+              }
               
               if (Verbose) {
                 setTxtProgressBar(pb = pBar,
@@ -1110,25 +1168,48 @@ PairSummaries <- function(SyntenyLinks,
             #             CurrentAPArgs))
             for (m3 in seq_along(SubjectSeqs)) {
               
-              if(is.na(w1[m3]) | is.na(w2[m3])) {
+              if (is.na(w1[m3]) | is.na(w2[m3])) {
                 # either of pair is not translated
                 CurrentAPArgs$pattern <- QuerySeqs[m3]
                 CurrentAPArgs$subject <- SubjectSeqs[m3]
                 Atype[m3] <- "NT"
+                ph01 <- do.call(what = AlignProfiles,
+                                args = CurrentAPArgs)
                 # print(paste(class(CurrentAPArgs$pattern)[1], "+", class(CurrentAPArgs$subject)[1]))
               } else {
                 # both seqs have translated seqs
                 CurrentAPArgs$pattern <- QuerySeqsAA[w1[m3]]
                 CurrentAPArgs$subject <- SubjectSeqsAA[w2[m3]]
                 Atype[m3] <- "AA"
+                ph01 <- do.call(what = AlignProfiles,
+                                args = c(CurrentAPArgs,
+                                         list("p.struct" = QueryStruct[w1[m3]],
+                                              "s.struct" = SubjectStruct[w2[m3]])))
                 # print(paste(class(CurrentAPArgs$pattern)[1], "+", class(CurrentAPArgs$subject)[1]))
               }
-              ph01 <- do.call(what = AlignProfiles,
-                              args = CurrentAPArgs)
-              CurrentDMArgs$myXStringSet <- ph01
-              Pident[m3] <- 1 - do.call(what = DistanceMatrix,
-                                        args = CurrentDMArgs)[1, 2]
               
+              CurrentDMArgs$myXStringSet <- ph01
+              if (PIDs) {
+                Pident[m3] <- 1 - do.call(what = DistanceMatrix,
+                                          args = CurrentDMArgs)[1, 2]
+              }
+              if (Score &
+                  Atype[m3] == "AA") {
+                UW <- unique(width(ph01))
+                SCORE[m3] <- ScoreAlignment(myXStringSet = ph01,
+                                            substitutionMatrix = AAMat,
+                                            includeTerminalGaps = TRUE) / UW
+                # SCORE2[m3] <- SequenceSimilarity(Seqs = ph01,
+                #                                  SubMat = AAMat)
+              } else if (Score &
+                         Atype[m3] == "NT") {
+                UW <- unique(width(ph01))
+                SCORE[m3] <- ScoreAlignment(myXStringSet = ph01,
+                                            substitutionMatrix = NTMat,
+                                            includeTerminalGaps = TRUE) / UW
+                # SCORE2[m3] <- SequenceSimilarity(Seqs = ph01,
+                #                                  SubMat = NTMat)
+              }
               if (Verbose) {
                 setTxtProgressBar(pb = pBar,
                                   value = Count / Total)
@@ -1143,19 +1224,52 @@ PairSummaries <- function(SyntenyLinks,
           # when it formerly occured above
           # using the logical assigned as RemoveWhenAble
           
-          PH[[Count]] <- data.frame("p1" = names(QuerySeqs),
-                                    "p2" = names(SubjectSeqs),
-                                    "ExactMatch" = ExactOverLap,
-                                    "TotalKmers" = TotalKmers,
-                                    "MaxKmer" = MaxKmer,
-                                    "Consensus" = diff2,
-                                    "p1FeatureLength" = QGeneLength,
-                                    "p2FeatureLength" = SGeneLength,
-                                    "Adjacent" = RKey + LKey,
-                                    "TetDist" = NucDist,
-                                    "PID" = Pident,
-                                    "PIDType" = Atype,
-                                    stringsAsFactors = FALSE)
+          if (PIDs & Score) {
+            PH[[Count]] <- data.frame("p1" = names(QuerySeqs),
+                                      "p2" = names(SubjectSeqs),
+                                      "ExactMatch" = ExactOverLap,
+                                      "TotalKmers" = TotalKmers,
+                                      "MaxKmer" = MaxKmer,
+                                      "Consensus" = diff2,
+                                      "p1FeatureLength" = QGeneLength,
+                                      "p2FeatureLength" = SGeneLength,
+                                      "Adjacent" = RKey + LKey,
+                                      "TetDist" = NucDist,
+                                      "PID" = Pident,
+                                      "SCORE" = SCORE,
+                                      # "SCORE2" = SCORE2,
+                                      "PIDType" = Atype,
+                                      stringsAsFactors = FALSE)
+          } else if (PIDs & !Score) {
+            PH[[Count]] <- data.frame("p1" = names(QuerySeqs),
+                                      "p2" = names(SubjectSeqs),
+                                      "ExactMatch" = ExactOverLap,
+                                      "TotalKmers" = TotalKmers,
+                                      "MaxKmer" = MaxKmer,
+                                      "Consensus" = diff2,
+                                      "p1FeatureLength" = QGeneLength,
+                                      "p2FeatureLength" = SGeneLength,
+                                      "Adjacent" = RKey + LKey,
+                                      "TetDist" = NucDist,
+                                      "PID" = Pident,
+                                      "PIDType" = Atype,
+                                      stringsAsFactors = FALSE)
+          } else if (!PIDs & Score) {
+            PH[[Count]] <- data.frame("p1" = names(QuerySeqs),
+                                      "p2" = names(SubjectSeqs),
+                                      "ExactMatch" = ExactOverLap,
+                                      "TotalKmers" = TotalKmers,
+                                      "MaxKmer" = MaxKmer,
+                                      "Consensus" = diff2,
+                                      "p1FeatureLength" = QGeneLength,
+                                      "p2FeatureLength" = SGeneLength,
+                                      "Adjacent" = RKey + LKey,
+                                      "TetDist" = NucDist,
+                                      "SCORE" = SCORE,
+                                      # "SCORE2" = SCORE2,
+                                      "PIDType" = Atype,
+                                      stringsAsFactors = FALSE)
+          }
         } else {
           PH[[Count]] <- data.frame("p1" = paste(names(GeneCalls)[m1],
                                                  IMatrix[, 1L],

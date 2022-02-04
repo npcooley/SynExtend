@@ -10,6 +10,7 @@ Takes in a ``LinkedPairs'' object and gene calls, and returns a data.frame of pa
 PairSummaries(SyntenyLinks,
               DBPATH,
               PIDs = FALSE,
+              Score = FALSE,
               IgnoreDefaultStringSet = FALSE,
               Verbose = FALSE,
               Model = "Generic",
@@ -17,6 +18,7 @@ PairSummaries(SyntenyLinks,
               AcceptContigNames = TRUE,
               OffSetsAllowed = NULL,
               Storage = 1,
+              AAMat = "BLOSUM50",
               ...)
 }
 \arguments{
@@ -24,19 +26,19 @@ PairSummaries(SyntenyLinks,
 A \code{LinkedPairs} object. In previous versions of this function, a \code{GeneCalls} object was also required, but this object is now carried forward from \code{NucleotideOverlap} inside the \code{LinkedPairs} object.
 }
   \item{DBPATH}{
-A SQLite connection object or a character string specifying the path to the database file. Constructed from DECIPHER's \code{Seqs2DB} function. This path is always required as ``PairsSummaries'' computes the tetramer distance between paired sequences.
+A SQLite connection object or a character string specifying the path to the database file constructed from DECIPHER's \code{Seqs2DB} function. This path is always required as ``PairsSummaries'' always computes the tetramer distance between paired sequences.
 }
   \item{PIDs}{
-Logical indicating whether to perform pairwise alignments. If \code{TRUE} all pairs will be aligned using DECIPHER's \code{AlignProfiles}. This step can be time consuming, especially for large numbers of pairs. Default is \code{FALSE}.
+Logical indicating whether to provide a PID for each pair. If \code{TRUE} all pairs will be aligned using DECIPHER's \code{AlignProfiles}. This step can be time consuming, especially for large numbers of pairs. Default is \code{FALSE}.
+}
+  \item{Score}{
+Logical indicating whether to provide a length normalized score with DECIPHER's \code{ScoreAlignment} function. If \code{TRUE} all pairs will be aligned using DECIPHER's \code{AlignProfiles}. This step can be time consuming, especially for large numbers of pairs. Default is \code{FALSE}.
 }
   \item{IgnoreDefaultStringSet}{
 Logical indicating alignment type preferences. If \code{FALSE} (the default) pairs that can be aligned in amino acid space will be aligned as an \code{AAStringSet}. If \code{TRUE} all pairs will be aligned in nucleotide space. For \code{PairSummaries} to align the translation of a pair of sequences, both sequences must be tagged as coding in the ``GeneCalls'' object, and be the correct width for translation.
 }
   \item{Verbose}{
 Logical indicating whether or not to display a progress bar and print the time difference upon completion.
-}
-  \item{...}{
-Arguments to be passed to \code{AlignProfiles}, and \code{DistanceMatrix}.
 }
   \item{Model}{
 A character string specifying a model to use to predict PIDs without performing an alignment. By default this argument is ``Generic'' specifying a generic PID prediction model based on PIDs computed from a randomly selected set of genomes. Currently no other models are included. Users may also supply their own model of type ``glm'' if they so desire in the form of an RData file. This model will need to take in some, or of the columns of statistics per pair that PairSummaries supplies.
@@ -52,6 +54,12 @@ Defaults to \code{NULL}. Supplying an integer vector will indicate gap sizes to 
 }
   \item{Storage}{
 Numeric indicating the approximate size a user wishes to allow for holding \code{StringSet}s in memory to extract gene sequences, in ``Gigabytes''. The lower \code{Storage} is set, the more likely that \code{PairSummaries} will need to reaccess \code{StringSet}s when extracting gene sequences. The higher \code{Storage} is set, the more sequences \code{PairSummaries} will attempt to hold in memory, avoiding the need to re-access the source database many times. Set to 1 by default, indicating that \code{PairSummaries} can store a ``Gigabyte'' of sequences in memory at a time.
+}
+  \item{AAMat}{
+A character vector specifying the substitution matrix to use for scoring alignments. ``BLOSUM50'' by default.
+}
+  \item{...}{
+Arguments to be passed to \code{AlignProfiles}, and \code{DistanceMatrix}.
 }
 }
 \details{

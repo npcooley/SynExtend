@@ -10,6 +10,7 @@ Attempt to expand blocks of paired features in a \code{PairSummaries} object.
 BlockExpansion(Pairs,
                GapTolerance = 4L,
                DropSingletons = FALSE,
+               Criteria = "PID",
                Floor = 0.5,
                NewPairsOnly = TRUE,
                DBPATH,
@@ -25,6 +26,10 @@ Integer value indicating the \code{diff} between feature IDs that can be tolerat
   \item{DropSingletons}{
 Ignore solo pairs when planning expansion routes. Set to \code{FALSE} by default.
 }
+  \item{Criteria}{
+Either ``PID'' or ``Score'', indicating which metric to use to keep or reject pairs.
+}
+
   \item{Floor}{
 Lower PID limit for keeping a pair that was evaluated during expansion.
 }

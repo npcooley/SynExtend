@@ -5,6 +5,7 @@
 BlockExpansion <- function(Pairs,
                            GapTolerance = 4L,
                            DropSingletons = FALSE,
+                           Criteria = "PID",
                            Floor = 0.5,
                            NewPairsOnly = TRUE,
                            DBPATH,
@@ -536,6 +537,7 @@ BlockExpansion <- function(Pairs,
       
       dr6 <- dr6[order(dr6[, 1L]), ]
       
+      # return(dr6)
       # for every line in dr6
       # n + ? alignments will be attempted
       # for every n alignments that pass some threshold a new `Pair` is recorded
@@ -545,8 +547,8 @@ BlockExpansion <- function(Pairs,
       
       p1placeholder <- p2placeholder <- p1FeatureLength <- p2FeatureLength <- rep(NA_integer_,
                                                                                   times = VSize)
-      PIDVector <- rep(NA_real_,
-                       times = VSize)
+      PIDVector <- SCOREVector <- rep(NA_real_,
+                                      times = VSize)
       AType <- rep(NA_character_,
                    times = VSize)
       
@@ -603,6 +605,9 @@ BlockExpansion <- function(Pairs,
                                       type = "matrix",
                                       includeTerminalGaps = TRUE,
                                       verbose = FALSE)[1L, 2L]
+            UW <- unique(width(ali))
+            SCORE <- ScoreAlignment(myXStringSet = ali,
+                                    includeTerminalGaps = TRUE) / UW
             CType <- "AA"
             # if (m2 >= 2L) {
             #   print(f1)
@@ -618,6 +623,9 @@ BlockExpansion <- function(Pairs,
                                       type = "matrix",
                                       includeTerminalGaps = TRUE,
                                       verbose = FALSE)[1L, 2L]
+            UW <- unique(width(ali))
+            SCORE <- ScoreAlignment(myXStringSet = ali,
+                                    includeTerminalGaps = TRUE) / UW
             CType <- "NT"
             # if (m2 >= 2L) {
             #   print(f1)
@@ -628,8 +636,12 @@ BlockExpansion <- function(Pairs,
           } # end if else statement for coding / non
           # assign the dist 
           # update the count
-          
-          if (PID < Floor) {
+          if (Criteria == "PID") {
+            CHECK <- PID
+          } else if (Criteria == "Score") {
+            CHECK <- SCORE
+          }
+          if (CHECK < Floor) {
             # the current PID does not meet inclusion criteria
             # exit the while loop and move to the next position in dr6
             Continue <- FALSE
@@ -641,6 +653,7 @@ BlockExpansion <- function(Pairs,
             p1FeatureLength[Count] <- width(NTFeatures01[f1 - ci1lower + 1L])
             p2FeatureLength[Count] <- width(NTFeatures02[f2 - ci2lower + 1L])
             PIDVector[Count] <- PID
+            SCOREVector[Count] <- SCORE
             AType[Count] <- CType
             
             # update f1 and f2
@@ -723,39 +736,90 @@ BlockExpansion <- function(Pairs,
         p1FeatureLength <- p1FeatureLength[1:L2]
         p2FeatureLength <- p2FeatureLength[1:L2]
         PIDVector <- PIDVector[1:L2]
+        SCOREVector <- SCOREVector[1:L2]
         AType <- AType[1:L2]
         
-        Res[[m1]][[m2]] <- data.frame("p1" = paste(rep(w1,
-                                                       times = L2),
-                                                   rep(IMat[[m2]][1L, 2L],
-                                                       times = L2),
-                                                   p1placeholder,
-                                                   sep = "_"),
-                                      "p2" = paste(rep(w2,
-                                                       times = L2),
-                                                   rep(IMat[[m2]][1L, 5L],
-                                                       times = L2),
-                                                   p2placeholder,
-                                                   sep = "_"),
-                                      "ExactMatch" = rep(0L,
+        # if (m2 == 2L) {
+        #   return(list(IMat,
+        #               w1,
+        #               w2,
+        #               L2,
+        #               p1placeholder,
+        #               p2placeholder,
+        #               p1FeatureLength,
+        #               p2FeatureLength,
+        #               PIDVector,
+        #               SCOREVector,
+        #               AType))
+        # }
+        
+        if ("SCORE" %in% colnames(Pairs)) {
+          Res[[m1]][[m2]] <- data.frame("p1" = paste(rep(w1,
                                                          times = L2),
-                                      "TotalKmers" = rep(0L,
-                                                        times = L2),
-                                      "MaxKmer" = rep(0L,
-                                                      times = L2),
-                                      "Consensus" = rep(0,
-                                                        times = L2),
-                                      "p1FeatureLength" = p1FeatureLength,
-                                      "p2FeatureLength" = p2FeatureLength,
-                                      "Adjacent" = rep(0L,
-                                                       times = L2),
-                                      "TetDist" = rep(0,
-                                                      times = L2),
-                                      "PID" = PIDVector,
-                                      "PIDType" = AType,
-                                      "PredictedPID" = rep(NA_real_,
+                                                     rep(IMat[[m2]][1L, 2L],
+                                                         times = L2),
+                                                     p1placeholder,
+                                                     sep = "_"),
+                                        "p2" = paste(rep(w2,
+                                                         times = L2),
+                                                     rep(IMat[[m2]][1L, 5L],
+                                                         times = L2),
+                                                     p2placeholder,
+                                                     sep = "_"),
+                                        "ExactMatch" = rep(0L,
                                                            times = L2),
-                                      stringsAsFactors = FALSE)
+                                        "TotalKmers" = rep(0L,
+                                                           times = L2),
+                                        "MaxKmer" = rep(0L,
+                                                        times = L2),
+                                        "Consensus" = rep(0,
+                                                          times = L2),
+                                        "p1FeatureLength" = p1FeatureLength,
+                                        "p2FeatureLength" = p2FeatureLength,
+                                        "Adjacent" = rep(0L,
+                                                         times = L2),
+                                        "TetDist" = rep(0,
+                                                        times = L2),
+                                        "PID" = PIDVector,
+                                        "SCORE" = SCOREVector,
+                                        "PIDType" = AType,
+                                        "PredictedPID" = rep(NA_real_,
+                                                             times = L2),
+                                        stringsAsFactors = FALSE)
+        } else {
+          Res[[m1]][[m2]] <- data.frame("p1" = paste(rep(w1,
+                                                         times = L2),
+                                                     rep(IMat[[m2]][1L, 2L],
+                                                         times = L2),
+                                                     p1placeholder,
+                                                     sep = "_"),
+                                        "p2" = paste(rep(w2,
+                                                         times = L2),
+                                                     rep(IMat[[m2]][1L, 5L],
+                                                         times = L2),
+                                                     p2placeholder,
+                                                     sep = "_"),
+                                        "ExactMatch" = rep(0L,
+                                                           times = L2),
+                                        "TotalKmers" = rep(0L,
+                                                           times = L2),
+                                        "MaxKmer" = rep(0L,
+                                                        times = L2),
+                                        "Consensus" = rep(0,
+                                                          times = L2),
+                                        "p1FeatureLength" = p1FeatureLength,
+                                        "p2FeatureLength" = p2FeatureLength,
+                                        "Adjacent" = rep(0L,
+                                                         times = L2),
+                                        "TetDist" = rep(0,
+                                                        times = L2),
+                                        "PID" = PIDVector,
+                                        "PIDType" = AType,
+                                        "PredictedPID" = rep(NA_real_,
+                                                             times = L2),
+                                        stringsAsFactors = FALSE)
+        }
+        
       } else {
         # do nothing
       }

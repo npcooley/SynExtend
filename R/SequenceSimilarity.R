@@ -45,12 +45,14 @@ SequenceSimilarity <- function(Seqs,
   
   # ensure that the substition matrix can support all given characters
   PresentCharacters <- alphabetFrequency(x = Seqs)
-  PresentCharacters <- names(colSums(PresentCharacters) > 0)
+  PresentCharacters <- names(PresentCharacters[colSums(PresentCharacters) > 0])
   # remove alignment characters
   PresentCharacters <- PresentCharacters[!(PresentCharacters %in% c("-", "+", "."))]
   SubMatChars <- colnames(SubMat)
   # all of the present characters must be accounted for in the substitution
   # matrix
+  # return(list(PresentCharacters,
+  #             SubMatChars))
   if (!all(PresentCharacters %in% SubMatChars)) {
     stop ("Substitution matrix does not appear to contain all required characters.")
   }

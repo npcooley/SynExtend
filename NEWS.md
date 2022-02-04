@@ -1,3 +1,7 @@
+# SynExtend 1.7.5
+
+* Began integration of `DECIPHER`'s `ScoreAlignment` function.
+
 # SynExtend 1.7.4
 
 * Fixed a bug in `PairSummaries` function.
