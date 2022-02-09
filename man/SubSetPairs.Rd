@@ -48,45 +48,15 @@ Nicholas Cooley \email{npc19@pitt.edu}
 \code{\link{PairSummaries}} \code{\link{NucleotideOverlap}}
 }
 \examples{
-\dontrun{
-DBPATH <- system.file("extdata",
-                      "VignetteSeqs.sqlite",
-                      package = "SynExtend")
-Syn <- FindSynteny(dbFile = DBPATH)
-GeneCalls <- vector(mode = "list",
-                    length = ncol(Syn))
-
-GeneCalls[[1L]] <- gffToDataFrame(GFF = system.file("extdata",
-                                                    "GCA_006740685.1_ASM674068v1_genomic.gff.gz",
-                                                    package = "SynExtend"),
-                                  Verbose = TRUE)
-GeneCalls[[2L]] <- gffToDataFrame(GFF = system.file("extdata",
-                                                    "GCA_000956175.1_ASM95617v1_genomic.gff.gz",
-                                                    package = "SynExtend"),
-                                  Verbose = TRUE)
-GeneCalls[[3L]] <- gffToDataFrame(GFF = system.file("extdata",
-                                                    "GCA_000875775.1_ASM87577v1_genomic.gff.gz",
-                                                    package = "SynExtend"),
-                                  Verbose = TRUE)
-names(GeneCalls) <- seq(length(GeneCalls))
-Links <- NucleotideOverlap(SyntenyObject = Syn,
-                           GeneCalls = GeneCalls,
-                           LimitIndex = FALSE,
-                           Verbose = TRUE)
-PredictedPairs <- PairSummaries(SyntenyLinks = Links,
-                                DBPATH = DBPATH,
-                                PIDs = FALSE,
-                                AcceptContigNames = TRUE,
-                                Verbose = TRUE)
+data("Nitrosocosmicus_Pairs03", package = "SynExtend")
 # remove competitors under default conditions
-Pairs2 <- SubSetPairs(CurrentPairs = PredictedPairs,
+Pairs2 <- SubSetPairs(CurrentPairs = Nitrosocosmicus_Pairs03,
                       Verbose = TRUE)
 THRESH <- c(0.5, 21)
 names(THRESH) <- c("Consensus", "ExactMatch")
 # remove pairs only based on user defined thresholds
-Pairs3 <- SubSetPairs(CurrentPairs = PredictedPairs,
+Pairs3 <- SubSetPairs(CurrentPairs = Nitrosocosmicus_Pairs03,
                       UserThresholds = THRESH,
                       RejectCompetitors = FALSE,
                       Verbose = TRUE)
-}
 }

@@ -457,11 +457,17 @@ EstimateRearrangementScenarios <- function(synt,
     num_blocks <- length(genome)
     if (length(indices_to_remove) > 0){
       block_key <- block_key[-indices_to_remove,]
-      if (!('array' %in% class(block_key))){
+      if (!is(object = block_key,
+              class2 = "array")) {
         return(list('counts'=c(0, 0, 0),
                     'scenario'='none',
                     'block_key'=as.matrix(block_key)))
       }
+      # if (!('array' %in% class(block_key))){
+      #   return(list('counts'=c(0, 0, 0),
+      #               'scenario'='none',
+      #               'block_key'=as.matrix(block_key)))
+      # }
       block_key[,5] <- 1:nrow(block_key)
     }
     block_key <- block_key[,-6]
@@ -606,8 +612,14 @@ EstimateRearrangementScenarios <- function(synt,
         cat("\nComputing Scenario for Genomes ", i, " and ", j, "...", sep='')
       for ( chrom in 1:num_chrom ){
         rows <- gen_info[gen_info[,1] == chrom | gen_info[,2] == chrom,]
-        if ( class(rows)[1] == "integer" ) #if only one row matches, it returns a vector
-          rows <- matrix(rows, nrow=1)
+        # if only one row matches, it returns a vector
+        if (is(object = rows,
+               class2 = "integer")) {
+          rows <- matrix(data = rows,
+                         nrow = 1L)
+        }
+        # if ( class(rows)[1] == "integer" ) #if only one row matches, it returns a vector
+        #   rows <- matrix(rows, nrow=1)
 
         if (nrow(rows) == 0) #if no rows match, continue
         {
@@ -646,14 +658,24 @@ EstimateRearrangementScenarios <- function(synt,
             gen1_match <- gen_info[gen_info[,5]==rows[k,5] & gen_info[,7]==rows[k,7],]
             gen2_match <- gen_info[gen_info[,5]==rows[k,5] & gen_info[,7]==rows[k,7],]
             found <- FALSE
-            if(class(gen1_match)[1] == "matrix"){
+            if (is(object = gen1_match,
+                   class2 = "matrix")) {
               rearrangements$Gen1Dup <- rearrangements$Gen1Dup + 1
               found <- TRUE
             }
-            if(class(gen2_match)[1] == "matrix"){
+            # if(class(gen1_match)[1] == "matrix"){
+            #   rearrangements$Gen1Dup <- rearrangements$Gen1Dup + 1
+            #   found <- TRUE
+            # }
+            if (is(object = gen2_match,
+                   class2 = "matrix")) {
               rearrangements$Gen2Dup <- rearrangements$Gen2Dup + 1
               found <- TRUE
             }
+            # if(class(gen2_match)[1] == "matrix"){
+            #   rearrangements$Gen2Dup <- rearrangements$Gen2Dup + 1
+            #   found <- TRUE
+            # }
             
             if (!found){
               rearrangements$Translocations <- rearrangements$Translocations + 1
@@ -662,9 +684,14 @@ EstimateRearrangementScenarios <- function(synt,
           }
         }
         matching <- rows[rows[,1] == rows[,2],]
-        if (class(matching)[1] != "matrix"){
-          matching <- matrix(matching, nrow=1)
+        if (!is(object = matching,
+                class2 = "matrix")) {
+          matching <- matrix(data = matching,
+                             nrow = 1L)
         }
+        # if (class(matching)[1] != "matrix"){
+        #   matching <- matrix(matching, nrow=1)
+        # }
         if (nrow(matching) == 0){
           next()
         }

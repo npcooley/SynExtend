@@ -17,6 +17,7 @@ export(SequenceSimilarity)
 export(SubSetPairs)
 export(EstimateRearrangementScenarios)
 export(BlockExpansion)
+export(BlockReconciliation)
 
 S3method(`[`, "LinkedPairs")
 S3method(print, "LinkedPairs")

@@ -14,7 +14,7 @@ PairSummaries <- function(SyntenyLinks,
                           OffSetsAllowed = NULL,
                           # ExpandBlocks = c(2, 0.95, .5),
                           Storage = 1,
-                          AAMat = "BLOSUM50",
+                          # AAMat = "BLOSUM50",
                           ...) {
   if (Verbose) {
     TimeStart <- Sys.time()
@@ -87,15 +87,15 @@ PairSummaries <- function(SyntenyLinks,
   # ignore it
   
   # print(AAMat)
-  if (!is(object = AAMat,
-          class2 = "array")) {
-    AAMat <- get(data(list = AAMat,
-                                   envir = environment(),
-                                   package = "Biostrings"))
-  }
-  NTMat <- diag(length(DNA_ALPHABET))
-  dimnames(NTMat) <- list(DNA_ALPHABET,
-                          DNA_ALPHABET)
+  # if (!is(object = AAMat,
+  #         class2 = "array")) {
+  #   AAMat <- get(data(list = AAMat,
+  #                                  envir = environment(),
+  #                                  package = "Biostrings"))
+  # }
+  # NTMat <- diag(length(DNA_ALPHABET))
+  # dimnames(NTMat) <- list(DNA_ALPHABET,
+  #                         DNA_ALPHABET)
   
   # step one, parse to different functions
   Args <- list(...)
@@ -172,6 +172,19 @@ PairSummaries <- function(SyntenyLinks,
   MAT2 <- get(data("HEC_MI2",
                    package = "DECIPHER",
                    envir = environment()))
+  structureMatrix <- matrix(c(0.187, -0.8, -0.873,
+                              -0.8, 0.561, -0.979,
+                              -0.873, -0.979, 0.221),
+                            3,
+                            3,
+                            dimnames=list(c("H", "E", "C"),
+                                          c("H", "E", "C")))
+  substitutionMatrix <- matrix(c(1.5, -2.134, -0.739, -1.298,
+                                 -2.134, 1.832, -2.462, 0.2,
+                                 -0.739, -2.462, 1.522, -2.062,
+                                 -1.298, 0.2, -2.062, 1.275),
+                               nrow = 4,
+                               dimnames = list(DNA_BASES, DNA_BASES))
   Features01 <- Features02 <- AAStruct <- vector("list",
                                                  length = length(GeneCalls))
   L <- length(GeneCalls)
@@ -1117,10 +1130,9 @@ PairSummaries <- function(SyntenyLinks,
                                           args = CurrentDMArgs)[1, 2]
               }
               if (Score) {
-                UW <- unique(width(ph01))
+                # UW <- unique(width(ph01))
                 SCORE[m3] <- ScoreAlignment(myXStringSet = ph01,
-                                            includeTerminalGaps = TRUE,
-                                            substitutionMatrix = NTMat) / UW
+                                            substitutionMatrix = substitutionMatrix)
                 # SCORE2[m3] <- SequenceSimilarity(Seqs = ph01,
                 #                                  SubMat = NTMat)
               }
@@ -1195,18 +1207,24 @@ PairSummaries <- function(SyntenyLinks,
               }
               if (Score &
                   Atype[m3] == "AA") {
-                UW <- unique(width(ph01))
+                # UW <- unique(width(ph01))
+                # return(list(ph01,
+                #             QueryStruct[w1[m3]],
+                #             SubjectStruct[w2[m3]],
+                #             structureMatrix))
                 SCORE[m3] <- ScoreAlignment(myXStringSet = ph01,
-                                            substitutionMatrix = AAMat,
-                                            includeTerminalGaps = TRUE) / UW
+                                            structures = PredictHEC(ph01,
+                                                                    type="probabilities",
+                                                                    HEC_MI1 = MAT1,
+                                                                    HEC_MI2 = MAT2),
+                                            structureMatrix = structureMatrix)
                 # SCORE2[m3] <- SequenceSimilarity(Seqs = ph01,
                 #                                  SubMat = AAMat)
               } else if (Score &
                          Atype[m3] == "NT") {
-                UW <- unique(width(ph01))
+                # UW <- unique(width(ph01))
                 SCORE[m3] <- ScoreAlignment(myXStringSet = ph01,
-                                            substitutionMatrix = NTMat,
-                                            includeTerminalGaps = TRUE) / UW
+                                            substitutionMatrix = substitutionMatrix)
                 # SCORE2[m3] <- SequenceSimilarity(Seqs = ph01,
                 #                                  SubMat = NTMat)
               }

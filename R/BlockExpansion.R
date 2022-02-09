@@ -24,13 +24,30 @@ BlockExpansion <- function(Pairs,
   if (GapTolerance <= 1L) {
     stop ("GapTolerance defines the diff() of features within a block. It cannot be <= 1.")
   }
-  if (Floor < 0 | Floor >= 1) {
-    stop ("Floor must be within the range of possible PIDs.")
-  }
   
   if (Verbose) {
     TimeStart <- Sys.time()
   }
+  
+  MAT1 <- get(data("HEC_MI1",
+                   package = "DECIPHER",
+                   envir = environment()))
+  MAT2 <- get(data("HEC_MI2",
+                   package = "DECIPHER",
+                   envir = environment()))
+  structureMatrix <- matrix(c(0.187, -0.8, -0.873,
+                              -0.8, 0.561, -0.979,
+                              -0.873, -0.979, 0.221),
+                            3,
+                            3,
+                            dimnames=list(c("H", "E", "C"),
+                                          c("H", "E", "C")))
+  substitutionMatrix <- matrix(c(1.5, -2.134, -0.739, -1.298,
+                                 -2.134, 1.832, -2.462, 0.2,
+                                 -0.739, -2.462, 1.522, -2.062,
+                                 -1.298, 0.2, -2.062, 1.275),
+                               nrow = 4,
+                               dimnames = list(DNA_BASES, DNA_BASES))
   
   # break PairSummaries object down into a workable format
   # build overhead data in a way that makes sense
@@ -204,18 +221,20 @@ BlockExpansion <- function(Pairs,
                                        to = ci1upper,
                                        by = 1L),
                                    sep = "_")
-      
-      AAFeatures01 <- translate(x = NTFeatures01[w6],
-                                genetic.code = getGeneticCode(id_or_name2 = w7,
-                                                              as.data.frame = FALSE,
-                                                              full.search = FALSE),
-                                if.fuzzy.codon = "solve")
-      
-      names(AAFeatures01) <- names(NTFeatures01)[w6]
-      
-      Features01Match <- match(x = names(NTFeatures01),
-                              table = names(AAFeatures01))
-      Features01Key <- names(NTFeatures01) %in% names(AAFeatures01)
+      if (!is.na(w7)) {
+        AAFeatures01 <- translate(x = NTFeatures01[w6],
+                                  genetic.code = getGeneticCode(id_or_name2 = w7,
+                                                                as.data.frame = FALSE,
+                                                                full.search = FALSE),
+                                  if.fuzzy.codon = "solve")
+      } else {
+        AAFeatures01 <- AAStringSet()
+      }
+        names(AAFeatures01) <- names(NTFeatures01)[w6]
+        
+        Features01Match <- match(x = names(NTFeatures01),
+                                 table = names(AAFeatures01))
+        Features01Key <- names(NTFeatures01) %in% names(AAFeatures01)
       
       # extract seqs for features one on the current index for w2
       w5 <- GeneCalls[[w2]]$Index == IMat[[m2]][1L, 5L]
@@ -262,18 +281,20 @@ BlockExpansion <- function(Pairs,
                                        to = ci2upper,
                                        by = 1L),
                                    sep = "_")
-      
-      AAFeatures02 <- translate(x = NTFeatures02[w6],
-                                genetic.code = getGeneticCode(id_or_name2 = w7,
-                                                              as.data.frame = FALSE,
-                                                              full.search = FALSE),
-                                if.fuzzy.codon = "solve")
-      
-      names(AAFeatures02) <- names(NTFeatures02)[w6]
-      
-      Features02Match <- match(x = names(NTFeatures02),
-                              table = names(AAFeatures02))
-      Features02Key <- names(NTFeatures02) %in% names(AAFeatures02)
+      if (!is.na(w7)) {
+        AAFeatures02 <- translate(x = NTFeatures02[w6],
+                                  genetic.code = getGeneticCode(id_or_name2 = w7,
+                                                                as.data.frame = FALSE,
+                                                                full.search = FALSE),
+                                  if.fuzzy.codon = "solve")
+      } else {
+        AAFeatures02 <- AAStringSet()
+      }
+        names(AAFeatures02) <- names(NTFeatures02)[w6]
+        
+        Features02Match <- match(x = names(NTFeatures02),
+                                 table = names(AAFeatures02))
+        Features02Key <- names(NTFeatures02) %in% names(AAFeatures02)
       
       # return(list(NTFeatures01,
       #             NTFeatures02,
@@ -605,9 +626,13 @@ BlockExpansion <- function(Pairs,
                                       type = "matrix",
                                       includeTerminalGaps = TRUE,
                                       verbose = FALSE)[1L, 2L]
-            UW <- unique(width(ali))
+            # UW <- unique(width(ali))
             SCORE <- ScoreAlignment(myXStringSet = ali,
-                                    includeTerminalGaps = TRUE) / UW
+                                    structures = PredictHEC(ali,
+                                                            type="probabilities",
+                                                            HEC_MI1 = MAT1,
+                                                            HEC_MI2 = MAT2),
+                                    structureMatrix = structureMatrix)
             CType <- "AA"
             # if (m2 >= 2L) {
             #   print(f1)
@@ -623,9 +648,9 @@ BlockExpansion <- function(Pairs,
                                       type = "matrix",
                                       includeTerminalGaps = TRUE,
                                       verbose = FALSE)[1L, 2L]
-            UW <- unique(width(ali))
+            # UW <- unique(width(ali))
             SCORE <- ScoreAlignment(myXStringSet = ali,
-                                    includeTerminalGaps = TRUE) / UW
+                                    substitutionMatrix = substitutionMatrix)
             CType <- "NT"
             # if (m2 >= 2L) {
             #   print(f1)

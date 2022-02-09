@@ -54,45 +54,16 @@ Nicholas Cooley \email{npc19@pitt.edu}
 }
 
 \seealso{
-\code{\link{PairSummaries}} \code{\link{NucleotideOverlap}} \code{link{SubSetPairs}} \code{\link{FindSynteny}}
+\code{\link{PairSummaries}}, \code{\link{NucleotideOverlap}}, \code{link{SubSetPairs}}, \code{\link{FindSynteny}}
 }
 \examples{
-\dontrun{
 DBPATH <- system.file("extdata",
-                      "VignetteSeqs.sqlite",
+                      "Nitrosocosmicus.sqlite",
                       package = "SynExtend")
-Syn <- FindSynteny(dbFile = DBPATH)
-GeneCalls <- vector(mode = "list",
-                    length = ncol(Syn))
-
-GeneCalls[[1L]] <- gffToDataFrame(GFF = system.file("extdata",
-                                                    "GCA_006740685.1_ASM674068v1_genomic.gff.gz",
-                                                    package = "SynExtend"),
-                                  Verbose = TRUE)
-GeneCalls[[2L]] <- gffToDataFrame(GFF = system.file("extdata",
-                                                    "GCA_000956175.1_ASM95617v1_genomic.gff.gz",
-                                                    package = "SynExtend"),
-                                  Verbose = TRUE)
-GeneCalls[[3L]] <- gffToDataFrame(GFF = system.file("extdata",
-                                                    "GCA_000875775.1_ASM87577v1_genomic.gff.gz",
-                                                    package = "SynExtend"),
-                                  Verbose = TRUE)
-names(GeneCalls) <- seq(length(GeneCalls))
-Links <- NucleotideOverlap(SyntenyObject = Syn,
-                           GeneCalls = GeneCalls,
-                           LimitIndex = FALSE,
-                           Verbose = TRUE)
-PredictedPairs <- PairSummaries(SyntenyLinks = Links,
-                                DBPATH = DBPATH,
-                                PIDs = TRUE,
-                                AcceptContigNames = TRUE,
-                                Verbose = TRUE)
-NewPairs <- BlockExpansion(PairsObject,
-                           GapTolerance = 2L,
-                           DropSingletons = FALSE,
-                           Floor = 0.5,
-                           Verbose = FALSE,
-                           NewPairsOnly = TRUE,
-                           DBPATH = DBPATH)
-}
+                      
+data("Nitrosocosmicus_Pairs01", package = "SynExtend")
+Pairs02 <- BlockExpansion(Pairs = Nitrosocosmicus_Pairs01,
+                          NewPairsOnly = FALSE,
+                          DBPATH = DBPATH,
+                          Verbose = TRUE)
 }
