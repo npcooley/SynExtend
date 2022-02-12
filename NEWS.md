@@ -1,3 +1,7 @@
+# SynExtend 1.7.7
+
+* Improvements to `BlockExpansion` and `BlockReconciliation` functions.
+
 # SynExtend 1.7.5
 
 * Began integration of `DECIPHER`'s `ScoreAlignment` function.

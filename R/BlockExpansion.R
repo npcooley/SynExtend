@@ -81,6 +81,12 @@ BlockExpansion <- function(Pairs,
     # subset to current genomes
     w1 <- GMat[m1, 1L]
     w2 <- GMat[m1, 2L]
+    # wa1 <- match(x = as.character(w1),
+    #              table = names(attr(x = Pairs,
+    #                                 which = "GeneCalls")))
+    # wa2 <- match(x = as.character(w2),
+    #              table = names(attr(x = Pairs,
+    #                                 which = "GeneCalls")))
     
     if (Verbose) {
       cat(paste0("### Genome pair: ",
@@ -176,13 +182,13 @@ BlockExpansion <- function(Pairs,
                    ":\n"))
       }
       
-      # extract seqs for features one on the current index for w1
-      w5 <- GeneCalls[[w1]]$Index == IMat[[m2]][1L, 2L]
-      w6 <- GeneCalls[[w1]]$Coding[w5] & GeneCalls[[w1]]$Type[w5] == "gene"
-      w7 <- unique(GeneCalls[[w1]]$Translation_Table[w5])
+      # extract seqs for features one on the current index for w1 !! actually i1 !!
+      w5 <- GeneCalls[[i1]]$Index == IMat[[m2]][1L, 2L]
+      w6 <- GeneCalls[[i1]]$Coding[w5] & GeneCalls[[i1]]$Type[w5] == "gene"
+      w7 <- unique(GeneCalls[[i1]]$Translation_Table[w5])
       w7 <- w7[!is.na(w7)]
       w7 <- w7[1L]
-      z1 <- unname(GeneCalls[[w1]]$Range[w5])
+      z1 <- unname(GeneCalls[[i1]]$Range[w5])
       z2 <- lengths(z1)
       z1 <- unlist(z1,
                    recursive = FALSE)
@@ -208,7 +214,7 @@ BlockExpansion <- function(Pairs,
         NTFeatures01[remove] <- NULL
       }
       
-      FlipMe <- GeneCalls[[w1]]$Strand[w5] == 1L
+      FlipMe <- GeneCalls[[i1]]$Strand[w5] == 1L
       if (any(FlipMe)) {
         NTFeatures01[FlipMe] <- reverseComplement(NTFeatures01[FlipMe])
       }
@@ -237,12 +243,12 @@ BlockExpansion <- function(Pairs,
         Features01Key <- names(NTFeatures01) %in% names(AAFeatures01)
       
       # extract seqs for features one on the current index for w2
-      w5 <- GeneCalls[[w2]]$Index == IMat[[m2]][1L, 5L]
-      w6 <- GeneCalls[[w2]]$Coding[w5] & GeneCalls[[w2]]$Type[w5] == "gene"
-      w7 <- unique(GeneCalls[[w2]]$Translation_Table[w5])
+      w5 <- GeneCalls[[i2]]$Index == IMat[[m2]][1L, 5L]
+      w6 <- GeneCalls[[i2]]$Coding[w5] & GeneCalls[[i2]]$Type[w5] == "gene"
+      w7 <- unique(GeneCalls[[i2]]$Translation_Table[w5])
       w7 <- w7[!is.na(w7)]
       w7 <- w7[1L]
-      z1 <- unname(GeneCalls[[w2]]$Range[w5])
+      z1 <- unname(GeneCalls[[i2]]$Range[w5])
       z2 <- lengths(z1)
       z1 <- unlist(z1,
                    recursive = FALSE)
@@ -268,7 +274,7 @@ BlockExpansion <- function(Pairs,
         NTFeatures02[remove] <- NULL
       }
       
-      FlipMe <- GeneCalls[[w2]]$Strand[w5] == 1L
+      FlipMe <- GeneCalls[[i2]]$Strand[w5] == 1L
       if (any(FlipMe)) {
         NTFeatures02[FlipMe] <- reverseComplement(NTFeatures02[FlipMe])
       }
