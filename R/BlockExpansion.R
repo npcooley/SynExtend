@@ -865,24 +865,40 @@ BlockExpansion <- function(Pairs,
   Res <- do.call(rbind,
                  Res)
   
-  # check for duplicates
-  if (nrow(Res) > 1L) {
-    IDS <- paste(Res$p1,
-                 Res$p2,
-                 sep = "_")
-    check1 <- !duplicated(IDS)
-    Res <- Res[check1, ]
-    if (nrow(Res) > 0L) {
+  if (!is.null(Res)) {
+    # if Res is not NULL
+    # check for duplicates
+    if (nrow(Res) > 1L) {
       IDS <- paste(Res$p1,
                    Res$p2,
                    sep = "_")
-      check2 <- !(IDS %in% POIDs)
-      Res <- Res[check2, ]
+      check1 <- !duplicated(IDS)
+      Res <- Res[check1, , drop = FALSE]
+      if (nrow(Res) > 0L) {
+        IDS <- paste(Res$p1,
+                     Res$p2,
+                     sep = "_")
+        check2 <- !(IDS %in% POIDs)
+        Res <- Res[check2, , drop = FALSE]
+      }
+      
     }
-    
-  }
-  if (nrow(Res) < 1L) {
-    return(NULL)
+  } else {
+    # no new pairs were discovered
+    Res <- data.frame("p1" = character(0L),
+                      "p2" = character(0L),
+                      "ExactMatch" = integer(0L),
+                      "TotalKmers" = integer(0L),
+                      "MaxKmer" = integer(0L),
+                      "Consensus" = integer(0L),
+                      "p1FeatureLength" = integer(0L),
+                      "p2FeatureLength" = integer(0L),
+                      "Adjacent" = integer(0L),
+                      "TetDist" = integer(0L),
+                      "PID" = numeric(0L),
+                      "PIDType" = character(0L),
+                      "PredictedPID" = numeric(0L),
+                      stringsAsFactors = FALSE)
   }
   
   if (NewPairsOnly) {

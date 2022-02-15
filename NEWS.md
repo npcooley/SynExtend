@@ -1,3 +1,7 @@
+# SynExtend 1.7.8
+
+* `BlockExpansion` cases corrected for zero added rows.
+
 # SynExtend 1.7.7
 
 * Improvements to `BlockExpansion` and `BlockReconciliation` functions.
