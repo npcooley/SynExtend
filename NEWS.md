@@ -1,3 +1,7 @@
+# SynExtend 1.7.9
+
+* Added retention thresholds to `BlockReconciliation`.
+
 # SynExtend 1.7.8
 
 * `BlockExpansion` cases corrected for zero added rows.

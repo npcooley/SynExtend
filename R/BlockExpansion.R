@@ -14,6 +14,11 @@ BlockExpansion <- function(Pairs,
   if (!("PID" %in% colnames(Pairs))) {
     stop ("PairSummaries Object must have PIDs calculated.")
   }
+  if ("SCORE" %in% colnames(Pairs)) {
+    INCLUDESCORE <- TRUE
+  } else {
+    INCLUDESCORE <- FALSE
+  }
   if (missing(DBPATH)) {
     stop("DBPATH must be supplied.")
   }
@@ -633,12 +638,15 @@ BlockExpansion <- function(Pairs,
                                       includeTerminalGaps = TRUE,
                                       verbose = FALSE)[1L, 2L]
             # UW <- unique(width(ali))
-            SCORE <- ScoreAlignment(myXStringSet = ali,
-                                    structures = PredictHEC(ali,
-                                                            type="probabilities",
-                                                            HEC_MI1 = MAT1,
-                                                            HEC_MI2 = MAT2),
-                                    structureMatrix = structureMatrix)
+            if (INCLUDESCORE) {
+              SCORE <- ScoreAlignment(myXStringSet = ali,
+                                      structures = PredictHEC(ali,
+                                                              type="probabilities",
+                                                              HEC_MI1 = MAT1,
+                                                              HEC_MI2 = MAT2),
+                                      structureMatrix = structureMatrix)
+            }
+            
             CType <- "AA"
             # if (m2 >= 2L) {
             #   print(f1)
@@ -655,8 +663,10 @@ BlockExpansion <- function(Pairs,
                                       includeTerminalGaps = TRUE,
                                       verbose = FALSE)[1L, 2L]
             # UW <- unique(width(ali))
-            SCORE <- ScoreAlignment(myXStringSet = ali,
-                                    substitutionMatrix = substitutionMatrix)
+            if (INCLUDESCORE) {
+              SCORE <- ScoreAlignment(myXStringSet = ali,
+                                      substitutionMatrix = substitutionMatrix)
+            }
             CType <- "NT"
             # if (m2 >= 2L) {
             #   print(f1)
@@ -669,7 +679,8 @@ BlockExpansion <- function(Pairs,
           # update the count
           if (Criteria == "PID") {
             CHECK <- PID
-          } else if (Criteria == "Score") {
+          } else if (Criteria == "Score" &
+                     INCLUDESCORE) {
             CHECK <- SCORE
           }
           if (CHECK < Floor) {
@@ -684,7 +695,9 @@ BlockExpansion <- function(Pairs,
             p1FeatureLength[Count] <- width(NTFeatures01[f1 - ci1lower + 1L])
             p2FeatureLength[Count] <- width(NTFeatures02[f2 - ci2lower + 1L])
             PIDVector[Count] <- PID
-            SCOREVector[Count] <- SCORE
+            if (INCLUDESCORE) {
+              SCOREVector[Count] <- SCORE
+            }
             AType[Count] <- CType
             
             # update f1 and f2
@@ -739,6 +752,9 @@ BlockExpansion <- function(Pairs,
               PIDVector <- c(PIDVector,
                              rep(NA_real_,
                                  times = VSize))
+              SCOREVector <- c(SCOREVector,
+                               rep(NA_real_,
+                                   times = VSize))
               AType <- c(AType,
                          rep(NA_character_,
                              times = VSize))
@@ -784,7 +800,7 @@ BlockExpansion <- function(Pairs,
         #               AType))
         # }
         
-        if ("SCORE" %in% colnames(Pairs)) {
+        if (INCLUDESCORE) {
           Res[[m1]][[m2]] <- data.frame("p1" = paste(rep(w1,
                                                          times = L2),
                                                      rep(IMat[[m2]][1L, 2L],
@@ -885,20 +901,39 @@ BlockExpansion <- function(Pairs,
     }
   } else {
     # no new pairs were discovered
-    Res <- data.frame("p1" = character(0L),
-                      "p2" = character(0L),
-                      "ExactMatch" = integer(0L),
-                      "TotalKmers" = integer(0L),
-                      "MaxKmer" = integer(0L),
-                      "Consensus" = integer(0L),
-                      "p1FeatureLength" = integer(0L),
-                      "p2FeatureLength" = integer(0L),
-                      "Adjacent" = integer(0L),
-                      "TetDist" = integer(0L),
-                      "PID" = numeric(0L),
-                      "PIDType" = character(0L),
-                      "PredictedPID" = numeric(0L),
-                      stringsAsFactors = FALSE)
+    if ("SCORE" %in% colnames(Pairs)) {
+      Res <- data.frame("p1" = character(0L),
+                        "p2" = character(0L),
+                        "ExactMatch" = integer(0L),
+                        "TotalKmers" = integer(0L),
+                        "MaxKmer" = integer(0L),
+                        "Consensus" = integer(0L),
+                        "p1FeatureLength" = integer(0L),
+                        "p2FeatureLength" = integer(0L),
+                        "Adjacent" = integer(0L),
+                        "TetDist" = integer(0L),
+                        "PID" = numeric(0L),
+                        "SCORE" = numeric(0L),
+                        "PIDType" = character(0L),
+                        "PredictedPID" = numeric(0L),
+                        stringsAsFactors = FALSE)
+    } else {
+      Res <- data.frame("p1" = character(0L),
+                        "p2" = character(0L),
+                        "ExactMatch" = integer(0L),
+                        "TotalKmers" = integer(0L),
+                        "MaxKmer" = integer(0L),
+                        "Consensus" = integer(0L),
+                        "p1FeatureLength" = integer(0L),
+                        "p2FeatureLength" = integer(0L),
+                        "Adjacent" = integer(0L),
+                        "TetDist" = integer(0L),
+                        "PID" = numeric(0L),
+                        "PIDType" = character(0L),
+                        "PredictedPID" = numeric(0L),
+                        stringsAsFactors = FALSE)
+    }
+    
   }
   
   if (NewPairsOnly) {

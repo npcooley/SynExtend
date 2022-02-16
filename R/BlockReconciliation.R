@@ -4,11 +4,37 @@
 
 BlockReconciliation <- function(Pairs,
                                 ConservativeRejection = TRUE,
-                                AlwaysReject = TRUE,
+                                PIDThreshold = NULL,
+                                SCOREThreshold = NULL,
                                 Verbose = FALSE) {
   if (Verbose) {
     TimeStart <- Sys.time()
     pBar <- txtProgressBar(style = 1L)
+  }
+  
+  if (!is(object = Pairs,
+          class2 = "PairSummaries")) {
+    stop ("Pairs must be an object of class 'PairSummaries'.")
+  }
+  if (!is.null(PIDThreshold)) {
+    if (length(PIDThreshold) > 1L) {
+      stop ("PIDThreshold must be a numeric of length 1.")
+    }
+  }
+  if (!is.null(SCOREThreshold)) { 
+    if (length(SCOREThreshold) > 1L) {
+      stop ("SCOREThreshold must be a numeric of length. 1")
+    }
+  }
+  if (!is.null(PIDThreshold)) {
+    if (is.na(PIDThreshold)) {
+      stop ("PIDThreshold cannot be NA.")
+    }
+  }
+  if (!is.null(SCOREThreshold)) {
+    if (is.na(SCOREThreshold)) {
+      stop ("SCOREThreshold cannot be NA.")
+    }
   }
   
   # for each genome to genome comparison
@@ -22,13 +48,60 @@ BlockReconciliation <- function(Pairs,
                          strsplit(x = POIDs,
                                   split = "_",
                                   fixed = TRUE))
-  FeaturesMat <- data.frame("g1" = as.integer(FeaturesMat[, 1L]),
-                            "i1" = as.integer(FeaturesMat[, 2L]),
-                            "f1" = as.integer(FeaturesMat[, 3L]),
-                            "g2" = as.integer(FeaturesMat[, 4L]),
-                            "i2" = as.integer(FeaturesMat[, 5L]),
-                            "f2" = as.integer(FeaturesMat[, 6L]),
-                            "keyval" = seq(nrow(FeaturesMat)))
+  if (is.null(PIDThreshold) &
+      is.null(SCOREThreshold)) {
+    FeaturesMat <- data.frame("g1" = as.integer(FeaturesMat[, 1L]),
+                              "i1" = as.integer(FeaturesMat[, 2L]),
+                              "f1" = as.integer(FeaturesMat[, 3L]),
+                              "g2" = as.integer(FeaturesMat[, 4L]),
+                              "i2" = as.integer(FeaturesMat[, 5L]),
+                              "f2" = as.integer(FeaturesMat[, 6L]),
+                              "keyval" = seq(nrow(FeaturesMat)))
+  } else if (is.null(PIDThreshold) &
+             !is.null(SCOREThreshold) &
+             "SCORE" %in% colnames(Pairs)) {
+    FeaturesMat <- data.frame("g1" = as.integer(FeaturesMat[, 1L]),
+                              "i1" = as.integer(FeaturesMat[, 2L]),
+                              "f1" = as.integer(FeaturesMat[, 3L]),
+                              "g2" = as.integer(FeaturesMat[, 4L]),
+                              "i2" = as.integer(FeaturesMat[, 5L]),
+                              "f2" = as.integer(FeaturesMat[, 6L]),
+                              "keyval" = seq(nrow(FeaturesMat)),
+                              "SCORE" = Pairs$SCORE)
+  } else if (!is.null(PIDThreshold) &
+             is.null(SCOREThreshold) &
+             "PID" %in% colnames(Pairs)) {
+    FeaturesMat <- data.frame("g1" = as.integer(FeaturesMat[, 1L]),
+                              "i1" = as.integer(FeaturesMat[, 2L]),
+                              "f1" = as.integer(FeaturesMat[, 3L]),
+                              "g2" = as.integer(FeaturesMat[, 4L]),
+                              "i2" = as.integer(FeaturesMat[, 5L]),
+                              "f2" = as.integer(FeaturesMat[, 6L]),
+                              "keyval" = seq(nrow(FeaturesMat)),
+                              "PID" = Pairs$PID)
+  } else if (!is.null(PIDThreshold) &
+             !is.null(SCOREThreshold) &
+             "PID" %in% colnames(Pairs) &
+             "SCORE" %in% colnames(Pairs)) {
+    FeaturesMat <- data.frame("g1" = as.integer(FeaturesMat[, 1L]),
+                              "i1" = as.integer(FeaturesMat[, 2L]),
+                              "f1" = as.integer(FeaturesMat[, 3L]),
+                              "g2" = as.integer(FeaturesMat[, 4L]),
+                              "i2" = as.integer(FeaturesMat[, 5L]),
+                              "f2" = as.integer(FeaturesMat[, 6L]),
+                              "keyval" = seq(nrow(FeaturesMat)),
+                              "PID" = Pairs$PID,
+                              "SCORE" = Pairs$SCORE)
+  } else {
+    FeaturesMat <- data.frame("g1" = as.integer(FeaturesMat[, 1L]),
+                              "i1" = as.integer(FeaturesMat[, 2L]),
+                              "f1" = as.integer(FeaturesMat[, 3L]),
+                              "g2" = as.integer(FeaturesMat[, 4L]),
+                              "i2" = as.integer(FeaturesMat[, 5L]),
+                              "f2" = as.integer(FeaturesMat[, 6L]),
+                              "keyval" = seq(nrow(FeaturesMat)))
+  }
+  
   
   GMat <- unique(FeaturesMat[, c(1, 4)])
   rownames(GMat) <- NULL
@@ -79,7 +152,7 @@ BlockReconciliation <- function(Pairs,
           sp1 <- vector(mode = "integer",
                         length = nrow(dr3[[m3]]))
           # extract the feature positions that are always increasing
-          sp2 <- dr3[[m3]][, 3L]
+          sp2 <- dr3[[m3]][, "f1"]
           # construct iterators
           it1 <- 1L
           it2 <- sp2[1L]
@@ -114,7 +187,7 @@ BlockReconciliation <- function(Pairs,
           sp1 <- vector(mode = "integer",
                         length = nrow(dr4[[m3]]))
           # extract the feature positions that are always increasing
-          sp2 <- dr4[[m3]][, 3L]
+          sp2 <- dr4[[m3]][, "f1"]
           # construct iterators
           it1 <- 1L
           it2 <- sp2[1L]
@@ -147,22 +220,32 @@ BlockReconciliation <- function(Pairs,
                     recursive = FALSE)
       dr4 <- unlist(dr4,
                     recursive = FALSE)
-      
-      o1 <- sapply(dr3,
-                   function(x) nrow(x),
-                   simplify = TRUE)
-      o2 <- sapply(dr4,
-                   function(x) nrow(x),
-                   simplify = TRUE)
-      o3 <- order(c(o1, o2),
-                  decreasing = TRUE)
       dr5 <- c(dr3,
                dr4)
+      o1 <- sapply(dr5,
+                   function(x) nrow(x),
+                   simplify = TRUE)
+      dr5 <- dr5[order(o1,
+                       decreasing = TRUE)]
       
-      # list of matrices that represent blocks
-      # sorted by size
-      dr5 <- dr5[o3]
-      setID <- rep(seq(length(o3)),
+      # o1 <- sapply(dr3,
+      #              function(x) nrow(x),
+      #              simplify = TRUE)
+      # o2 <- sapply(dr4,
+      #              function(x) nrow(x),
+      #              simplify = TRUE)
+      # o3 <- order(c(o1, o2),
+      #             decreasing = TRUE)
+      # dr5 <- c(dr3,
+      #          dr4)
+      # 
+      # # list of matrices that represent blocks
+      # # sorted by size
+      # dr5 <- dr5[o3]
+      # setID <- rep(seq(length(o3)),
+      #              sapply(dr5,
+      #                     function(x) nrow(x)))
+      setID <- rep(seq(length(o1)),
                    sapply(dr5,
                           function(x) nrow(x)))
       dr5 <- do.call(rbind,
@@ -173,7 +256,7 @@ BlockReconciliation <- function(Pairs,
       # hypothetically dr5 is now set up in descending block orders
       dr5 <- dr5[!duplicated(dr5[, "ID"]), ]
       
-      # loop through the setIDs that remain, removing pairs that interfer with
+      # loop through the setIDs that remain, removing pairs that interfere with
       # a block with higher precedence
       
       dr6 <- unname(split(x = dr5,
@@ -193,8 +276,14 @@ BlockReconciliation <- function(Pairs,
       PRSETS <- unique(SETS)
       KEEP <- rep(TRUE,
                   nrow(dr6))
-      F1Vec <- dr6[, 3L]
-      F2Vec <- dr6[, 6L]
+      F1Vec <- dr6[, "f1"]
+      F2Vec <- dr6[, "f2"]
+      if ("SCORE" %in% colnames(dr6)) {
+        F3Vec <- dr6[, "SCORE"]
+      }
+      if ("PID" %in% colnames(dr6)) {
+        F4Vec <- dr6[, "PID"]
+      }
       if (length(PRSETS) > 1L) {
         # no need to evaluate last set
         PRSETS <- PRSETS[1:(length(PRSETS) - 1L)]
@@ -212,15 +301,79 @@ BlockReconciliation <- function(Pairs,
           Range1 <- range(F1Vec[ph1])
           Range2 <- range(F2Vec[ph1])
           if (ConservativeRejection) {
-            w1 <- which(F1Vec[EVALSTART:EVALEND] >= Range1[1L] &
-                          F1Vec[EVALSTART:EVALEND] <= Range1[2L] &
-                          F2Vec[EVALSTART:EVALEND] >= Range2[1L] &
-                          F2Vec[EVALSTART:EVALEND] <= Range2[2L])
+            # reject within the block only
+            if ("SCORE" %in% colnames(dr6) &
+                "PID" %in% colnames(dr6)) {
+              # both PID and SCORE thresholds
+              # w1 is the rejection set, so vals below the thresholds are TRUE
+              w1 <- which(F1Vec[EVALSTART:EVALEND] >= Range1[1L] &
+                            F1Vec[EVALSTART:EVALEND] <= Range1[2L] &
+                            F2Vec[EVALSTART:EVALEND] >= Range2[1L] &
+                            F2Vec[EVALSTART:EVALEND] <= Range2[2L] &
+                            (F3Vec[EVALSTART:EVALEND] < SCOREThreshold |
+                               F4Vec[EVALSTART:EVALEND] < PIDThreshold))
+            } else if ("SCORE" %in% colnames(dr6) &
+                       !("PID" %in% colnames(dr6))) {
+              # SCORE thresholds only
+              # w1 is the rejection set, so vals below the thresholds are TRUE
+              w1 <- which(F1Vec[EVALSTART:EVALEND] >= Range1[1L] &
+                            F1Vec[EVALSTART:EVALEND] <= Range1[2L] &
+                            F2Vec[EVALSTART:EVALEND] >= Range2[1L] &
+                            F2Vec[EVALSTART:EVALEND] <= Range2[2L] &
+                            F3Vec[EVALSTART:EVALEND] < SCOREThreshold)
+            } else if (!("SCORE" %in% colnames(dr6)) &
+                       "PID" %in% colnames(dr6)) {
+              # PID thresholds only
+              # w1 is the rejection set, so vals below the thresholds are TRUE
+              w1 <- which(F1Vec[EVALSTART:EVALEND] >= Range1[1L] &
+                            F1Vec[EVALSTART:EVALEND] <= Range1[2L] &
+                            F2Vec[EVALSTART:EVALEND] >= Range2[1L] &
+                            F2Vec[EVALSTART:EVALEND] <= Range2[2L] &
+                            F4Vec[EVALSTART:EVALEND] < PIDThreshold)
+            } else {
+              # no thresholds
+              w1 <- which(F1Vec[EVALSTART:EVALEND] >= Range1[1L] &
+                            F1Vec[EVALSTART:EVALEND] <= Range1[2L] &
+                            F2Vec[EVALSTART:EVALEND] >= Range2[1L] &
+                            F2Vec[EVALSTART:EVALEND] <= Range2[2L])
+            }
+            
           } else {
-            w1 <- which((F1Vec[EVALSTART:EVALEND] >= Range1[1L] &
-                           F1Vec[EVALSTART:EVALEND] <= Range1[2L]) |
-                          (F2Vec[EVALSTART:EVALEND] >= Range2[1L] &
-                             F2Vec[EVALSTART:EVALEND] <= Range2[2L]))
+            if ("SCORE" %in% colnames(dr6) &
+                "PID" %in% colnames(dr6)) {
+              # both PID and SCORE thresholds
+              # w1 is the rejection set, so vals below the thresholds are TRUE
+              w1 <- which((F1Vec[EVALSTART:EVALEND] >= Range1[1L] &
+                             F1Vec[EVALSTART:EVALEND] <= Range1[2L]) |
+                            (F2Vec[EVALSTART:EVALEND] >= Range2[1L] &
+                               F2Vec[EVALSTART:EVALEND] <= Range2[2L]) &
+                            (F3Vec[EVALSTART:EVALEND] < SCOREThreshold |
+                               F4Vec[EVALSTART:EVALEND] < PIDThreshold))
+            } else if ("SCORE" %in% colnames(dr6) &
+                       !("PID" %in% colnames(dr6))) {
+              # SCORE thresholds only
+              # w1 is the rejection set, so vals below the thresholds are TRUE
+              w1 <- which((F1Vec[EVALSTART:EVALEND] >= Range1[1L] &
+                             F1Vec[EVALSTART:EVALEND] <= Range1[2L]) |
+                            (F2Vec[EVALSTART:EVALEND] >= Range2[1L] &
+                               F2Vec[EVALSTART:EVALEND] <= Range2[2L]) &
+                            F3Vec[EVALSTART:EVALEND] < SCOREThreshold)
+            } else if (!("SCORE" %in% colnames(dr6)) &
+                       "PID" %in% colnames(dr6)) {
+              # PID thresholds only
+              # w1 is the rejection set, so vals below the thresholds are TRUE
+              w1 <- which((F1Vec[EVALSTART:EVALEND] >= Range1[1L] &
+                             F1Vec[EVALSTART:EVALEND] <= Range1[2L]) |
+                            (F2Vec[EVALSTART:EVALEND] >= Range2[1L] &
+                               F2Vec[EVALSTART:EVALEND] <= Range2[2L]) &
+                            F4Vec[EVALSTART:EVALEND] < PIDThreshold)
+            } else {
+              # no thresholds
+              w1 <- which((F1Vec[EVALSTART:EVALEND] >= Range1[1L] &
+                             F1Vec[EVALSTART:EVALEND] <= Range1[2L]) |
+                            (F2Vec[EVALSTART:EVALEND] >= Range2[1L] &
+                               F2Vec[EVALSTART:EVALEND] <= Range2[2L]))
+            }
           }
           
           if (length(w1) > 0L) {

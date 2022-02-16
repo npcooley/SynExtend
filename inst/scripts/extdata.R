@@ -108,6 +108,7 @@ save(Nitrosocosmicus_LinkedFeatures,
 
 Nitrosocosmicus_Pairs01 <- PairSummaries(SyntenyLinks = Nitrosocosmicus_LinkedFeatures,
                                          PIDs = TRUE,
+                                         Score = FALSE,
                                          DBPATH = VignetteDB,
                                          Verbose = TRUE)
 
@@ -151,42 +152,42 @@ save(Nitrosocosmicus_Sets,
 ###### -- other stuff ---------------------------------------------------------
 
 # some very arbitrary subsetting
-w1 <- (Nitrosocosmicus_Pairs03$ExactMatch * 2L) / (Nitrosocosmicus_Pairs03$p1FeatureLength + Nitrosocosmicus_Pairs03$p2FeatureLength)
-w2 <- w1 > 0.2 & w1 != 0
-w3 <- Nitrosocosmicus_Pairs03$Consensus >= 0.6
-w4 <- abs(Nitrosocosmicus_Pairs03$p1FeatureLength - Nitrosocosmicus_Pairs03$p2FeatureLength) / apply(X = Nitrosocosmicus_Pairs03[, c("p1FeatureLength", "p2FeatureLength")],
-                                                                                                     MARGIN = 1L,
-                                                                                                     FUN = max) < 0.5
-
-Nitrosocosmicus_Pairs04 <- Nitrosocosmicus_Pairs03[w2 & w3 & w4, ]
-
-suppressMessages(library(igraph))
-
-w5 <- Nitrosocosmicus_Pairs04$p1 %in% Nitrosocosmicus_Sets[[which.max(lengths(Nitrosocosmicus_Sets))]] &
-  Nitrosocosmicus_Pairs04$p2 %in% Nitrosocosmicus_Sets[[which.max(lengths(Nitrosocosmicus_Sets))]]
-# what is the largest community
-g <- graph_from_data_frame(d = Nitrosocosmicus_Pairs04[w5, c("p1", "p2", "PID")],
-                           directed = FALSE)
-# does it have distinct subcommunities
-sg <- cluster_louvain(graph = g)
-plot(sg,
-     g,
-     vertex.label = NA)
-
-# extract and align and look at the dendrogram
-x <- ExtractBy(x = Nitrosocosmicus_Pairs04,
-               y = Nitrosocosmicus_Sets[which.max(lengths(Nitrosocosmicus_Sets))],
-               Method = "clusters",
-               Verbose = TRUE,
-               DBPATH = VignetteDB)
-
-ali <- AlignSeqs(myXStringSet = x[[1]])
-
-IdClusters(myDistMatrix = DistanceMatrix(ali,
-                                         includeTerminalGaps = TRUE),
-           method = "NJ",
-           type = "dendrogram",
-           showPlot = TRUE)
+# w1 <- (Nitrosocosmicus_Pairs03$ExactMatch * 2L) / (Nitrosocosmicus_Pairs03$p1FeatureLength + Nitrosocosmicus_Pairs03$p2FeatureLength)
+# w2 <- w1 > 0.2 & w1 != 0
+# w3 <- Nitrosocosmicus_Pairs03$Consensus >= 0.6
+# w4 <- abs(Nitrosocosmicus_Pairs03$p1FeatureLength - Nitrosocosmicus_Pairs03$p2FeatureLength) / apply(X = Nitrosocosmicus_Pairs03[, c("p1FeatureLength", "p2FeatureLength")],
+#                                                                                                      MARGIN = 1L,
+#                                                                                                      FUN = max) < 0.5
+# 
+# Nitrosocosmicus_Pairs04 <- Nitrosocosmicus_Pairs03[w2 & w3 & w4, ]
+# 
+# suppressMessages(library(igraph))
+# 
+# w5 <- Nitrosocosmicus_Pairs04$p1 %in% Nitrosocosmicus_Sets[[which.max(lengths(Nitrosocosmicus_Sets))]] &
+#   Nitrosocosmicus_Pairs04$p2 %in% Nitrosocosmicus_Sets[[which.max(lengths(Nitrosocosmicus_Sets))]]
+# # what is the largest community
+# g <- graph_from_data_frame(d = Nitrosocosmicus_Pairs04[w5, c("p1", "p2", "PID")],
+#                            directed = FALSE)
+# # does it have distinct subcommunities
+# sg <- cluster_louvain(graph = g)
+# plot(sg,
+#      g,
+#      vertex.label = NA)
+# 
+# # extract and align and look at the dendrogram
+# x <- ExtractBy(x = Nitrosocosmicus_Pairs04,
+#                y = Nitrosocosmicus_Sets[which.max(lengths(Nitrosocosmicus_Sets))],
+#                Method = "clusters",
+#                Verbose = TRUE,
+#                DBPATH = VignetteDB)
+# 
+# ali <- AlignSeqs(myXStringSet = x[[1]])
+# 
+# IdClusters(myDistMatrix = DistanceMatrix(ali,
+#                                          includeTerminalGaps = TRUE),
+#            method = "NJ",
+#            type = "dendrogram",
+#            showPlot = TRUE)
 
 
 
