@@ -22,6 +22,10 @@ BlockExpansion <- function(Pairs,
   if (missing(DBPATH)) {
     stop("DBPATH must be supplied.")
   }
+  if (!(Criteria %in% c("PID",
+                        "Score"))) {
+    stop ("Please select a valid comparison criteria.")
+  }
   # given the gap tolerance, split diags where appropriate
   if (is.null(GapTolerance)) {
     GapTolerance <- 2L

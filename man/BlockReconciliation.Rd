@@ -9,6 +9,7 @@ Take in a \code{PairSummaries} object and reject predicted pairs that conflict w
 \usage{
 BlockReconciliation(Pairs,
                     ConservativeRejection = TRUE,
+                    Precedent = "Size",
                     PIDThreshold = NULL,
                     SCOREThreshold = NULL,
                     Verbose = FALSE)
@@ -19,6 +20,9 @@ A \code{PairSummaries} object.
 }
   \item{ConservativeRejection}{
 A logical defaulting to \code{TRUE}. By default only pairs that conflict within a syntenic block will be rejected. When \code{FALSE} any conflict will cause the rejection of the pair in the smaller block.
+}
+  \item{Precedent}{
+A character vector of length 1, defaulting to ``Size''. Selector for whether function attempts to reconcile with block size as precedent, or mean block PID as precedent. Currently ``Metric'' will select mean block PID to set block precedent. Blocks of size 1 cannot reject other blocks. The default behavior causes the rejection of any set of predicted pairs that conflict with a larger block of predicted pairs. Switching to ``Metric'' changes this behavior to any block of size 2 or greater will reject any predicted pair that both conflicts with the current block, and is part of a block with a lower mean PID.
 }
   \item{PIDThreshold}{
 Defaults to \code{NULL}, a numeric of length 1 can be used to retain pairs that would otherwise be rejected. Pairs that would otherwise be rejected that have a \code{PID} >= \code{PIDThreshold} will be retained.

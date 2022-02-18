@@ -1,3 +1,7 @@
+# SynExtend 1.7.10
+
+* `BlockReconciliation` now allows for setting either block size or mean PID for reconciliation precedence.
+
 # SynExtend 1.7.9
 
 * Added retention thresholds to `BlockReconciliation`.
