@@ -540,6 +540,39 @@ NucleotideOverlap <- function(SyntenyObject,
         S.NucPositionL <- NA_integer_
         S.NucPositionR <- NA_integer_
         S.Strand <- NA_integer_
+        
+        ######
+        # re-register the hit search if a new gene has a start position that
+        # occurs before the end of the previous gene
+        # re-registers can only occur when
+        ######
+        if (z1 > 1L &
+            HitCounter > 1L &
+            HitCounter <= length(HitWidths)) {
+          # not the first gene
+          # not the first hit
+          if (Q.Start[z1] < Q.Stop[z1 - 1L]) {
+            # start of the current gene occurs before end of previous gene
+            # print(paste(QHI[HitCounter],
+            #             Q.Index[z1],
+            #             HitCounter,
+            #             z1))
+            if (QHI[HitCounter] == Q.Index[z1] &
+                Q.Index[z1] == Q.Index[z1 - 1L]) {
+              # gene and hit are in the same index
+              # gene and previous gene are in the same index
+              AvailableReRegisters <- QHI == Q.Index[z1] & Q.HitStarts < Q.Start[z1]
+              if (sum(AvailableReRegisters) > 0L) {
+                # more than zero re-register positions available
+                TempHit <- max(which(AvailableReRegisters))
+                if (TempHit < HitCounter) {
+                  HitCounter <- TempHit
+                }
+              } # else do nothing, no hits that start before the current start and occupy the correct index
+            } # else do nothing - indices are not matched
+          } # else do nothing - start of current gene is after stop of previous
+        } # else do nothing - either first gene or hit
+        
         while (HitCounter <= length(HitWidths)) {
           ######
           # interrogation loop, depending upon where the current hit is
@@ -550,6 +583,7 @@ NucleotideOverlap <- function(SyntenyObject,
           # AddCounter tells the loop which row to add information to in
           # the initialized QueryMatrix, when there is information to add
           ######
+          
           if (Q.HitEnds[HitCounter] < Q.Start[z1] &
               QHI[HitCounter] == Q.Index[z1]) {
             # Hit ends before current query gene begins

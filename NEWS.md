@@ -1,3 +1,8 @@
+# SynExtend 1.7.11
+
+* Updated `NucleotideOverlaps` to now correctly registers hits in genes with a large degree of overlap with the immediately preceding gene.
+* Fixed aberrant behavior in `BlockExpansion` where contigs with zero features could cause an error in expansion attempts.
+
 # SynExtend 1.7.10
 
 * `BlockReconciliation` now allows for setting either block size or mean PID for reconciliation precedence.

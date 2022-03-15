@@ -116,8 +116,10 @@ BlockExpansion <- function(Pairs,
                   drop = TRUE)
     i1 <- which(GCIDs == w1)
     i2 <- which(GCIDs == w2)
-    i3 <- unique(GeneCalls[[i1]]$Index)
-    i4 <- unique(GeneCalls[[i2]]$Index)
+    # i3 <- unique(GeneCalls[[i1]]$Index)
+    # i4 <- unique(GeneCalls[[i2]]$Index)
+    i3 <- seq_len(max(GeneCalls[[i1]]$Index))
+    i4 <- seq_len(max(GeneCalls[[i2]]$Index))
     i5 <- sapply(i3,
                  function(x) {
                    which(GeneCalls[[i1]]$Index == x)
@@ -130,22 +132,38 @@ BlockExpansion <- function(Pairs,
                  simplify = FALSE)
     i1lower <- sapply(i5,
                       function(x) {
-                        min(x)
+                        if (length(x) > 0L) {
+                          min(x)
+                        } else {
+                          NA # NA Placeholder - should never be accessed, but necessary to keep index matching
+                        }
                       },
                       simplify = TRUE)
     i1upper <- sapply(i5,
                       function(x) {
-                        max(x)
+                        if (length(x) > 0L) {
+                          max(x)
+                        } else {
+                          NA
+                        }
                       },
                       simplify = TRUE)
     i2lower <- sapply(i6,
                       function(x) {
-                        min(x)
+                        if (length(x) > 0L) {
+                          min(x)
+                        } else {
+                          NA # NA Placeholder - should never be accessed, but necessary to keep index matching
+                        }
                       },
                       simplify = TRUE)
     i2upper <- sapply(i6,
                       function(x) {
-                        max(x)
+                        if (length(x) > 0L) {
+                          max(x)
+                        } else {
+                          NA
+                        }
                       },
                       simplify = TRUE)
     
@@ -190,6 +208,14 @@ BlockExpansion <- function(Pairs,
                    ci2upper,
                    ":\n"))
       }
+      # if (IMat[[m2]][1L, 2L] == 1 &
+      #     IMat[[m2]][1L, 5L] == 67) {
+      #   print("a")
+      #   # return(list(GeneCalls,
+      #   #             IMat[[m2]][1L, 2L],
+      #   #             IMat[[m2]][1L, 5L],
+      #   #             i1))
+      # }
       
       # extract seqs for features one on the current index for w1 !! actually i1 !!
       w5 <- GeneCalls[[i1]]$Index == IMat[[m2]][1L, 2L]
@@ -203,6 +229,10 @@ BlockExpansion <- function(Pairs,
                    recursive = FALSE)
       NTFeatures01 <- extractAt(x = Genome1[[IMat[[m2]][1L, 2L]]],
                                 at = z1)
+      # if (IMat[[m2]][1L, 2L] == 1 &
+      #     IMat[[m2]][1L, 5L] == 67) {
+      #   print("b")
+      # }
       
       CollapseCount <- 0L
       w <- which(z2 > 1L)
@@ -245,11 +275,16 @@ BlockExpansion <- function(Pairs,
       } else {
         AAFeatures01 <- AAStringSet()
       }
-        names(AAFeatures01) <- names(NTFeatures01)[w6]
-        
-        Features01Match <- match(x = names(NTFeatures01),
-                                 table = names(AAFeatures01))
-        Features01Key <- names(NTFeatures01) %in% names(AAFeatures01)
+      names(AAFeatures01) <- names(NTFeatures01)[w6]
+      
+      Features01Match <- match(x = names(NTFeatures01),
+                               table = names(AAFeatures01))
+      Features01Key <- names(NTFeatures01) %in% names(AAFeatures01)
+      
+      # if (IMat[[m2]][1L, 2L] == 1 &
+      #     IMat[[m2]][1L, 5L] == 67) {
+      #   print("c")
+      # }
       
       # extract seqs for features one on the current index for w2
       w5 <- GeneCalls[[i2]]$Index == IMat[[m2]][1L, 5L]
@@ -263,6 +298,11 @@ BlockExpansion <- function(Pairs,
                    recursive = FALSE)
       NTFeatures02 <- extractAt(x = Genome2[[IMat[[m2]][1L, 5L]]],
                                 at = z1)
+      
+      # if (IMat[[m2]][1L, 2L] == 1 &
+      #     IMat[[m2]][1L, 5L] == 67) {
+      #   print("d")
+      # }
       
       CollapseCount <- 0L
       w <- which(z2 > 1L)
@@ -288,6 +328,22 @@ BlockExpansion <- function(Pairs,
         NTFeatures02[FlipMe] <- reverseComplement(NTFeatures02[FlipMe])
       }
       
+      # if (IMat[[m2]][1L, 2L] == 1 &
+      #     IMat[[m2]][1L, 5L] == 67) {
+      #   print("g")
+      #   return(list(NTFeatures02,
+      #               w2,
+      #               w5,
+      #               IMat[[m2]][1L, 5L],
+      #               ci2lower,
+      #               ci2upper,
+      #               GeneCalls,
+      #               IMat,
+      #               m2,
+      #               i5,
+      #               i6))
+      # }
+      
       names(NTFeatures02) <- paste(rep(w2,
                                        sum(w5)),
                                    rep(IMat[[m2]][1L, 5L],
@@ -305,11 +361,26 @@ BlockExpansion <- function(Pairs,
       } else {
         AAFeatures02 <- AAStringSet()
       }
-        names(AAFeatures02) <- names(NTFeatures02)[w6]
-        
-        Features02Match <- match(x = names(NTFeatures02),
-                                 table = names(AAFeatures02))
-        Features02Key <- names(NTFeatures02) %in% names(AAFeatures02)
+      
+      # if (IMat[[m2]][1L, 2L] == 1 &
+      #     IMat[[m2]][1L, 5L] == 67) {
+      #   print("f")
+      #   return(list(AAFeatures02,
+      #               NTFeatures02,
+      #               w5,
+      #               w6,
+      #               w7))
+      # }
+      names(AAFeatures02) <- names(NTFeatures02)[w6]
+      
+      Features02Match <- match(x = names(NTFeatures02),
+                               table = names(AAFeatures02))
+      Features02Key <- names(NTFeatures02) %in% names(AAFeatures02)
+      
+      # if (IMat[[m2]][1L, 2L] == 1 &
+      #     IMat[[m2]][1L, 5L] == 67) {
+      #   print("e")
+      # }
       
       # return(list(NTFeatures01,
       #             NTFeatures02,
