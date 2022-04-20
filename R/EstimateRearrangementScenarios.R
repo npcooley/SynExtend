@@ -32,8 +32,8 @@ EstimateRearrangementScenarios <- function(synt,
     else if(length(actual) < 5 && length(actual) != 0)
       stop("vector provided for actual values is of incorrect length. Expected length 0 or 5.")
     
-    if ( second_gen == first_gen)
-      stop("Error: Incorrect genome indices provided. Make sure indices are not the same.")
+    stopifnot("Error: Incorrect genome indices provided. Make sure indices are not the same."=
+                second_gen!=first_gen)
     if ( second_gen < first_gen ){
       temp <- second_gen
       second_gen <- first_gen
@@ -128,7 +128,7 @@ EstimateRearrangementScenarios <- function(synt,
       
       #find first empty value
       first_empty <- length(lst) + 1
-      for(i in 1:length(lst)){
+      for(i in seq_len(length(lst))){
         if(isEmpty(lst[[i]])){
           first_empty <- i
           break()
@@ -148,7 +148,7 @@ EstimateRearrangementScenarios <- function(synt,
       #if we increased the size of the list, copy the old list into the new one  
       if(tmp != len){
         new_lst <- vector("list", length = tmp)
-        new_lst[1:len] <- lst
+        new_lst[seq_len(len)] <- lst
         lst <- new_lst
       }
       
@@ -221,7 +221,7 @@ EstimateRearrangementScenarios <- function(synt,
         len <- length(gen) + 1
         gen <- c(0, gen, len)
         done <- TRUE
-        order <- sample(1:len)
+        order <- sample(seq_len(len))
         for(i in order){
           sign1 <- sign(gen[i])
           sign2 <- sign(gen[i+1])
@@ -234,7 +234,7 @@ EstimateRearrangementScenarios <- function(synt,
             if (p == 1)
               subsec <- gen[i:len]
             else
-              subsec <- gen[1:(i-1)]
+              subsec <- gen[seq_len(i-1)]
             
             bi_skip_roll <- runif(1) # naive way to correct for overestimation of BI
             if((bi_skip_roll > bi_skip_prob) && ((gen[i]+p) %in% subsec) && (gen[i] + p) != gen[i+p]){
@@ -362,7 +362,7 @@ EstimateRearrangementScenarios <- function(synt,
     # ==== Synteny Object to Blocks ====
     block_matrix <- matrix(nrow=nrow(synblocks), ncol=4) #setting up the matrix to eventually return
     
-    for(rowindex in 1:nrow(synblocks)){
+    for(rowindex in seq_len(nrow(synblocks))){
       row <- synblocks[rowindex,] #grab information on the block
       
       start1 <- row[5] #start of block on the first genome
@@ -398,7 +398,7 @@ EstimateRearrangementScenarios <- function(synt,
     }
     
     sorted_mat <- sorted_mat[order(sorted_mat[,1]),] #sort based on the first genome
-    indices <- 1:nrow(block_matrix) #simple vector from 1 to {n}, to order the blocks
+    indices <- seq_len(nrow(block_matrix)) #simple vector from 1 to {n}, to order the blocks
     sorted_mat <- cbind(sorted_mat, indices) #attach the indices, now sorted_mat[,5] represents permutation order for genome1
     
     sorted_mat <- sorted_mat[order(sorted_mat[,2]),] #sort based on start coord on genome2
@@ -439,7 +439,7 @@ EstimateRearrangementScenarios <- function(synt,
       ctr <- ctr + 1
     }
     
-    new <- 1:length(genome)
+    new <- seq_len(length(genome))
     temp <- sort(abs(genome))
     
     conv <- as.list(setNames(new, temp))
@@ -468,7 +468,7 @@ EstimateRearrangementScenarios <- function(synt,
       #               'scenario'='none',
       #               'block_key'=as.matrix(block_key)))
       # }
-      block_key[,5] <- 1:nrow(block_key)
+      block_key[,5] <- seq_len(nrow(block_key))
     }
     block_key <- block_key[,-6]
     # ==== end simplifying vector of permutation
@@ -487,7 +487,7 @@ EstimateRearrangementScenarios <- function(synt,
     #every iteration we create a black line between this vertex and the previous vertex in A
     prev_black <- len + 2 
     
-    for (i in 1:length(genome)){
+    for (i in seq_len(length(genome))){
       val <- genome[i] #get permutation number
       
       if (val < 0){ #if negative, map permutation n to 2n and 2n-1 (in that order)
@@ -532,7 +532,7 @@ EstimateRearrangementScenarios <- function(synt,
       seq_skip_inv_probs <- seq(0, 0.75, length.out=num_runs)
       seq_skip_bi_probs <- seq(0.75, 0, length.out=num_runs)
       min_total_seen <- 6 * length(graph_to_genome(bpg))
-      for(i in 1:num_runs){
+      for(i in seq_len(num_runs)){
         rearr <- generate_rearrangements(bpg, 
                                          bi_skip_prob=seq_skip_bi_probs[i], 
                                          inv_skip_prob=seq_skip_inv_probs[i])
@@ -553,7 +553,7 @@ EstimateRearrangementScenarios <- function(synt,
       block_count <- invert_count <- 3*length(graph_to_genome(bpg))
       seq_skip_inv_probs <- seq(0, 0.75, length.out=num_runs)
       seq_skip_bi_probs <- seq(0.75, 0, length.out=num_runs)
-      for (i in 1:num_runs){
+      for (i in seq_len(num_runs)){
         rearr <- generate_rearrangements(bpg, 
                                          bi_skip_prob=seq_skip_bi_probs[i], 
                                          inv_skip_prob=seq_skip_inv_probs[i])
@@ -591,7 +591,7 @@ EstimateRearrangementScenarios <- function(synt,
   rownames(rearr_mat) <- row_names
   colnames(rearr_mat) <- row_names
   rates <- vector("list", num_genomes)
-  for ( i in 1:num_genomes ){
+  for ( i in seq_len(num_genomes) ){
     for ( j in i:num_genomes ){
       if (j == i){
         rearr_mat[[i, j]] <- synt[[i,j]]
@@ -610,7 +610,7 @@ EstimateRearrangementScenarios <- function(synt,
       num_chrom <- max(gen_info[,1],gen_info[,2]) 
       if(verbose)
         cat("\nComputing Scenario for Genomes ", i, " and ", j, "...", sep='')
-      for ( chrom in 1:num_chrom ){
+      for ( chrom in seq_len(num_chrom) ){
         rows <- gen_info[gen_info[,1] == chrom | gen_info[,2] == chrom,]
         # if only one row matches, it returns a vector
         if (is(object = rows,
@@ -652,7 +652,7 @@ EstimateRearrangementScenarios <- function(synt,
           next()
         }
 
-        for (k in 1:nrow(rows)){
+        for (k in seq_len(nrow(rows))){
           if (rows[k, 1] != rows[k, 2]){
             #determine if translocation or duplication
             gen1_match <- gen_info[gen_info[,5]==rows[k,5] & gen_info[,7]==rows[k,7],]
