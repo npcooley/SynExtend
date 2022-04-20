@@ -4,13 +4,8 @@
 
 
 ## Defining S3 class for ProtWeb Object
-
-#### DEFINITION ####
-####################
-
-#### METHODS ####
-
-#################
+##  This is just an S3 class to make output of ProtWeaver predictions 
+##  easier to manage.
 
 getProtWebData <- function(x, ...) UseMethod('getProtWebData')
 

@@ -55,7 +55,7 @@ of connections in the adjacency matrix.
   This function plots the \code{ProtWeb} object using a force-directed embedding.
   This embedding has three force components:
   \itemize{
-  \item Gravity Force: Attractive force pulling nodes towards each other
+  \item Gravity Force: Attractive force pulling nodes towards \code{(0,0)}
   \item Coulomb Force: Repulsive force pushing close nodes away from each other
   \item Connective Force: Tries to push node connections to equal corresponding values in the adjacency matrix
   }

@@ -4,20 +4,15 @@
 
 ## Defining S3 class for ProtWeaver Object
 
+
 #### DEFINITION ####
 # Class expects as input one of the following:
 #   1. A list of dendrograms
 #      a) Dendrograms with labels [ORG]_[INDEX]_[POS] will use co-loc code
 #      b) Dendrograms without will not use co-loc
 #   2. A list of character vectors defining COGs (will not use MirrorTree)
+#   3. A list of character vectors defining COGs with labels like 1(a)
 ####################
-
-#### METHODS ####
-# predict()
-# plot()
-# print()
-# str() (?)
-#################
 
 
 #### S3 Generic Definitions ####
@@ -35,7 +30,7 @@ Ensemble <- function(pw, ...) UseMethod('Ensemble')
 ########
 
 
-#### Class Constructor and Built-In Generic Definitions ####
+#### Class Constructor and Base Generic Redefinitions ####
 new_ProtWeaver <- function(validatedInput){
   structure(validatedInput$ipt,
             allOrgs=validatedInput$allgenomes,
