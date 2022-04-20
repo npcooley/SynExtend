@@ -14,7 +14,7 @@
 
 getData <- function(x, ...) UseMethod('getData')
 
-plot.ProtWeb <- function(web, nsim=10, gravity=0.05, coulomb=0.1, connection=5,
+plot.ProtWeb <- function(x, nsim=10, gravity=0.05, coulomb=0.1, connection=5,
                          move_rate=0.25, cutoff=0.2, 
                          verbose=T, colorpalette=topo.colors, ...){
   ## Springy embedding
@@ -23,6 +23,7 @@ plot.ProtWeb <- function(web, nsim=10, gravity=0.05, coulomb=0.1, connection=5,
   # - gravity (force towards (0,0))
   # - Coulomb force (repels nodes)
   # - Connection force
+  web <- x
   
   if (verbose) cat('Finding a descriptive embedding...\n')
   # Change similarity scores to distances
@@ -69,11 +70,11 @@ plot.ProtWeb <- function(web, nsim=10, gravity=0.05, coulomb=0.1, connection=5,
        main='Force-directed embedding of COGs', ...)
 }
 
-summary.ProtWeb <- function(x, ...){
+summary.ProtWeb <- function(object, ...){
   cat('a ProtWeb object.\n')
-  a <- attributes(x)
+  a <- attributes(object)
   cat('\tMethod used:', a$method, '\n')
-  d <- getData(x)
+  d <- getData(object)
   numGenes <- ncol(d)
   numPreds <- sum(upper.tri(d,diag=TRUE) & !is.na(d))
   cat('\tNumber of genes:', numGenes, '\n')

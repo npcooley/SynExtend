@@ -22,17 +22,17 @@ builtinmodels <- '../data/EnsembleModels.RData'
 
 
 #### S3 Generic Definitions ####
-PAProfiles <- function(x, ...) UseMethod('PAProfiles')
-CophProfiles <- function(x, ...) UseMethod('CophProfiles')
-Jaccard <- function(x, ...) UseMethod('Jaccard')
-Hamming <- function(x, ...) UseMethod('Hamming')
-MutualInformation <- function(x, ...) UseMethod('MutualInformation')
-MirrorTree <- function(x, ...) UseMethod('MirrorTree')
-ContextTree <- function(x, ...) UseMethod('ContextTree')
-ProfileDCA <- function(x, ...) UseMethod('ProfileDCA')
-Coloc <- function(x, ...) UseMethod('Coloc')
-Behdenna <- function(x, ...) UseMethod('Behdenna')
-Ensemble <- function(x, ...) UseMethod('Ensemble')
+PAProfiles <- function(pw, ...) UseMethod('PAProfiles')
+CophProfiles <- function(pw, ...) UseMethod('CophProfiles')
+Jaccard <- function(pw, ...) UseMethod('Jaccard')
+Hamming <- function(pw, ...) UseMethod('Hamming')
+MutualInformation <- function(pw, ...) UseMethod('MutualInformation')
+MirrorTree <- function(pw, ...) UseMethod('MirrorTree')
+ContextTree <- function(pw, ...) UseMethod('ContextTree')
+ProfileDCA <- function(pw, ...) UseMethod('ProfileDCA')
+Coloc <- function(pw, ...) UseMethod('Coloc')
+Behdenna <- function(pw, ...) UseMethod('Behdenna')
+Ensemble <- function(pw, ...) UseMethod('Ensemble')
 ########
 
 
@@ -45,8 +45,8 @@ new_ProtWeaver <- function(validatedInput){
             class='ProtWeaver')
 }
 
-ProtWeaver <- function(ipt){
-  vRes <- validate_ProtWeaver(ipt)
+ProtWeaver <- function(listOfData){
+  vRes <- validate_ProtWeaver(listOfData)
   new_ProtWeaver(vRes)
 }
 
@@ -135,15 +135,15 @@ print.ProtWeaver <- function(x, ...){
   new_ProtWeaver(newv)
 }
 
-predict.ProtWeaver <- function(pw, method='Jaccard', subset=NULL, verbose=TRUE, 
-                               ensembleprediction=FALSE, ...){
-  
+predict.ProtWeaver <- function(object, method='Ensemble', subset=NULL, verbose=TRUE, 
+                               returnRawData=FALSE, ...){
+  pw <- object
   func <- getS3method(method, 'ProtWeaver')
   preds <- func(pw, subset=subset, verbose=verbose, ...)
   
   if (is(preds, 'list') && !is.null(preds$noPostFormatting))
     return(preds$res)
-  if (ensembleprediction)
+  if (returnRawData)
     return(preds)
   
   rs <- structure(preds,
@@ -265,7 +265,6 @@ DCA_gradient_minimize_fxn <- function(params, R, spins, i){
 
 DCA_logrise_run <- function(spins, links, regterm, printProgress=F, numCores=1){
   if (numCores != 1){
-    require(parallel)
     availableCores <- detectCores()
     numCores <- ifelse(numCores < 0, availableCores, min(availableCores, numCores))
   }
@@ -384,7 +383,7 @@ DCA_logRISE <- function(PAProfiles, niter=1, reg_const=1,
   
   if (verbose & niter==1) pp <- T  
   else if (verbose){
-    cat('Running DCA with', iter, 'iterations:\n')
+    cat('Running DCA with', niter, 'iterations:\n')
     pb <- txtProgressBar(max=niter, style=3)
   } 
   
@@ -421,20 +420,21 @@ getBuiltInEnsembleModel <- function(pw, flags){
   # 110 => 7: base and Behdenna, Coloc
   # 111 => 8: base and Behdenna, Coloc, MT, CT
   model <- 4 * flags[3] + 2 * flags[2] + 1 * flags[1] + 1
-  load(builtinmodels)
-  return(BuiltInEnsembles[[model]])
+  builtins <- get(data('BuiltInEnsembles', envir=environment()))
+  return(builtins[[model]])
 }
 ########
 
 
 #### Class-Specific Method Definitions ####
 
-PAProfiles.ProtWeaver <- function(pw, toEval=NULL, verbose=TRUE, specieslist=NULL){
+PAProfiles.ProtWeaver <- function(pw, toEval=NULL, verbose=TRUE, 
+                                  speciesList=NULL, ...){
   cols <- names(pw)
   ao <- attr(pw, 'allOrgs')
-  if (!is.null(specieslist)){
-    stopifnot('Species list is missing species!'=all(ao %in% specieslist))
-    allOrgs <- specieslist
+  if (!is.null(speciesList)){
+    stopifnot('Species list is missing species!'=all(ao %in% speciesList))
+    allOrgs <- speciesList
   } else {
     allOrgs <- ao
   }
@@ -465,7 +465,7 @@ PAProfiles.ProtWeaver <- function(pw, toEval=NULL, verbose=TRUE, specieslist=NUL
   return(profiles)
 }
 
-CophProfiles.ProtWeaver <- function(pw, toEval=NULL, verbose=TRUE){
+CophProfiles.ProtWeaver <- function(pw, toEval=NULL, verbose=TRUE, ...){
   ## TODO: Some way to handle paralogs
   cols <- names(pw)
   allOrgs <- attr(pw, 'allOrgs')
@@ -530,7 +530,7 @@ MirrorTree.ProtWeaver <- function(pw, correction=c(),
   l <- ncol(CPs)
   if ( l == 1 ){
     mat <- matrix(1, nrow=1, ncol=1)
-    rownames(mat) <- colnames(mat) <- n
+    rownames(mat) <- colnames(mat) <- uvals
     return(mat)
   }
   
@@ -936,7 +936,7 @@ Behdenna.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE,
   n <- names(pw)[uvals]
   if ( is.null(precalcProfs) ){
     if (verbose) cat('Calculating PA Profiles...\n')
-    pap <- PAProfiles(pw, uvals, verbose=verbose, specieslist=labels(mySpeciesTree))
+    pap <- PAProfiles(pw, uvals, verbose=verbose, speciesList=labels(mySpeciesTree))
   } else {
     pap <- precalcProfs
   }
@@ -1006,7 +1006,7 @@ Behdenna.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE,
 
 Ensemble.ProtWeaver <- function(pw,
                                 subset=NULL, verbose=TRUE, mySpeciesTree=NULL,
-                                pretrainedmodel=NULL,
+                                pretrainedModel=NULL,
                                 noPrediction=FALSE, ...){
   
   flags <- rep(F, 3)
@@ -1019,7 +1019,7 @@ Ensemble.ProtWeaver <- function(pw,
   }
     
   if (verbose) cat('Calculating P/A profiles:\n')
-  PAs <- PAProfiles(pw, uvals, verbose=verbose, specieslist=splist)
+  PAs <- PAProfiles(pw, uvals, verbose=verbose, speciesList=splist)
   CPs <- NULL
   takesCP <- c('ContextTree', 'MirrorTree')
   
@@ -1041,8 +1041,8 @@ Ensemble.ProtWeaver <- function(pw,
     submodels <- c(submodels, 'Coloc')
   }
   
-  if(!is.null(pretrainedmodel)) {
-    predictionmodel <- pretrainedmodel
+  if(!is.null(pretrainedModel)) {
+    predictionmodel <- pretrainedModel
   } else {
     predictionmodel <- getBuiltInEnsembleModel(pw, flags)
   }
@@ -1053,7 +1053,7 @@ Ensemble.ProtWeaver <- function(pw,
     if (model %in% takesCP) profs <- CPs
     else profs <- PAs
     results[[model]] <- predict(pw, model, verbose=verbose, 
-                              ensembleprediction=T, precalcProfs=profs,
+                              returnRawData=T, precalcProfs=profs,
                               precalcSubset=subs, 
                               mySpeciesTree=mySpeciesTree, ...)
   }
