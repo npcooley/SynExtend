@@ -1027,7 +1027,8 @@ Ensemble.ProtWeaver <- function(pw,
   
   submodels <- c('ProfileDCA', 'Jaccard', 'Hamming', 'MutualInformation')
   if (attr(pw, 'useMT')){
-    flags[1] <- TRUE
+    # not yet implemented
+    # flags[1] <- TRUE
     if (verbose) cat('Calculating Cophenetic profiles:\n')
     CPs <- CophProfiles(pw, uvals, verbose=verbose)
     submodels <- c(submodels, takesCP)
@@ -1065,9 +1066,7 @@ Ensemble.ProtWeaver <- function(pw,
   pas <- PAStats(results, PAs) 
   results[,'AvgOcc'] <- pas$avg
   results[,'OccDiff'] <- pas$diff
-  # if (is.null(trainingset)){
-  #   
-  # }
+
   if (noPrediction) return(list(res=results, noPostFormatting=TRUE))
   
   if (verbose) cat('Predicting with Ensemble method...\n')
@@ -1083,12 +1082,6 @@ Ensemble.ProtWeaver <- function(pw,
     outmat[i1,i2] <- outmat[i2,i1] <- pred
   }
   rownames(outmat) <- colnames(outmat) <- uvals
-  
-  #minom <- -1*min(outmat, na.rm=TRUE)
-  #maxom <- max(outmat, na.rm=TRUE) + minom
-  #maxom <- ifelse(maxom==0, 1, maxom)
-  
-  #outmat <- (outmat + minom) / maxom
 
   return(outmat)
 }
