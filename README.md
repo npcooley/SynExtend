@@ -41,7 +41,9 @@ Additionally, SynExtend is maintained in a Docker container on [Dockerhub](https
 
 ## Usage
 
-Currently SynExtend's major function is facilitating the prediction of orthologous gene pairs from synteny maps. The functions herein rely on synteny maps built by the `FindSynteny()` function in the package `DECIPHER`. The process is relatively straightforward and only requires assemblies and genecalls, which can be conveniently pulled from the NCBI using [Entrez Direct](https://www.ncbi.nlm.nih.gov/books/NBK179288/). However, as long as given assemblies have associated gene calls, or can have gene calls generated, they will work just fine. `DECIPHER` now contains the function `FindGenes()` that produces high quality de novo gene calls.
+### Prediction of Orthologous Gene Pairs
+
+SynExtend facilitates the prediction of orthologous gene pairs from synteny maps. The functions herein rely on synteny maps built by the `FindSynteny()` function in the package `DECIPHER`. The process is relatively straightforward and only requires assemblies and genecalls, which can be conveniently pulled from the NCBI using [Entrez Direct](https://www.ncbi.nlm.nih.gov/books/NBK179288/). However, as long as given assemblies have associated gene calls, or can have gene calls generated, they will work just fine. `DECIPHER` now contains the function `FindGenes()` that produces high quality de novo gene calls.
 
 Using Entrez Direct, this process would start like this:
 ```r
@@ -151,6 +153,37 @@ Clusters02 <- DisjointSet(Pairs = Pairs02,
 
 
 A more self-contained example is maintained in this package's Bioconductor vignette, and can be found [here](https://www.bioconductor.org/packages/release/bioc/html/SynExtend.html)
+
+### Creating Functional Association Networks
+
+SynExtend also allows for prediction of functional association networks from presence/absence patterns of clusters of orthologous genes (COGs). Given a list of presence/absence data, the `ProtWeaver` class in SynExtend uses multiple algorithms to compute likelihood of pairwise functional association. This list can be generated with `DisjointSet(...)`, or can be created by the user. 
+
+An example of using `ProtWeaver` can be done using the built-in example *Streptomyces* dataset. This will predict functional association of 200 genes from 301 genomes. 
+
+```r
+exData <- get(data("ExampleStreptomycesData"))
+pw <- ProtWeaver(exData$Genes)
+
+# For faster runtime, set subset as follows:
+# predictions <- predict(pw, mySpeciesTree=exData$Tree, subset=1:20)
+predictions <- predict(pw, mySpeciesTree=exData$Tree)
+
+# View number of genes and number of predictions:
+
+
+# Print out pairwise associations:
+getData(predictions, asDf=TRUE)
+
+# Print out the entire adjacency matrix:
+getData(predictions)
+
+# Plot genes using force-directed embedding:
+plot(predictions)
+```
+
+Current algorithms used for prediction are Jaccard distance, Hamming distance, Mutual Information, Direct Coupling Analysis, Phylogenetic Gain/Loss events, Co-localization, MirrorTree, and ContextTree. See `?ProtWeaver` for more details.
+
+### Planned Updates
 
 SynExtend currently has an extensive TODO list that includes:
 1. Parsing communities of predicted pairs.
