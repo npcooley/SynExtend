@@ -3,6 +3,10 @@
 * `predict(ProtWeaverObject)` returns a `ProtWeb` class with information on predicted associations. 
 * Adds `BlastSeqs` to run BLAST queries on sequences stored as an `XStringSet` or `FASTA` file.
 
+# SynExtend 1.7.12
+
+* Updates to `ExtractBy` function. Methods and inputs simplified and adjusted, and significant improvements to speed.
+
 # SynExtend 1.7.11
 
 * Updated `NucleotideOverlaps` to now correctly registers hits in genes with a large degree of overlap with the immediately preceding gene.

@@ -139,13 +139,12 @@ SingleLinkageClusters <- DisjointSet(Pairs = LinkedPairs1,
 
 ```{r, clusters}
 # extract the first 10 clusters
-SeqsByCluster <- ExtractBy(x = LinkedPairs1,
-                           y = SingleLinkageClusters[1:10],
-                           Method = "clusters",
-                           DBPATH = DBPATH,
-                           Verbose = TRUE)
+Sets <- ExtractBy(x = LinkedPairs1,
+                  y = DBPATH,
+                  z = SingleLinkageClusters[1:10],
+                  Verbose = TRUE)
 
-head(SeqsByCluster)
+head(Sets)
 ```
 
 Session Info:
