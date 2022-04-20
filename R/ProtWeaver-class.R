@@ -3,7 +3,6 @@
 # contact: ahl27@pitt.edu
 
 ## Defining S3 class for ProtWeaver Object
-builtinmodels <- '../data/EnsembleModels.RData'
 
 #### DEFINITION ####
 # Class expects as input one of the following:
@@ -1072,7 +1071,10 @@ Ensemble.ProtWeaver <- function(pw,
   if (noPrediction) return(list(res=results, noPostFormatting=TRUE))
   
   if (verbose) cat('Predicting with Ensemble method...\n')
-  predictions <- predict(predictionmodel, results[,-c(1,2)])
+  if (is(predictionmodel, 'glm'))
+    predictions <- predict(predictionmodel, results[,-c(1,2)], type='response')
+  else
+    predictions <- predict(predictionmodel, results[,-c(1,2)])
   outmat <- matrix(NA, nrow=length(uvals), ncol=length(uvals))
   for (i in seq_along(predictions)){
     i1 <- which(results[i,1] == uvals)
@@ -1082,11 +1084,11 @@ Ensemble.ProtWeaver <- function(pw,
   }
   rownames(outmat) <- colnames(outmat) <- uvals
   
-  minom <- -1*min(outmat, na.rm=TRUE)
-  maxom <- max(outmat, na.rm=TRUE) + minom
-  maxom <- ifelse(maxom==0, 1, maxom)
+  #minom <- -1*min(outmat, na.rm=TRUE)
+  #maxom <- max(outmat, na.rm=TRUE) + minom
+  #maxom <- ifelse(maxom==0, 1, maxom)
   
-  outmat <- (outmat + minom) / maxom
+  #outmat <- (outmat + minom) / maxom
 
   return(outmat)
 }
