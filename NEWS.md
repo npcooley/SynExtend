@@ -1,4 +1,4 @@
-# SynExtend 1.8.1
+# SynExtend 1.7.13
 * Introduces new `ProtWeaver` class to predict functional association of genes from COGs or gene trees. This implements many algorithms commonly used in the literature, such as MirrorTree and Inverse Potts Models.
 * `predict(ProtWeaverObject)` returns a `ProtWeb` class with information on predicted associations. 
 * Adds `BlastSeqs` to run BLAST queries on sequences stored as an `XStringSet` or `FASTA` file.
