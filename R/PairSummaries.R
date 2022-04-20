@@ -220,6 +220,7 @@ PairSummaries <- function(SyntenyLinks,
       Features01[[Count]] <- vector(mode = "list",
                                   length = length(PresentIndices))
       for (m3 in seq_along(PresentIndices)) {
+        # print(m3)
         ph <- GeneCalls[[Count]]$Index == PresentIndices[m3]
         
         # original implementation - very slow
@@ -237,6 +238,14 @@ PairSummaries <- function(SyntenyLinks,
         # convert IRangesList to IRanges object for simple extractAt
         z1 <- unlist(z1,
                      recursive = FALSE)
+        # if (m3 == 52) {
+        #   return(list(Genome,
+        #               PresentIndices,
+        #               m3,
+        #               z1,
+        #               z2,
+        #               GeneCalls[[Count]]))
+        # }
         Features01[[Count]][[m3]] <- extractAt(x = Genome[[PresentIndices[m3]]],
                                                at = z1)
         
