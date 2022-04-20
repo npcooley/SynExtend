@@ -4,7 +4,8 @@ import(Biostrings)
 import(DECIPHER)
 import(S4Vectors)
 
-importFrom("utils", "setTxtProgressBar", "txtProgressBar", "data", "object.size", "getS3method")
+importFrom("utils", "setTxtProgressBar", "txtProgressBar", "data", 
+           "object.size", "getS3method","read.table")
 importFrom("stats", "predict", "runif", "setNames", "rnorm", "optim")
 importFrom("parallel", "mclapply", "detectCores")
 importFrom("graphics", "hist")
@@ -21,6 +22,7 @@ export(SubSetPairs)
 export(EstimateRearrangementScenarios)
 export(BlockExpansion)
 export(BlockReconciliation)
+export(BlastSeqs)
 
 S3method(`[`, "LinkedPairs")
 S3method(print, "LinkedPairs")
