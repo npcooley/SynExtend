@@ -35,7 +35,7 @@ Ensemble <- function(pw, ...) UseMethod('Ensemble')
 ########
 
 
-#### Class Definitions ####
+#### Class Constructor and Built-In Generic Definitions ####
 new_ProtWeaver <- function(validatedInput){
   structure(validatedInput$ipt,
             allOrgs=validatedInput$allgenomes,
@@ -44,8 +44,8 @@ new_ProtWeaver <- function(validatedInput){
             class='ProtWeaver')
 }
 
-ProtWeaver <- function(listOfData){
-  vRes <- validate_ProtWeaver(listOfData)
+ProtWeaver <- function(listOfData, noWarn=FALSE){
+  vRes <- validate_ProtWeaver(listOfData, noWarn=noWarn)
   new_ProtWeaver(vRes)
 }
 
@@ -134,11 +134,16 @@ print.ProtWeaver <- function(x, ...){
   new_ProtWeaver(newv)
 }
 
-predict.ProtWeaver <- function(object, method='Ensemble', subset=NULL, verbose=TRUE, 
-                               returnRawData=FALSE, ...){
+predict.ProtWeaver <- function(object, method='Ensemble', subset=NULL, numCores=1,
+                               mySpeciesTree=NULL,  pretrainedModel=NULL,
+                               rawZscores=FALSE, noPrediction=FALSE, 
+                               verbose=TRUE, returnRawData=FALSE, ...){
   pw <- object
   func <- getS3method(method, 'ProtWeaver')
-  preds <- func(pw, subset=subset, verbose=verbose, ...)
+  preds <- func(pw, subset=subset, verbose=verbose, 
+                mySpeciesTree=mySpeciesTree, numCores=numCores,
+                pretrainedModel=pretrainedModel, rawZscores=rawZscores, 
+                noPrediction=noPrediction, ...)
   
   if (is(preds, 'list') && !is.null(preds$noPostFormatting))
     return(preds$res)
@@ -1014,7 +1019,9 @@ Ensemble.ProtWeaver <- function(pw,
   flags <- rep(FALSE, 3)
   
   subs <- ProcessSubset(pw, subset)
+  n <- names(pw)
   uvals <- subs$uvals
+  unames <- vapply(uvals, function(x) n[x], FUN.VALUE=character(1))
   splist <- NULL
   if (!is.null(mySpeciesTree)){
     splist <- labels(mySpeciesTree)
@@ -1075,9 +1082,10 @@ Ensemble.ProtWeaver <- function(pw,
   else
     predictions <- predict(predictionmodel, results[,-c(1,2)])
   outmat <- matrix(NA, nrow=length(uvals), ncol=length(uvals))
+
   for (i in seq_along(predictions)){
-    i1 <- which(results[i,1] == uvals)
-    i2 <- which(results[i,2] == uvals)
+    i1 <- which(results[i,1] == unames)
+    i2 <- which(results[i,2] == unames)
     pred <- predictions[i]
     outmat[i1,i2] <- outmat[i2,i1] <- pred
   }

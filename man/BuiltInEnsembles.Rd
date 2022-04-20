@@ -2,31 +2,40 @@
 \alias{BuiltInEnsembles}
 \docType{data}
 \title{
-Pretrained Ensemble ProtWeaver models
+Pretrained ProtWeaver Ensemble Models
 }
 \description{
 ProtWeaver has best performance with an ensemble method combining individual 
-evidence streams. Users can train their own models using:
+evidence streams. 
+This data file provides pretrained models for ease of use. 
+These models are trained on genes from \emph{Streptomyces} species. 
 
-\code{data <- predict.ProtWeaver(pw, 'Ensemble',
-                                noPrediction=TRUE)}
+These models are used internally if the user does not provide their own model,
+and aren't explicitly designed to be accessed by the user.
 
-\code{myModel <- model.fit(data)}
-
-\code{predict.ProtWeaver(pw, 'Ensemble', pretrainedmodel=myModel)}
-
-However, pretrained models 
-are provided for ease of use. All provided models are trained on genes from \emph{Streptomyces} species.
+See the examples for how to train your own ensemble model.
 }
-\usage{data(BuiltInEnsembles)}
+\usage{data("BuiltInEnsembles")}
 \format{
-  The format is a list of objects of class ``glm''.
-}
-\details{
-A model for predicting the probability of functional association for a pair of
-genes or proteins in a ProtWeaver object
+  The data contain a list of objects of class \code{\link[stats]{glm}}.
 }
 \examples{
-data(BuiltInEnsembles)
+## Training own ensemble method to avoid 
+## using built-ins
+
+exData <- get(data("ExampleStreptomycesData"))
+pw <- ProtWeaver(exData$Genes[1:100])
+datavals <- predict(pw, noPrediction=TRUE)
+                  
+# Make sure the actual values correspond to the right pairs! 
+# This example just picks random numbers
+# Do not do this for your own models
+actual_values <- sample(c(0,1), nrow(datavals), replace=TRUE)
+datavals[,'y'] <- actual_values                  
+myModel <- glm(y~., datavals[,-c(1,2)], family='binomial')
+
+predictionPW <- ProtWeaver(exData$Genes[101:120])
+predict(predictionPW, 
+          pretrainedModel=myModel)
 }
 \keyword{datasets}

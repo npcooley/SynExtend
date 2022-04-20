@@ -23,6 +23,7 @@ export(EstimateRearrangementScenarios)
 export(BlockExpansion)
 export(BlockReconciliation)
 export(BlastSeqs)
+export(getProtWebData)
 
 S3method(`[`, "LinkedPairs")
 S3method(print, "LinkedPairs")
@@ -44,13 +45,10 @@ S3method(Coloc, 'ProtWeaver')
 S3method(Behdenna, 'ProtWeaver')
 S3method(Ensemble, 'ProtWeaver')
 
-
-
-S3method(getData, 'ProtWeb')
+S3method(getProtWebData, 'ProtWeb')
 S3method(plot, 'ProtWeb')
 S3method(summary, 'ProtWeb')
 S3method(show, 'ProtWeb')
 S3method(print, 'ProtWeb')
-S3method(getData, 'ProtWeb')
 
 

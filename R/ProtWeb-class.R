@@ -12,7 +12,7 @@
 
 #################
 
-getData <- function(x, ...) UseMethod('getData')
+getProtWebData <- function(x, ...) UseMethod('getProtWebData')
 
 plot.ProtWeb <- function(x, nsim=10, gravity=0.05, coulomb=0.1, connection=5,
                          move_rate=0.25, cutoff=0.2, 
@@ -76,7 +76,7 @@ summary.ProtWeb <- function(object, ...){
   cat('a ProtWeb object.\n')
   a <- attributes(object)
   cat('\tMethod used:', a$method, '\n')
-  d <- getData(object)
+  d <- getProtWebData(object)
   numGenes <- ncol(d)
   numPreds <- sum(upper.tri(d,diag=TRUE) & !is.na(d))
   cat('\tNumber of genes:', numGenes, '\n')
@@ -91,7 +91,7 @@ show.ProtWeb <- function(x, ...){
   summary(x)
 }
 
-getData.ProtWeb <- function(x, asDf=FALSE, ...){
+getProtWebData.ProtWeb <- function(x, asDf=FALSE, ...){
   dims <- dim(x)
   rnames <- rownames(x)
   cnames <- colnames(x)

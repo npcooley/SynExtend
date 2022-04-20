@@ -24,9 +24,9 @@ BlastSeqs <- function(seqs, BlastDB,
          
   if (!is(seqs, 'character')){
     if (is(seqs, 'AAStringSet') && blastType %in% c('blastn', 'blastx', 'tblastx'))
-      stop(paste0("'", blastType, "'expects nucleotide data as input (received AAStringSet!)"))
+      stop("'", blastType, "'expects nucleotide data as input (received AAStringSet!)")
     if (is(seqs, 'DNAStringSet') && blastType %in% c('blastp', 'tblastn'))
-      stop(paste0("'", blastType, "' expects protein data as input (received DNAStringSet!)"))
+      stop("'", blastType, "' expects protein data as input (received DNAStringSet!)")
     if (verbose) cat('Input is XStringSet, creating temporary .fasta file...\n\n')
     f <- tempfile()
     writeXStringSet(seqs, filepath=f, format='FASTA')
