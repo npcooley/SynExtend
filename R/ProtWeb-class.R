@@ -16,7 +16,7 @@ getData <- function(x, ...) UseMethod('getData')
 
 plot.ProtWeb <- function(x, nsim=10, gravity=0.05, coulomb=0.1, connection=5,
                          move_rate=0.25, cutoff=0.2, 
-                         verbose=T, colorpalette=topo.colors, ...){
+                         verbose=TRUE, colorpalette=topo.colors, ...){
   ## Springy embedding
   #
   # Uses 3 forces:
@@ -35,9 +35,9 @@ plot.ProtWeb <- function(x, nsim=10, gravity=0.05, coulomb=0.1, connection=5,
   embedding <- matrix(runif(2*nrow(web)), ncol=2, nrow=nrow(web))
   true_dists <- cur_dists <- unclass(web)
   if (verbose) pb <- txtProgressBar(max=nsim, style=3)
-  for (iter in 1:nsim){
+  for (iter in seq_len(nsim)){
     # Update distances
-    for ( i in 1:nrow(cur_dists) )
+    for ( i in seq_len(nrow(cur_dists)) )
       for ( j in i:nrow(cur_dists) )
         cur_dists[i,j] <- cur_dists[j,i] <- sqrt(sum((embedding[i,]-embedding[j,])**2))
     
@@ -47,8 +47,8 @@ plot.ProtWeb <- function(x, nsim=10, gravity=0.05, coulomb=0.1, connection=5,
     # Coulomb and Attractive
     node_node <- g_vec
     node_node[] <- 0
-    for ( i in 1:nrow(embedding) ){
-      for ( j in 1:nrow(embedding) ){
+    for ( i in seq_len(nrow(embedding)) ){
+      for ( j in seq_len(nrow(embedding)) ){
         dir_force <- embedding[j,] - embedding[i,]
         r <- ifelse(cur_dists[i,j]==0, 1, cur_dists[i,j]**2)
         attr <- dir_force * (cur_dists[i,j] - true_dists[i,j]) * connection
@@ -62,9 +62,11 @@ plot.ProtWeb <- function(x, nsim=10, gravity=0.05, coulomb=0.1, connection=5,
   
   #return(embedding)
   center <- c(mean(embedding[,1]), mean(embedding[,2]))
-  colsvec <- sapply(1:nrow(embedding), function(x) sqrt(sum((embedding[x,] - center)**2)))
+  colsvec <- vapply(seq_len(nrow(embedding)), 
+                    function(x) sqrt(sum((embedding[x,] - center)**2)),
+                    FUN.VALUE=numeric(1))
   colors <- colorpalette(length(colsvec))
-  embedding <- embedding[order(colsvec, decreasing=F),]
+  embedding <- embedding[order(colsvec, decreasing=FALSE),]
   plot(embedding[,1], embedding[,2], pch=19, cex=0.5, 
        xaxt='n', yaxt='n', ylab='', xlab='', col=colors,
        main='Force-directed embedding of COGs', ...)
@@ -89,7 +91,7 @@ show.ProtWeb <- function(x, ...){
   summary(x)
 }
 
-getData.ProtWeb <- function(x, asDf=F, ...){
+getData.ProtWeb <- function(x, asDf=FALSE, ...){
   dims <- dim(x)
   rnames <- rownames(x)
   cnames <- colnames(x)
@@ -110,14 +112,14 @@ print.ProtWeb <- function(x, ...){
 ProtWebMatToDf <- function(preds){
   stopifnot(is(preds,'matrix'))
   pair_locs <- upper.tri(preds)
-  pairnames <- which(pair_locs, arr.ind=T)
+  pairnames <- which(pair_locs, arr.ind=TRUE)
   pairentry1 <- rownames(preds)[pairnames[,'row']]
   pairentry2 <- colnames(preds)[pairnames[,'col']]
   AdjDf <- data.frame(Gene1=pairentry1, Gene2=pairentry2)
   AdjDf[,'Prediction'] <- preds[pair_locs]
   
   nc <- ncol(AdjDf)
-  rtk <- vapply(1:nrow(AdjDf), function(x) sum(is.na(AdjDf[x,3:nc])) < (nc/2 - 1),
+  rtk <- vapply(seq_len(nrow(AdjDf)), function(x) sum(is.na(AdjDf[x,3:nc])) < (nc/2 - 1),
                 FUN.VALUE=TRUE)
   AdjDf <- AdjDf[rtk,]
   rownames(AdjDf) <- NULL

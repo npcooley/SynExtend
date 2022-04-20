@@ -49,7 +49,7 @@ setMethod('parentTree', 'FastDend', function(fDend, leafNode, height) {
   if (is(leafNode, 'character')){
     leafNode <- which(fDend@leaflabels == leafNode)
   }
-  stopifnot('Leaf does not exist in tree.' = (length(leafNode) == 1 && leafNode %in% 1:fDend@nleaves))
+  stopifnot('Leaf does not exist in tree.' = (length(leafNode) == 1 && leafNode %in% seq_len(fDend@nleaves)))
   
   b <- fDend@branches
   root <- fDend@root
@@ -75,7 +75,7 @@ setMethod('rootPath', 'FastDend', function(x, y) {
     y <- which(x@leaflabels == y)
   }
   b <- x@branches
-  stopifnot('Branch does not exist in tree.' = (length(y) == 1 && y %in% 1:nrow(b)))
+  stopifnot('Branch does not exist in tree.' = (length(y) == 1 && y %in% seq_len(nrow(b))))
   path <- pathnames <- rep(NA, x@nbranches+1)
   root <- x@root
   curpos <- y
@@ -138,10 +138,10 @@ FastDend <- function(dend){
   
   labels <- labels(dend)
   nleaves <- length(labels)
-  leaflabels <- 1:nleaves
+  leaflabels <- seq_len(nleaves)
   names(labels) <- leaflabels
   nbranches <- 2*nleaves + 3
-  mat <- matrix(c(-1, 0, 0, 0, 0, 0, 1), nrow=nbranches, ncol = 7, byrow = T)
+  mat <- matrix(c(-1, 0, 0, 0, 0, 0, 1), nrow=nbranches, ncol = 7, byrow = TRUE)
   colnames(mat) <- c('label', 'isLeaf', 'left', 'right', 'parent', 'length', 'support')
   mat[leaflabels, 'isLeaf'] <- 1
   mat[leaflabels, 'label'] <- leaflabels
@@ -184,7 +184,7 @@ fitch_up <- function(fDend, ov){
   return(ov)
 }
 
-fitch_down <- function(fDend, ov, pushUp=T, rootFill = 0){
+fitch_down <- function(fDend, ov, pushUp=TRUE, rootFill = 0){
   helperfunc <- function(branchesmat, node){
     if (branchesmat[node, 'isLeaf'] != 1) {
       if (ov[node] == 2){
@@ -204,7 +204,7 @@ fitch_down <- function(fDend, ov, pushUp=T, rootFill = 0){
   return(ov)
 }
 
-fitch_parsimony<- function(fDend, occurrenceVec, moveEventsUpward=T){
+fitch_parsimony<- function(fDend, occurrenceVec, moveEventsUpward=TRUE){
   ovf <- fitch_up(fDend, occurrenceVec)
   ovf <- fitch_down(fDend, ovf, moveEventsUpward)
   return(ovf)
@@ -228,11 +228,11 @@ gain_loss_vec <- function(fDend, occurrenceVec){
   return(glvec)
 }
 
-calc_SId_mat <- function(fd, IdOnly=F){
+calc_SId_mat <- function(fd, IdOnly=FALSE){
   fdbranch <- fd@branches
   branchmat <- matrix(0, ncol=nrow(fdbranch), nrow=nrow(fdbranch))
   blengths <- numeric(length=nrow(fdbranch))
-  for (i in 1:nrow(fdbranch)){
+  for (i in seq_len(nrow(fdbranch))){
     r <- fdbranch[i,]
     v <- ifelse(r[1] == 0, 302, r[1])
     blengths[v] <- r[6]
@@ -269,7 +269,7 @@ calc_SId_mat <- function(fd, IdOnly=F){
   return(list(S=S, Id=Id, blengths=blengths, Cmat=Cmat))
 }
 
-generateGainLossVec <- function(fDend, PAvec, moveEventsUpward=T){
+generateGainLossVec <- function(fDend, PAvec, moveEventsUpward=TRUE){
   stopifnot(is(fDend, 'FastDend'))
   stopifnot(length(leaves(fDend)) == length(PAvec))
   occvec <- fitch_parsimony(fDend, PAvec, moveEventsUpward)

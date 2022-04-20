@@ -50,14 +50,14 @@ ProtWeaver <- function(listOfData){
   new_ProtWeaver(vRes)
 }
 
-validate_ProtWeaver <- function(ipt){
-  bitflags <- list(usecoloc=F, usemirrortree=F)
+validate_ProtWeaver <- function(ipt, noWarn=FALSE){
+  bitflags <- list(usecoloc=FALSE, usemirrortree=FALSE)
   stopifnot('ProtWeaver expects a list of dendrograms or character vectors as input.'=
               is(ipt, 'list'))
   
   stopifnot('Input has no groups!'=length(ipt)>0)
-  checkdend <- sapply(ipt, is, class2='dendrogram')
-  checkchar <- sapply(ipt, is, class2='character')
+  checkdend <- vapply(ipt, is, class2='dendrogram', FUN.VALUE = TRUE)
+  checkchar <- vapply(ipt, is, class2='character', FUN.VALUE = TRUE)
   stopifnot('Input list must be all vectors or all dendrograms'=
               !any(checkchar) || all(checkchar))
   stopifnot('Input list must be all vectors or all dendrograms'=
@@ -68,35 +68,35 @@ validate_ProtWeaver <- function(ipt){
   
   # Now we know that the input is either of type 'character' or 'dendrogram'
   if (all(checkchar)){
-    warning(paste('Disabling MirrorTree-based algorithms.',
-                  'Input list must include inputs of type "dendrogram"',
-                  'for MT algorithms. Consult the documentation for more info.'))
-    bitflags[['usemirrortree']] <- F
+    if (!noWarn) warning('Disabling MirrorTree-based algorithms. ',
+                  'Input list must include inputs of type "dendrogram" ',
+                  'for MT algorithms. Consult the documentation for more info.')
+    bitflags[['usemirrortree']] <- FALSE
     allentries <- unique(unlist(ipt))
   } else {
-    bitflags[['usemirrortree']] <- T
-    allentries <- unique(unlist(sapply(ipt, labels)))
+    bitflags[['usemirrortree']] <- TRUE
+    allentries <- unique(unlist(lapply(ipt, labels)))
   }
   
   checkforcoloc <- grepl('.+_.+_[0-9]+', allentries)
   if ( all(checkforcoloc) ){
-    bitflags[['usecoloc']] <- T
+    bitflags[['usecoloc']] <- TRUE
     allentries <- unique(gsub('(.+)_.+_[0-9]+', '\\1', allentries))
   }
   else{
-    bitflags[['usecoloc']] <- F
-    warning(paste('Co-localization disabled. Labels must be in the format',
-              '[GENOME]_[INDEX]_[ORDER] to use co-localization',
-            '(where ORDER is a numeric). Consult the documentation for more info.'))
+    bitflags[['usecoloc']] <- FALSE
+    if (!noWarn) warning('Co-localization disabled. Labels must be in the format ',
+              '[GENOME]_[INDEX]_[ORDER] to use co-localization ',
+            '(where ORDER is a numeric). Consult the documentation for more info.')
   }
   
   if (is.null(names(ipt))){
-    warning('Adding character labels to input data.')
-    names(ipt) <- as.character(1:length(ipt))
+    if (!noWarn) warning('Adding character labels to input data.')
+    names(ipt) <- as.character(seq_len(length(ipt)))
   }
   if (any(names(ipt) == '')){
-    warning('Adding labels to unnamed groups.')
-    safe <- paste0('Unnamed_Grp_', as.character(1:length(ipt)))
+    if (!noWarn) warning('Adding labels to unnamed groups.')
+    safe <- paste0('Unnamed_Grp_', as.character(seq_len(length(ipt))))
     n <- names(ipt)
     names(ipt)[n==''] <- safe[n=='']
   }
@@ -131,7 +131,7 @@ print.ProtWeaver <- function(x, ...){
 
 `[.ProtWeaver` <- function(x, i){
   y <- unclass(x)
-  newv <- suppressWarnings(validate_ProtWeaver(y[i]))
+  newv <- validate_ProtWeaver(y[i], noWarn=TRUE)
   new_ProtWeaver(newv)
 }
 
@@ -161,7 +161,7 @@ predict.ProtWeaver <- function(object, method='Ensemble', subset=NULL, verbose=T
 ProcessSubset <- function(pw, subset=NULL){
   pl <- length(pw)
   evalmap <- NULL
-  uvals <- 1:pl
+  uvals <- seq_len(pl)
   if (!is.null(subset)){
     n <- names(pw)
     stopifnot("'subset' must be either character, numeric, or matrix"=
@@ -172,7 +172,7 @@ ProcessSubset <- function(pw, subset=NULL){
       if( is(subset[1], 'character') ){
         subset <- matrix(vapply(c(subset), function(x) which(x==n), 0), ncol=2)
       }
-      for ( i in 1:nrow(subset)){
+      for ( i in seq_len(nrow(subset))){
         pos <- subset[i,]
         i1 <- as.character(min(pos))
         i2 <- max(pos)
@@ -181,7 +181,7 @@ ProcessSubset <- function(pw, subset=NULL){
       uvals <- unique(c(subset))
     } else {
       if (is(subset, 'character'))
-        subset <- which(sapply(uvals, function(x) x == n))
+        subset <- which(vapply(uvals, function(x) x == n, FUN.VALUE=logical(1)))
       uvals <- unique(subset)
       evalmap <- lapply(uvals, function(x) uvals)
       names(evalmap) <- as.character(uvals)
@@ -195,7 +195,7 @@ AdjMatToDf <- function(preds){
   stopifnot(length(preds) > 0)
   expred <- preds[[1]]
   pair_locs <- upper.tri(expred)
-  pairnames <- which(pair_locs, arr.ind=T)
+  pairnames <- which(pair_locs, arr.ind=TRUE)
   pairentry1 <- rownames(expred)[pairnames[,'row']]
   pairentry2 <- colnames(expred)[pairnames[,'col']]
   AdjDf <- data.frame(Gene1=pairentry1, Gene2=pairentry2)
@@ -204,7 +204,7 @@ AdjMatToDf <- function(preds){
     AdjDf[,n[i]] <- (preds[[i]])[pair_locs]
   
   nc <- ncol(AdjDf)
-  rtk <- vapply(1:nrow(AdjDf), function(x) sum(is.na(AdjDf[x,3:nc])) < (nc/2 - 1),
+  rtk <- vapply(seq_len(nrow(AdjDf)), function(x) sum(is.na(AdjDf[x,3:nc])) < (nc/2 - 1),
                 FUN.VALUE=TRUE)
   AdjDf <- AdjDf[rtk,]
   rownames(AdjDf) <- NULL
@@ -263,7 +263,7 @@ DCA_gradient_minimize_fxn <- function(params, R, spins, i){
   return(grad)
 }
 
-DCA_logrise_run <- function(spins, links, regterm, printProgress=F, numCores=1){
+DCA_logrise_run <- function(spins, links, regterm, printProgress=FALSE, numCores=1){
   if (numCores != 1){
     availableCores <- detectCores()
     numCores <- ifelse(numCores < 0, availableCores, min(availableCores, numCores))
@@ -276,7 +276,7 @@ DCA_logrise_run <- function(spins, links, regterm, printProgress=F, numCores=1){
   }
   
   if (printProgress) cat('  |')
-  links <- simplify2array(mclapply(1:nnodes, 
+  links <- simplify2array(mclapply(seq_len(nnodes), 
                                    function(i){
                                      probs <- links[,i]
                                      val <- optim(probs, DCA_minimize_fxn, 
@@ -284,13 +284,14 @@ DCA_logrise_run <- function(spins, links, regterm, printProgress=F, numCores=1){
                                                   method='BFGS',
                                                   control=list(reltol=1e-6),
                                                   R=regterm, spins=spins, i=i)$par
-                                     if (printProgress && charsvec[i]) system('printf =')
+                                     if (printProgress && charsvec[i]) 
+                                       system2('printf', '=')
                                      return(val)
                                    }, mc.cores=numCores, mc.preschedule = FALSE
   )
   )
   if (printProgress) cat('| ')
-  for ( i in 1:(nrow(links)-1) ){
+  for ( i in seq_len(nrow(links)-1) ){
     for ( j in (i+1):ncol(links)){
       links[i,j] <- links[j,i] <- mean(links[i,j], links[j,i])
     }
@@ -299,7 +300,7 @@ DCA_logrise_run <- function(spins, links, regterm, printProgress=F, numCores=1){
   if (printProgress) cat('Done.\n  Eliminating edges close to zero (may take a moment)...\n')
   # Shrink close to zero to zero
   vals <- links[upper.tri(links)]
-  h <- hist(vals, breaks=40, plot=F)
+  h <- hist(vals, breaks=40, plot=FALSE)
   bin0 <- which(h$breaks==0)
   countsNorm <- h$counts == 0
   lb <- length(countsNorm)
@@ -336,12 +337,12 @@ DCA_logrise_run <- function(spins, links, regterm, printProgress=F, numCores=1){
   
   if (printProgress) cat('  |')
   links <- simplify2array(
-    mclapply(1:nnodes, 
+    mclapply(seq_len(nnodes), 
              function(i) {
                probs <- links[,i]
-               mask <- 1:nnodes == i
+               mask <- seq_len(nnodes) == i
                nonzeros <- (probs != 0) | mask #have to include the self val
-               adjustment <- ifelse(i==1, 0, sum(!nonzeros[1:(i-1)]))
+               adjustment <- ifelse(i==1, 0, sum(!nonzeros[seq_len(i-1)]))
                
                if ( sum(nonzeros) > 1 ){
                  pspins <- spins[,nonzeros]
@@ -359,7 +360,7 @@ DCA_logrise_run <- function(spins, links, regterm, printProgress=F, numCores=1){
              mc.cores=numCores, mc.preschedule=FALSE))  
   if (printProgress) cat('| ')
   
-  for ( i in 1:(nrow(links)-1) ){
+  for ( i in seq_len(nrow(links)-1) ){
     for ( j in (i+1):ncol(links)){
       links[i,j] <- links[j,i] <- mean(links[i,j], links[j,i])
     }
@@ -379,16 +380,16 @@ DCA_logRISE <- function(PAProfiles, niter=1, reg_const=1,
   intPA <- PAProfiles + 0
   intPA[intPA==0] <- -1
   nc <- ncol(intPA)
-  pp <- F
+  pp <- FALSE
   
-  if (verbose & niter==1) pp <- T  
+  if (verbose & niter==1) pp <- TRUE  
   else if (verbose){
     cat('Running DCA with', niter, 'iterations:\n')
     pb <- txtProgressBar(max=niter, style=3)
   } 
   
   truelinks <- countsmat <- matrix(0, nrow=nc, ncol=nc)
-  for ( i in 1:niter ){
+  for ( i in seq_len(niter) ){
     #initlinks <- matrix(0, nrow=nc, ncol=nc)
     initlinks <- matrix(rnorm(nc**2), nrow=nc)
     iterlink <- DCA_logrise_run(intPA, initlinks, reg_const, 
@@ -445,18 +446,18 @@ PAProfiles.ProtWeaver <- function(pw, toEval=NULL, verbose=TRUE,
   if (useColoc)
     pw <- lapply(pw, gsub, pattern='(.+)_.+_[0-9]+', replacement='\\1')
   
-  skip <- F
+  skip <- FALSE
   if ( !is.null(toEval) ){
-    skip <- T
+    skip <- TRUE
     locs <- unique(c(toEval))
   }
-  profiles <- matrix(F, nrow=length(allOrgs), ncol=length(pw))
+  profiles <- matrix(FALSE, nrow=length(allOrgs), ncol=length(pw))
   rownames(profiles) <- allOrgs
   colnames(profiles) <- cols
   if (verbose) pb <- txtProgressBar(max=length(pw), style=3)
-  for ( i in 1:length(pw) ){
+  for ( i in seq_len(length(pw)) ){
     if( !skip || i %in% locs)
-      profiles[pw[[i]],i] <- T
+      profiles[pw[[i]],i] <- TRUE
     if (verbose) setTxtProgressBar(pb, i)
   }
   if (verbose) cat('\n')
@@ -475,9 +476,9 @@ CophProfiles.ProtWeaver <- function(pw, toEval=NULL, verbose=TRUE, ...){
   stopifnot('ProtWeaver object must be initialized with dendrograms to run MirrorTree methods'=
               useMT)
 
-  skip <- F
+  skip <- FALSE
   if ( !is.null(toEval) ){
-    skip <- T
+    skip <- TRUE
     locs <- unique(c(toEval))
   }
   l <- length(allOrgs)
@@ -495,7 +496,8 @@ CophProfiles.ProtWeaver <- function(pw, toEval=NULL, verbose=TRUE, ...){
       cop <- as.matrix(Cophenetic(pw[[i]]))
       copOrgNames <- rownames(cop)
       if (useColoc){
-        copOrgNames <- sapply(copOrgNames, gsub, pattern='(.+)_.+_[0-9]+', replacement='\\1')
+        copOrgNames <- vapply(copOrgNames, gsub, pattern='(.+)_.+_[0-9]+', 
+                              replacement='\\1', FUN.VALUE=character(1))
         rownames(cop) <- colnames(cop) <- copOrgNames
       }
       dummycoph[copOrgNames, copOrgNames] <- cop
@@ -507,7 +509,8 @@ CophProfiles.ProtWeaver <- function(pw, toEval=NULL, verbose=TRUE, ...){
   colnames(outmat) <- cols
   if (!is.null(toEval)){
     outmat <- outmat[,locs]
-    ltr <- sapply(1:nrow(outmat), function(x) all(is.na(outmat[x,])))
+    ltr <- vapply(seq_len(nrow(outmat)), function(x) all(is.na(outmat[x,])),
+                  FUN.VALUE=logical(1))
     outmat <- outmat[!ltr,]
   }
   return(outmat)
@@ -547,30 +550,30 @@ MirrorTree.ProtWeaver <- function(pw, correction=c(),
   }
   if ('normalize' %in% correction){
     if (verbose) cat('Normalizing profiles...\n')
-    means <- colMeans(CPs, na.rm=T)
-    vars <- apply(CPs, MARGIN=2, var, na.rm=T)
-    for ( i in 1:ncol(CPs) ){
+    means <- colMeans(CPs, na.rm=TRUE)
+    vars <- apply(CPs, MARGIN=2, var, na.rm=TRUE)
+    for ( i in seq_len(ncol(CPs)) ){
       CPs[,i] <- (CPs[,i] - means[i]) / (ifelse(vars[i]!=0, sqrt(vars), 1))
     }
   }
   if ('satoaverage' %in% correction){
-    means <- rowMeans(CPs, na.rm = T)
+    means <- rowMeans(CPs, na.rm = TRUE)
     if (verbose) cat('Calculating Sato projection vectors...\n')
     
     # Big profiles lead to space issues that crash R
     if (nrow(CPs)**2 < (2**28)){
       if (verbose) pb <- txtProgressBar(max=ncol(CPs), style=3)
       proj_op <- diag(nrow=nrow(CPs)) - (means %*% t(means))
-      for ( i in 1:ncol(CPs) ){
+      for ( i in seq_len(ncol(CPs)) ){
         CPs[,i] <- c(CPs[,i] %*% proj_op)
         if ( verbose ) setTxtProgressBar(pb, i)
       }
     } else {
       if (verbose) pb <- txtProgressBar(max=(ncol(CPs)*nrow(CPs)), style=3)
-      for ( i in 1:ncol(CPs) ){
+      for ( i in seq_len(ncol(CPs)) ){
         v <- projv <- CPs[,i]
         multv <- means * v
-        for ( j in 1:nrow(CPs) ){
+        for ( j in seq_len(nrow(CPs)) ){
           if ( !is.na(v[j]) )
             projv[j] <- sum(multv * means[j])
           if ( verbose ) setTxtProgressBar(pb, (i-1)*nrow(CPs) + j)
@@ -584,7 +587,7 @@ MirrorTree.ProtWeaver <- function(pw, correction=c(),
   pairscores <- matrix(NA, nrow=pl, ncol=pl)
   ctr <- 1
   if (verbose) pb <- txtProgressBar(max=(pl*(pl-1) / 2), style=3)
-  for ( i in 1:(pl-1) ){
+  for ( i in seq_len(pl-1) ){
     acc1 <- which(i == uvals)
     if (length(acc1) == 0) acc1 <- 1
     v1 <- CPs[,acc1]
@@ -603,14 +606,14 @@ MirrorTree.ProtWeaver <- function(pw, correction=c(),
   for ( i in uvals )
     pairscores[i,i] <- 1
   if ('partialcorrelation' %in% correction){
-    flag <- T
+    flag <- TRUE
     if (!is.null(subset)){
       opsm <- pairscores
       pairscores <- pairscores[uvals, uvals]
       if (any(is.na(pairscores))){
         pairscores <- opsm
         warning('Partial correlation requires a square matrix. Skipping.')
-        flag <- F
+        flag <- FALSE
       }
     }
     if (flag){
@@ -620,7 +623,7 @@ MirrorTree.ProtWeaver <- function(pw, correction=c(),
       } else {
         inv <- solve(pairscores)
         cols <- matrix(diag(inv), nrow=nrow(inv), ncol=ncol(inv))
-        rows <- matrix(diag(inv), nrow=nrow(inv), ncol=ncol(inv), byrow=T)
+        rows <- matrix(diag(inv), nrow=nrow(inv), ncol=ncol(inv), byrow=TRUE)
         divisor <- sqrt(cols * rows)
         pairscores <- (-1 * inv) / divisor
       }
@@ -679,7 +682,7 @@ Jaccard.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE,
   pairscores <- matrix(NA, nrow=l, ncol=l)
   ctr <- 1
   if (verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
-  for ( i in 1:l ){
+  for ( i in seq_len(l) ){
     uval1 <- uvals[i]
     p1 <- pap[,i]
     for ( j in i:l ){
@@ -731,7 +734,7 @@ Hamming.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE,
   pairscores <- matrix(NA, nrow=l, ncol=l)
   ctr <- 1
   if (verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
-  for ( i in 1:l ){
+  for ( i in seq_len(l) ){
     uval1 <- uvals[i]
     p1 <- pap[,i]
     for ( j in i:l ){
@@ -750,7 +753,7 @@ Hamming.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE,
   diag(pairscores) <- 0
   n <- n[uvals]
   rownames(pairscores) <- colnames(pairscores) <- n
-  mp <- max(pairscores, na.rm=T)
+  mp <- max(pairscores, na.rm=TRUE)
   pairscores <- (mp - pairscores) / mp #because distance
   return(pairscores)
 }
@@ -779,7 +782,7 @@ MutualInformation.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE,
   pairscores <- matrix(NA, nrow=l, ncol=l)
   ctr <- 1
   if (verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
-  for ( i in 1:l ){
+  for ( i in seq_len(l) ){
     uval1 <- uvals[i]
     v1 <- pap[,i]
     for ( j in i:l ){
@@ -820,11 +823,11 @@ MutualInformation.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE,
   rownames(pairscores) <- colnames(pairscores) <- n
   
   # Correction
-  denom <- mean(pairscores[upper.tri(pairscores)], na.rm=T)
+  denom <- mean(pairscores[upper.tri(pairscores)], na.rm=TRUE)
   pairscores <- pairscores / ifelse(denom==0, 1, denom)
   
   # Normalize
-  denom <- max(pairscores, na.rm=T)
+  denom <- max(pairscores, na.rm=TRUE)
   pairscores <- pairscores / ifelse(denom==0, 1, denom)
   diag(pairscores) <- 1
   #pairscores <- pairscores #because distance
@@ -832,7 +835,7 @@ MutualInformation.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE,
 }
 
 ProfileDCA.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE, numCores=1,
-                           precalcProfs=NULL, precalcSubset=NULL, useAbs=T, ...){
+                           precalcProfs=NULL, precalcSubset=NULL, useAbs=TRUE, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
@@ -882,7 +885,7 @@ Coloc.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE,
   pairscores <- matrix(NA, nrow=l, ncol=l)
   ctr <- 0
   if (verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
-  for ( i in 1:l){
+  for ( i in seq_len(l)){
     uval1 <- uvals[i]
     lab1 <- labvecs[[i]]
     l1sp <- gsub('(.*)_.*$', '\\1', lab1) # species + chromosome number
@@ -967,7 +970,7 @@ Behdenna.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE,
   ctr <- 0
   if (verbose) cat('\n  Calculating pairscores:\n')
   if (verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
-  for ( i in 1:l){
+  for ( i in seq_len(l)){
     uval1 <- uvals[i]
     gl1 <- glmat[,i]
     n1 <- sum(gl1)
@@ -996,8 +999,8 @@ Behdenna.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE,
   
   if (!rawZScores){
     pairscores <- abs(pairscores)
-    pairscores <- pairscores / ifelse(max(pairscores,na.rm=T) != 0, 
-                                      max(pairscores, na.rm=T), 1)
+    pairscores <- pairscores / ifelse(max(pairscores,na.rm=TRUE) != 0, 
+                                      max(pairscores, na.rm=TRUE), 1)
     diag(pairscores) <- 1
   }
   rownames(pairscores) <- colnames(pairscores) <- n
@@ -1009,7 +1012,7 @@ Ensemble.ProtWeaver <- function(pw,
                                 pretrainedModel=NULL,
                                 noPrediction=FALSE, ...){
   
-  flags <- rep(F, 3)
+  flags <- rep(FALSE, 3)
   
   subs <- ProcessSubset(pw, subset)
   uvals <- subs$uvals
@@ -1025,19 +1028,19 @@ Ensemble.ProtWeaver <- function(pw,
   
   submodels <- c('ProfileDCA', 'Jaccard', 'Hamming', 'MutualInformation')
   if (attr(pw, 'useMT')){
-    flags[1] <- T
+    flags[1] <- TRUE
     if (verbose) cat('Calculating Cophenetic profiles:\n')
     CPs <- CophProfiles(pw, uvals, verbose=verbose)
     submodels <- c(submodels, takesCP)
   }
   
   if (!is.null(mySpeciesTree)){
-    flags[2] <- T
+    flags[2] <- TRUE
     submodels <- c(submodels, 'Behdenna')
   }
 
   if (attr(pw, 'useColoc')){
-    flags[3] <- T
+    flags[3] <- TRUE
     submodels <- c(submodels, 'Coloc')
   }
   
@@ -1053,7 +1056,7 @@ Ensemble.ProtWeaver <- function(pw,
     if (model %in% takesCP) profs <- CPs
     else profs <- PAs
     results[[model]] <- predict(pw, model, verbose=verbose, 
-                              returnRawData=T, precalcProfs=profs,
+                              returnRawData=TRUE, precalcProfs=profs,
                               precalcSubset=subs, 
                               mySpeciesTree=mySpeciesTree, ...)
   }

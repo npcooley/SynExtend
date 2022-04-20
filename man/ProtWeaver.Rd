@@ -28,7 +28,11 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 
 \seealso{
 \code{\link{predict.ProtWeaver}}
+\code{\link{ExampleStreptomycesData}}
 }
 \examples{
-# This will be an example
+exData <- get(data("ExampleStreptomycesData"))
+pw <- ProtWeaver(exData$Genes)
+# Subset isn't necessary but is faster for a working example
+predict(pw, subset=1:10, mySpeciesTree=exData$Tree)
 }
