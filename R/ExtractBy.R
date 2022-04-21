@@ -1,432 +1,431 @@
-# Author: Nicholas Cooley
-# Maintainer: Nicholas Cooley
-# Contact: npc19@pitt.edu
-# # to do list:
-# add attributes to clusters -- a 3 column dataframe with logicals
-# indicating whether it is marked as translatable in the GeneCalls
-# and whether it is actually width %% 3L == 0L
-# and annotations if they are present in the GeneCalls
-# OR the model from FindGenes
+###### -- ExtractBy -----------------------------------------------------------
+# author: nicholas cooley
+# email: npc19@pitt.edu / npcooley@gmail.com
+# extract stringsets from an assembly based on the gene calls
+# OR
+# extract stringsets from a series of assemblies based on a pairsummaries object
+# OR
+# extract stringsets from a series of assemblies based on COGs / pairsummaries object
 
 ExtractBy <- function(x,
-                      y = NULL,
-                      DBPATH,
-                      Method = "all",
-                      DefaultTranslationTable = "11",
-                      Translate = TRUE,
-                      Storage = 1,
+                      y,
+                      z,
                       Verbose = FALSE) {
   
-  ###### -- overhead checking -------------------------------------------------
-  # Translation tables not implemented yet
-  if (Verbose) {
-    pBar <- txtProgressBar(style = 1L)
-    TimeStart <- Sys.time()
+  # overhead things:
+  # z does not need to be supplied by the user but under the current scheme must be evaluated
+  if (missing(z)) {
+    z <- NA_integer_
+  }
+  # combinations of x, y, and z that are valid:
+  # x as a DFrame of genecalls
+  # y as a DNAStringSet
+  # 
+  # x as a PairSummaries object
+  # y as a character string supplying the location of a SQLite DB
+  # 
+  # x as a PairSummaries object
+  # y as a character string supplying the location of a SQLite DB
+  # z as a list of COGs in the format:
+  # [1] "GenomeID_ContigID_FeatureID" "GenomeID_ContigID_FeatureID" etc...
+  if (missing(y) |
+      missing(x)) {
+    stop("x and y must be supplied.")
   }
   
-  if (!(Method %in% c("pairs",
-                      "clusters",
-                      "all",
-                      "DataFrame",
-                      "columns"))) {
-    stop ("Please select a known Method.")
-  }
-  if (Method == "clusters" &
-      is.null(y)) {
-    stop ("Please supply valid clusters.")
-  }
-  if (Storage < 0) {
-    stop ("Storage must be at least zero")
-  } else {
-    # convert storage to bytes
-    Storage <- Storage * 1e9 
-  }
-  
-  ###### -- methods are all separate ------------------------------------------
-  
-  # all - simplest - pull all seqs in PairSummaries and slam them into a single stringset
-  # clusters - similar to all, but subset Pairs by a cluster list
-  
-  if (Method == "all") {
+  if (is(object = x,
+         class2 = "DFrame") &
+      is(object = y,
+         class2 = "DNAStringSet")) {
+    # method 1: pull sequences from a dna stringset based on a gene calls DFrame
+    # x shot, where x is the number of contigs in the assembly that contain gene calls
+    # should be relatively fast for a typical bacterial genome
+    # grab all nucleotide sequences from the assembly
+    # match based on contig names
     
     if (Verbose) {
-      cat("\nPreparing overhead data.\n")
+      TimeStart <- Sys.time()
     }
+    AssemblyRef <- unlist(regmatches(x = names(y),
+                                     m = gregexpr(pattern = "^[^ ]+",
+                                                  text = names(y))))
+    GCRef <- unique(x$Contig)
     
-    GeneCalls <- attributes(x)$GeneCalls
-    # create the maps necessary to extract seqs as efficiently as possible
-    PullTable <- do.call(rbind,
-                         strsplit(c(x$p1, x$p2),
-                                  split = "_",
-                                  fixed = TRUE))
-    PullTable <- unique(PullTable)
-    PullTable <- matrix(data = as.integer(PullTable),
-                        nrow = nrow(PullTable))
-    G <- unique(PullTable[, 1L])
-    L <- length(G)
-    
-    # create a list to fill with integers for contigs to pull from
-    # and the range positons to pull with
-    CList <- LList <- RList <- IList <- SList <- vector(mode = "list",
-                                                        length = L)
-    w <- vector(mode = "integer",
-                length = L)
-    for (m1 in seq_along(CList)) {
-      # create overhead lookups to pull genes succinctly
-      CList[[m1]] <- PullTable[PullTable[, 1L] == G[m1], 2L]
-      IList[[m1]] <- PullTable[PullTable[, 1L] == G[m1], 3L]
-      w[m1] <- which(names(GeneCalls) == as.character(G[m1]))
-      LList[[m1]] <- GeneCalls[[w[m1]]][IList[[m1]], "Coding"]
-      RList[[m1]] <- GeneCalls[[w[m1]]][IList[[m1]], "Range"]
-      SList[[m1]] <- GeneCalls[[w[m1]]][IList[[m1]], "Strand"]
-      
-    }
-    
-    # something else here
-    # yay new setup
-    # return(list(CList))
-    
-    
-    # create a list to dump stringsets into
-    GList <- vector(mode = "list",
-                    length = L)
-    
-    Count <- 1L
-    while (object.size(GList) < Storage &
-           Count <= L) {
-      
-      GList[[Count]] <- SearchDB(dbFile = DBPATH,
-                              identifier = as.character(G[Count]),
-                              nameBy = "description",
-                              verbose = FALSE)
-      
-      Count <- Count + 1L
-      # will extract till storage is exceeded
-      # will not cap at storage
-    }
-    
-    if (Verbose) {
-      if (Count < L) {
-        cat("Overhead is too large to keep entirely in memory.\nPrimary loop will include database lookups.\n")
-      } else {
-        cat("Overhead complete.\n")
-      }
-    }
-    
-    # return(list(GList,
-    #             w,
-    #             CList,
-    #             IList,
-    #             RList,
-    #             LList))
-    
-    # initialize res as a list
-    # fill with stringsets that will eventually be slammed together
-    Res <- vector(mode = "list",
-                  length = L)
-    
-    for (m1 in seq_along(G)) {
-      
-      # if seqs are in the genome list grab them,
-      # if not pull from DB
-      if (!is.null(GList[[m1]])) {
-        s1 <- GList[[m1]]
-      } else {
-        s1 <- SearchDB(dbFile = DBPATH,
-                       identifier = as.character(G[m1]),
-                       nameBy = "description",
-                       verbose = FALSE)
-      }
-      CurrentContigs <- unique(CList[[m1]])
-      if (length(CurrentContigs) == 1L) {
-        # only one contig present for s1 -- the easiest case
-        
-        # return(list(s1[CurrentContigs],
-        #             length(IList[[m1]]),
-        #             RList[[m1]],
-        #             CurrentContigs,
-        #             IList,
-        #             RList,
-        #             m1))
-        
-        Res[[m1]] <- extractAt(x = rep(s1[CurrentContigs],
-                                       length(IList[[m1]])),
-                               at = unname(RList[[m1]]))
-        Res[[m1]] <- DNAStringSet(sapply(Res[[m1]],
-                                         function(x) unlist(x),
-                                         simplify = FALSE,
-                                         USE.NAMES = FALSE))
-        
-        FlipMe <- SList[[m1]] == 1L
-        if (any(FlipMe)) {
-          Res[[m1]][FlipMe] <- reverseComplement(Res[[m1]][FlipMe])
-        }
-        # set seq names
-        names(Res[[m1]]) <- paste(rep(w[m1],
-                                      length(IList[[m1]])),
-                                  CList[[m1]],
-                                  IList[[m1]],
-                                  sep = "_")
-      } else {
-        # multiple contigs -- in this case seqs don't really need to be ordered
-        # as long as they have the correct names
-        Res[[m1]] <- vector(mode = "list",
-                            length = length(CurrentContigs))
-        for (m2 in seq_along(Res[[m1]])) {
-          CPos <- CList[[m1]] == CurrentContigs[m2]
-          CSum <- sum(CPos)
-          Res[[m1]][[m2]] <- extractAt(x = rep(s1[CurrentContigs[m2]],
-                                               CSum),
-                                       at = unname(RList[[m1]][CPos]))
-          Res[[m1]][[m2]] <- DNAStringSet(sapply(Res[[m1]][[m2]],
-                                                 function(x) unlist(x),
-                                                 simplify = FALSE,
-                                                 USE.NAMES = FALSE))
-          FlipMe <- SList[[m1]][CPos] == 1L
-          if (any(FlipMe)) {
-            Res[[m1]][[m2]][FlipMe] <- reverseComplement(Res[[m1]][[m2]][FlipMe])
-          }
-          # set names
-          names(Res[[m1]][[m2]]) <- paste(rep(w[m1],
-                                              CSum),
-                                          CList[[m1]][CPos],
-                                          IList[[m1]][CPos],
-                                          sep = "_")
-        }
-        
-        Res[[m1]] <- do.call(c,
-                             Res[[m1]])
-      }
-      
-      
-      if (Verbose) {
-        setTxtProgressBar(pb = pBar,
-                          value = m1 / L)
-      }
-    }
-    
-    Res <- do.call(c,
-                   Res)
-    
-    # slam these lists together into a single string set
-    if (all(unlist(LList)) &
-        all(width(Res) %% 3 == 0) &
-        Translate) {
-      # all are translatable
-      if (any(grepl(pattern = "[^ATCG]",
-                    x = Res))) {
-        Res <- translate(x = Res,
-                         if.fuzzy.codon = "solve")
-      } else {
-        Res <- translate(x = Res,
-                         if.fuzzy.codon = "error")
-      }
-      
-    } else {
-      # at least one is not translatable -- leave as DNAStringSet
-    }
-    
-    # end method == all
-  } else if (Method == "clusters") {
-    # overhead for cluster checking
-    # make sure all IDs in the clusters are present in the PairSummaries object
-    # and vice-versa
-    AllPresentClusters <- unlist(y)
-    AllPresentPartners <- unique(c(unique(x$p1),
-                                   unique(x$p2)))
-    
-    if (!all(AllPresentClusters %in% AllPresentPartners)) {
-      stop ("An identifier in y is not present in x.")
-    }
-    
-    # build GList ahead of cluster parsing from GeneCalls attribute
-    
-    if (Verbose) {
-      cat("\nPreparing overhead data.\n")
-    }
-    
-    GeneCalls <- attributes(x)$GeneCalls
-    G <- as.integer(names(GeneCalls))
-    L <- length(G)
-    
-    # create a list to dump stringsets into
-    GList <- vector(mode = "list",
-                    length = L)
-    
-    Count <- 1L
-    while (object.size(GList) < Storage &
-           Count <= L) {
-      
-      GList[[Count]] <- SearchDB(dbFile = DBPATH,
-                                 identifier = as.character(G[Count]),
-                                 nameBy = "description",
-                                 verbose = FALSE)
-      
-      Count <- Count + 1L
-      # will extract till storage is exceeded
-      # will not cap at storage
-    }
-    
-    if (Verbose) {
-      if (Count < L) {
-        cat("Overhead is too large to keep entirely in memory.\nPrimary loop will include database lookups.\n")
-      } else {
-        cat("Overhead complete.\n")
-      }
-    }
-    
-    Res <- vector(mode = "list",
-                  length = length(y))
-    
-    for (m1 in seq_along(y)) {
-      PullTable <- do.call(rbind,
-                           strsplit(x = y[[m1]],
-                                    split = "_",
-                                    fixed = TRUE))
-      PullTable <- matrix(data = as.integer(PullTable),
-                          nrow = nrow(PullTable))
-      # can overwrite G and L ... are now relative to the current Pull Table
-      G <- unique(PullTable[, 1L])
-      L <- length(G)
-      
-      # create a list to fill with integers for contigs to pull from
-      # and the range positons to pull with
-      CList <- LList <- RList <- IList <- SList <- vector(mode = "list",
-                                                          length = L)
-      w <- vector(mode = "integer",
-                  length = L)
-      for (m2 in seq_along(CList)) {
-        # create overhead lookups to pull genes succinctly
-        CList[[m2]] <- PullTable[PullTable[, 1L] == G[m2], 2L]
-        IList[[m2]] <- PullTable[PullTable[, 1L] == G[m2], 3L]
-        w[m2] <- which(names(GeneCalls) == as.character(G[m2]))
-        LList[[m2]] <- GeneCalls[[w[m2]]][IList[[m2]], "Coding"]
-        RList[[m2]] <- GeneCalls[[w[m2]]][IList[[m2]], "Range"]
-        SList[[m2]] <- GeneCalls[[w[m2]]][IList[[m2]], "Strand"]
-        
-      }
-      
-      # pull table and maps initialized
-      Res[[m1]] <- vector(mode = "list",
-                          length = L)
-      
-      for (m2 in seq_along(G)) {
-        
-        # if seqs are in the genome list grab them,
-        # if not pull from DB
-        if (!is.null(GList[[w[m2]]])) {
-          s1 <- GList[[w[m2]]]
-        } else {
-          s1 <- SearchDB(dbFile = DBPATH,
-                         identifier = as.character(G[m2]),
-                         nameBy = "description",
-                         verbose = FALSE)
-        }
-        CurrentContigs <- unique(CList[[m2]])
-        if (length(CurrentContigs) == 1L) {
-          # only one contig present for s1 -- the easiest case
-          
-          # return(list(s1[CurrentContigs],
-          #             length(IList[[m2]]),
-          #             RList[[m2]],
-          #             CurrentContigs,
-          #             IList,
-          #             RList,
-          #             m2))
-          
-          Res[[m1]][[m2]] <- extractAt(x = rep(s1[CurrentContigs],
-                                               length(IList[[m2]])),
-                                       at = unname(RList[[m2]]))
-          Res[[m1]][[m2]] <- DNAStringSet(sapply(Res[[m1]][[m2]],
-                                                 function(x) unlist(x),
-                                                 simplify = FALSE,
-                                                 USE.NAMES = FALSE))
-          
-          FlipMe <- SList[[m2]] == 1L
-          if (any(FlipMe)) {
-            Res[[m1]][[m2]][FlipMe] <- reverseComplement(Res[[m1]][[m2]][FlipMe])
-          }
-          # set seq names
-          names(Res[[m1]][[m2]]) <- paste(rep(w[m2],
-                                              length(IList[[m2]])),
-                                          CList[[m2]],
-                                          IList[[m2]],
-                                          sep = "_")
-        } else {
-          # multiple contigs -- in this case seqs don't really need to be ordered
-          # as long as they have the correct names
-          Res[[m1]][[m2]] <- vector(mode = "list",
-                                    length = length(CurrentContigs))
-          for (m3 in seq_along(Res[[m1]][[m2]])) {
-            CPos <- CList[[m2]] == CurrentContigs[m3]
-            CSum <- sum(CPos)
-            Res[[m1]][[m2]][[m3]] <- extractAt(x = rep(s1[CurrentContigs[m3]],
-                                                       CSum),
-                                               at = unname(RList[[m2]][CPos]))
-            Res[[m1]][[m2]][[m3]] <- DNAStringSet(sapply(Res[[m1]][[m2]][[m3]],
-                                                         function(x) unlist(x),
-                                                         simplify = FALSE,
-                                                         USE.NAMES = FALSE))
-            FlipMe <- SList[[m2]][CPos] == 1L
-            if (any(FlipMe)) {
-              Res[[m1]][[m2]][[m3]][FlipMe] <- reverseComplement(Res[[m1]][[m2]][[m3]][FlipMe])
-            }
-            # set names
-            names(Res[[m1]][[m2]][[m3]]) <- paste(rep(w[m2],
-                                                      CSum),
-                                                  CList[[m2]][CPos],
-                                                  IList[[m2]][CPos],
-                                                  sep = "_")
-          }
-          
-          Res[[m1]][[m2]] <- do.call(c,
-                                     Res[[m1]][[m2]])
-        }
-      }
-      
-      Res[[m1]] <- do.call(c,
-                           Res[[m1]])
-      
-      # slam these lists together into a single string set
-      if (all(unlist(LList)) &
-          all(width(Res[[m1]]) %% 3 == 0) &
-          Translate) {
-        # all are translatable
-        if (any(grepl(pattern = "[^ATCG]",
-                      x = Res[[m1]]))) {
-          Res[[m1]] <- translate(x = Res[[m1]],
-                                 if.fuzzy.codon = "solve")
-        } else {
-          Res[[m1]] <- translate(x = Res[[m1]],
-                                 if.fuzzy.codon = "error")
-        }
-        
-      } else {
-        # at least one is not translatable -- leave as DNAStringSet
-      }
-      
-      if (Verbose) {
-        setTxtProgressBar(pb = pBar,
-                          value = m1 / length(y))
-      }
+    seqs1 <- vector(mode = "list",
+                    length = length(GCRef))
+    for (m1 in seq_along(GCRef)) {
+      # identify the string to access
+      w1 <- which(AssemblyRef == GCRef[m1])
+      # grab the IRangesList for the current contig
+      z1 <- unname(x$Range[x$Contig == GCRef[m1]])
+      # create a collapse map
+      z2 <- lengths(z1)
+      # unlist to an IRanges object
+      z1 <- unlist(z1,
+                   recursive = FALSE)
+      seqs1[[m1]] <- extractAt(x = y[w1][[1L]],
+                               at = z1)
+      # figure out where collapses are necessary
+      collapsecount <- 0L
+      w2 <- which(z2 > 1L)
+      # if collapsing is necessary, collapse on specified positions
+      if (length(w2) > 0L) {
+        # for a collapse operation of 2, we need to remove 1 position
+        # for an operation of 3, we need to remove 2 positions
+        # for an operation of 4, we need to remove 3 positions
+        # etc
+        removevector <- vector(mode = "integer",
+                               length = sum(z2[w2]) - length(w2))
+        for (m2 in w2) {
+          seqs1[[m1]][[m2 + collapsecount]] <- unlist(seqs1[[m1]][m2:(m2 + z2[m2] - 1L) + collapsecount])
+          removevector[(collapsecount + 1L):(collapsecount + z2[m2] - 1L)] <- (m2 + 1L):(m2 + z2[m2] - 1L) + collapsecount
+          collapsecount <- collapsecount + z2[m2] - 1L
+        } # end m2 loop
+        seqs1[[m1]][removevector] <- NULL
+      } # end check on collapse operation
+      names(seqs1[[m1]]) <- x$ID[x$Contig == GCRef[m1]]
     } # end m1 loop
-  } else if (Method == "DataFrame") {
-    stop ("Method currently not implemented.")
-  } else if (Method == "pairs") {
-    stop ("Method currently not implemented.")
-  } else if (Method == "columns") {
-    stop ("Method currently not implemented.")
+    seqs1 <- do.call(c,
+                     seqs1)
+    
+    # flip sequences into the forward direction where applicable
+    flipseqs <- x$Strand
+    if (any(flipseqs == 1L)) {
+      seqs1[flipseqs == 1L] <- reverseComplement(seqs1[flipseqs == 1L])
+    }
+    
+    # end method 1
+    return(seqs1)
+  } else if (is(object = x,
+                class2 = "PairSummaries") &
+             is(object = y,
+                class2 = "character") &
+             !is(object = z,
+                 class2 = "list")) {
+    # method 2: pull sequences from a SQLite DB as a list of paired sequences
+    # order n, where n is the number of total contigs that contain both a genecall
+    # and an identified pair partner
+    
+    if (Verbose) {
+      TimeStart <- Sys.time()
+    }
+    # grab unique gene IDs
+    u1 <- unique(c(unique(x$p1),
+                   unique(x$p2)))
+    # build a map to split out the seqs post extraction
+    u2 <- matrix(data = c(match(x = x$p1,
+                                table = u1),
+                          match(x = x$p2,
+                                table = u1)),
+                 nrow = nrow(x))
+    # build a map of which strings are being extracted from
+    u3 <- do.call(rbind,
+                  strsplit(x = u1,
+                           split = "_",
+                           fixed = TRUE))
+    # all extractions
+    u3 <- matrix(data = as.integer(u3),
+                 nrow = nrow(u3))
+    # all strings to extract
+    u4 <- unique(u3[, 1:2])
+    # all identifiers that are necessary:
+    u5 <- unique(u4[, 1L])
+    L01 <- nrow(u4)
+    L02 <- 0L
+    if (Verbose) {
+      # pBar target length:
+      pBar <- txtProgressBar(style = 1L)
+      cat("\nExtracting Sequences:\n")
+    }
+    Res1 <- vector(mode = "list",
+                   length = L01)
+    # return(list(u1,
+    #             u2,
+    #             u3,
+    #             u4,
+    #             u5,
+    #             x))
+    # loop through each extraction in the first level
+    # in the second level loop through loop through the contigs
+    # use name matching to grab the correct contig
+    # THIS FORCES THE ASSUMPTION THAT A STANDARD NCBI NAMING CONVENTION HAS BEEN FOLLOWED
+    # When the nucleotide overlap object was built the gene calls objects was force-reordered
+    GC01 <- attr(x = x,
+                 which = "GeneCalls")
+    GCN <- names(GC01)
+    for (m1 in seq_along(u5)) {
+      # ID contigs
+      u6 <- u4[u4[, 1L] == u5[m1], 2L]
+      # grab assembly
+      CurrentAssembly <- SearchDB(dbFile = y,
+                                  identifier = as.character(u5[m1]),
+                                  verbose = FALSE,
+                                  nameBy = "description")
+      AssemblyRef <- unlist(regmatches(x = names(CurrentAssembly),
+                                       m = gregexpr(pattern = "^[^ ]+",
+                                                    text = names(CurrentAssembly))))
+      CurrentGeneCalls <- GC01[GCN == as.character(u5[m1])][[1]]
+      for (m2 in seq_along(u6)) {
+        # identify the string to access
+        GCRef <- CurrentGeneCalls$Contig[(CurrentGeneCalls$Index == u6[m2])][1L]
+        w1 <- which(AssemblyRef == GCRef)
+        # grab the IRangesList for the current contig
+        u7 <- u3[u3[, 1L] == u5[m1] & u3[, 2L] == u6[m2], 3L]
+        # print(c(u5[m1], u6[m2]))
+        z1 <- unname(CurrentGeneCalls$Range[u7])
+        # create a collapse map
+        z2 <- lengths(z1)
+        # unlist to an IRanges object
+        z1 <- unlist(z1,
+                     recursive = FALSE)
+        # return(list(CurrentAssembly,
+        #             w1,
+        #             z1,
+        #             AssemblyRef,
+        #             GCRef,
+        #             CurrentGeneCalls,
+        #             u5,
+        #             u6,
+        #             u7,
+        #             m1,
+        #             m2))
+        seqs1 <- extractAt(x = CurrentAssembly[w1][[1L]],
+                           at = z1)
+        # figure out where collapses are necessary
+        collapsecount <- 0L
+        w2 <- which(z2 > 1L)
+        # if collapsing is necessary, collapse on specified positions
+        if (length(w2) > 0L) {
+          # for a collapse operation of 2, we need to remove 1 position
+          # for an operation of 3, we need to remove 2 positions
+          # for an operation of 4, we need to remove 3 positions
+          # etc
+          removevector <- vector(mode = "integer",
+                                 length = sum(z2[w2]) - length(w2))
+          for (m3 in w2) {
+            seqs1[[m3 + collapsecount]] <- unlist(seqs1[m3:(m3 + z2[m3] - 1L) + collapsecount])
+            removevector[(collapsecount + 1L):(collapsecount + z2[m3] - 1L)] <- (m3 + 1L):(m3 + z2[m3] - 1L) + collapsecount
+            collapsecount <- collapsecount + z2[m3] - 1L
+          } # end m3 loop through collapse situations
+          seqs1[removevector] <- NULL
+        } # end check on collapse operation
+        
+        # flip sequences into the forward direction where applicable
+        flipseqs <- CurrentGeneCalls$Strand[u7]
+        if (any(flipseqs == 1L)) {
+          seqs1[flipseqs == 1L] <- reverseComplement(seqs1[flipseqs == 1L])
+        }
+        L02 <- L02 + 1L
+        if (Verbose) {
+          setTxtProgressBar(pb = pBar,
+                            value = L02 / L01)
+        } # end verbose logical
+        names(seqs1) <- paste(u5[m1],
+                              u6[m2],
+                              u7,
+                              sep = "_")
+        Res1[[L02]] <- seqs1
+      } # end m2 loop through contigs
+    } # end m1 loop through assembly identifiers
+    Res1 <- do.call(c,
+                    Res1)
+    if (Verbose) {
+      close(pBar)
+      cat("\nArranging Sequences:\n")
+    }
+    Res2 <- vector(mode = "list",
+                   length = nrow(x))
+    if (Verbose) {
+      L01 <- length(Res2)
+      pBar <- txtProgressBar(style = 1L)
+    }
+    # return(list(Res1,
+    #             u2))
+    for (m1 in seq_along(Res2)) {
+      # call remove gaps to 
+      Res2[[m1]] <- RemoveGaps(Res1[names(Res1) %in% u1[u2[m1, ]]])
+      if (Verbose) {
+        setTxtProgressBar(pb = pBar,
+                          value = m1 / L01)
+      }
+      
+    }
+    if (Verbose) {
+      close(pBar)
+      cat("\n")
+      TimeEnd <- Sys.time()
+      print(TimeEnd - TimeStart)
+    }
+    return(Res2)
+    
+  } else if (is(object = x,
+                class2 = "PairSummaries") &
+             is(object = y,
+                class2 = "character") &
+             is(object = z,
+                 class2 = "list")) {
+    # method 3: pull sequences from a SQLite DB as a list of identified single-linkage
+    # COGs
+    # order n, where n is the number of total contigs that contain both a genecall
+    # and an identified COG member
+    
+    if (Verbose) {
+      TimeStart <- Sys.time()
+    }
+    # grab unique gene IDs
+    u1 <- unique(unlist(z))
+    # build a map to split out the seqs post extraction
+    u2 <- unname(sapply(z,
+                        function(x) {
+                          match(x = x,
+                                table = u1)
+                        },
+                        simplify = FALSE,
+                        USE.NAMES = FALSE))
+    # build a map of which strings are being extracted from
+    u3 <- do.call(rbind,
+                  strsplit(x = u1,
+                           split = "_",
+                           fixed = TRUE))
+    # all extractions
+    u3 <- matrix(data = as.integer(u3),
+                 nrow = nrow(u3))
+    # all strings to extract
+    u4 <- unique(u3[, 1:2])
+    # all identifiers that are necessary:
+    u5 <- unique(u4[, 1L])
+    L01 <- nrow(u4)
+    L02 <- 0L
+    if (Verbose) {
+      # pBar target length:
+      pBar <- txtProgressBar(style = 1L)
+      cat("\nExtracting Sequences:\n")
+    }
+    Res1 <- vector(mode = "list",
+                   length = L01)
+    # return(list(u1,
+    #             u2,
+    #             u3,
+    #             u4,
+    #             u5,
+    #             z))
+    # loop through each extraction in the first level
+    # in the second level loop through loop through the contigs
+    # use name matching to grab the correct contig
+    # THIS FORCES THE ASSUMPTION THAT A STANDARD NCBI NAMING CONVENTION HAS BEEN FOLLOWED
+    # When the nucleotide overlap object was built the gene calls objects was force-reordered
+    GC01 <- attr(x = x,
+                 which = "GeneCalls")
+    GCN <- names(GC01)
+    for (m1 in seq_along(u5)) {
+      # ID contigs
+      u6 <- u4[u4[, 1L] == u5[m1], 2L]
+      # grab assembly
+      CurrentAssembly <- SearchDB(dbFile = y,
+                                  identifier = as.character(u5[m1]),
+                                  verbose = FALSE,
+                                  nameBy = "description")
+      AssemblyRef <- unlist(regmatches(x = names(CurrentAssembly),
+                                       m = gregexpr(pattern = "^[^ ]+",
+                                                    text = names(CurrentAssembly))))
+      CurrentGeneCalls <- GC01[GCN == as.character(u5[m1])][[1]]
+      for (m2 in seq_along(u6)) {
+        # identify the string to access
+        GCRef <- CurrentGeneCalls$Contig[(CurrentGeneCalls$Index == u6[m2])][1L]
+        w1 <- which(AssemblyRef == GCRef)
+        # grab the IRangesList for the current contig
+        u7 <- u3[u3[, 1L] == u5[m1] & u3[, 2L] == u6[m2], 3L]
+        # print(c(u5[m1], u6[m2]))
+        z1 <- unname(CurrentGeneCalls$Range[u7])
+        # create a collapse map
+        z2 <- lengths(z1)
+        # unlist to an IRanges object
+        z1 <- unlist(z1,
+                     recursive = FALSE)
+        # return(list(CurrentAssembly,
+        #             w1,
+        #             z1,
+        #             AssemblyRef,
+        #             GCRef,
+        #             CurrentGeneCalls,
+        #             u5,
+        #             u6,
+        #             u7,
+        #             m1,
+        #             m2))
+        seqs1 <- extractAt(x = CurrentAssembly[w1][[1L]],
+                           at = z1)
+        # figure out where collapses are necessary
+        collapsecount <- 0L
+        w2 <- which(z2 > 1L)
+        # if collapsing is necessary, collapse on specified positions
+        if (length(w2) > 0L) {
+          # for a collapse operation of 2, we need to remove 1 position
+          # for an operation of 3, we need to remove 2 positions
+          # for an operation of 4, we need to remove 3 positions
+          # etc
+          removevector <- vector(mode = "integer",
+                                 length = sum(z2[w2]) - length(w2))
+          for (m3 in w2) {
+            seqs1[[m3 + collapsecount]] <- unlist(seqs1[m3:(m3 + z2[m3] - 1L) + collapsecount])
+            removevector[(collapsecount + 1L):(collapsecount + z2[m3] - 1L)] <- (m3 + 1L):(m3 + z2[m3] - 1L) + collapsecount
+            collapsecount <- collapsecount + z2[m3] - 1L
+          } # end m3 loop through collapse situations
+          seqs1[removevector] <- NULL
+        } # end check on collapse operation
+        
+        # flip sequences into the forward direction where applicable
+        flipseqs <- CurrentGeneCalls$Strand[u7]
+        if (any(flipseqs == 1L)) {
+          seqs1[flipseqs == 1L] <- reverseComplement(seqs1[flipseqs == 1L])
+        }
+        L02 <- L02 + 1L
+        if (Verbose) {
+          setTxtProgressBar(pb = pBar,
+                            value = L02 / L01)
+        } # end verbose logical
+        names(seqs1) <- paste(u5[m1],
+                              u6[m2],
+                              u7,
+                              sep = "_")
+        Res1[[L02]] <- seqs1
+      } # end m2 loop through contigs
+    } # end m1 loop through assembly identifiers
+    Res1 <- do.call(c,
+                    Res1)
+    if (Verbose) {
+      close(pBar)
+      cat("\nArranging Sequences:\n")
+    }
+    Res2 <- vector(mode = "list",
+                   length = length(z))
+    if (Verbose) {
+      L01 <- length(Res2)
+      pBar <- txtProgressBar(style = 1L)
+    }
+    # return(list(Res1,
+    #             u2))
+    for (m1 in seq_along(Res2)) {
+      # call remove gaps to 
+      Res2[[m1]] <- RemoveGaps(Res1[names(Res1) %in% z[[m1]]])
+      if (Verbose) {
+        setTxtProgressBar(pb = pBar,
+                          value = m1 / L01)
+      }
+      
+    }
+    if (Verbose) {
+      close(pBar)
+      cat("\n")
+      TimeEnd <- Sys.time()
+      print(TimeEnd - TimeStart)
+    }
+    return(Res2)
+    
+  } else {
+    stop("No method available for combination of supplied objects.")
   }
   
-  if (Verbose) {
-    cat("\n")
-    TimeEnd <- Sys.time()
-    print(TimeEnd - TimeStart)
-  }
-  
-  return(Res)
 }
-
-
 
 
