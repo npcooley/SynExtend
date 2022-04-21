@@ -54,7 +54,6 @@ Returns a ProtWeaver object.
 \author{
 Aidan Lakshman \email{ahl27@pitt.edu}
 }
-
 \seealso{
 \code{\link{predict.ProtWeaver}},
 \code{\link{ExampleStreptomycesData}},

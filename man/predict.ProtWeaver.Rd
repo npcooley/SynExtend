@@ -102,21 +102,14 @@ matrix with some extra S3 methods to make printing cleaner.
 
 (PA = Presence/Absence)
 
-This returns a \code{ProtWeb} object, which makes formatting and printing of 
+This returns a \code{ProtWeb} object, an S3 class that makes formatting and printing of 
 results slightly nicer. Data can be extracted form the \code{ProtWeb} object with:
 
 \code{GetProtWebData(ProtWebObject, AsDf=c(T,F))}
 
-If \code{AsDf=TRUE}, the return data is a \code{3xN} matrix, with columns 3 showing
-the prediction for the pair of genes/proteins specified in columns 1 and 2. This format 
-is when predictions are made on small number of pairs (meaning the resulting adjacency 
-matrix is sparse).
-
-If \code{AsDf=FALSE}, the return data is a \code{NxN} adjacency matrix, with entry
-\code{i,j} containing the prediction for genomes \code{i} and \code{j}. 
 }
 \value{
-Returns a ProtWeb object. See \code{\link{GetProtWebData.ProtWeb}} for more info.
+Returns a ProtWeb object. See \code{\link[=GetProtWebData.ProtWeb]{GetProtWebData}} for more info.
 }
 \author{
 Aidan Lakshman \email{ahl27@pitt.edu}
@@ -146,6 +139,15 @@ Weigt, M., et al., \emph{Identification of direct residue contacts in protein-pr
 }
 
 \note{
+  Note that the pairwise associations are stored in a matrix, meaning that if the
+  ProtWeaver object contains 100 entries, the output ProtWeb object contains a
+  \code{100x100} matrix. Users should be advised that predicting too many pairs
+  can lead to vector memory exhaustion errors. On my machine, ProtWeaver supports 
+  predictions on up to around \eqn{53,000^2} pairs (meaning all possible pairs between
+  53,000 proteins/genes). Next release will add more memory efficient storage to
+  further increase this limit, though the memory capacity can never be better than
+  \eqn{O(P^2)}, with \code{P} the number of proteins/genes.
+
   More models will be implemented in the future. Planned models for next release
   include:
   \itemize{
@@ -162,7 +164,7 @@ Weigt, M., et al., \emph{Identification of direct residue contacts in protein-pr
 \seealso{
 \code{\link{ProtWeaver}}
 
-\code{\link{GetProtWebData.ProtWeb}}
+\code{\link[=GetProtWebData.ProtWeb]{GetProtWebData}}
 }
 \examples{
 ##############
@@ -182,8 +184,7 @@ GetProtWebData(protweb1)
 ## Training own ensemble model
 ###############
 
-datavals <- predict(pw, 
-                  NoPrediction=TRUE)
+datavals <- predict(pw, NoPrediction=TRUE)
                   
 actual_values <- sample(c(0,1), nrow(datavals), replace=TRUE)
 # This example just picks random numbers
@@ -193,7 +194,7 @@ actual_values <- sample(c(0,1), nrow(datavals), replace=TRUE)
 datavals[,'y'] <- actual_values                  
 myModel <- glm(y~., datavals[,-c(1,2)], family='binomial')
 
-testProtWeaverObject <- ProtWeaver(exData$Genes[101:120])
+testProtWeaverObject <- ProtWeaver(exData$Genes[51:60])
 protweb2 <- predict(testProtWeaverObject, 
                      PretrainedModel=myModel)
                      
