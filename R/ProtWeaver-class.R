@@ -822,9 +822,9 @@ MutualInformation.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE,
   rownames(pairscores) <- colnames(pairscores) <- n
   
   # Correction
-  denom <- mean(pairscores[upper.tri(pairscores)], na.rm=TRUE)
-  pairscores <- pairscores / ifelse(denom==0, 1, denom)
-  
+  apccorr <- mean(pairscores[upper.tri(pairscores)], na.rm=TRUE)
+  pairscores <- pairscores - apccorr
+  pairscore <- abs(pairscores)
   # Normalize
   denom <- max(pairscores, na.rm=TRUE)
   pairscores <- pairscores / ifelse(denom==0, 1, denom)
@@ -898,7 +898,7 @@ Coloc.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE,
         
         shared <- intersect(l1sp, l2sp)
         score <- 0
-        mult <- ifelse(length(shared)==0, 1, 1/length(shared))
+        mult <- ifelse(length(shared)==0, NA, 1/length(shared))
         for ( k in seq_along(shared) ){
           spk <- shared[k]
           v1 <- lab1[l1sp==spk]
