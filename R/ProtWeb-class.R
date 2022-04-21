@@ -9,35 +9,35 @@
 
 GetProtWebData <- function(x, ...) UseMethod('GetProtWebData')
 
-plot.ProtWeb <- function(x, nsim=10, gravity=0.05, coulomb=0.1, connection=5,
-                         move_rate=0.25, cutoff=0.2, 
-                         verbose=TRUE, colorpalette=topo.colors, ...){
+plot.ProtWeb <- function(x, NumSims=10, Gravity=0.05, Coulomb=0.1, Connection=5,
+                         MoveRate=0.25, Cutoff=0.2, 
+                         ColorPalette=topo.colors, Verbose=TRUE, ...){
   ## Springy embedding
   #
   # Uses 3 forces:
-  # - gravity (force towards (0,0))
+  # - Gravity (force towards (0,0))
   # - Coulomb force (repels nodes)
   # - Connection force
   web <- x
   
-  if (verbose) cat('Finding a descriptive embedding...\n')
+  if (Verbose) cat('Finding a descriptive embedding...\n')
   # Change similarity scores to distances
   web <- abs(web)
   web <- 1 - web
-  web[web<cutoff] <- 0
+  web[web<Cutoff] <- 0
   
   # initialize to random values
   embedding <- matrix(runif(2*nrow(web)), ncol=2, nrow=nrow(web))
   true_dists <- cur_dists <- unclass(web)
-  if (verbose) pb <- txtProgressBar(max=nsim, style=3)
-  for (iter in seq_len(nsim)){
+  if (Verbose) pb <- txtProgressBar(max=NumSims, style=3)
+  for (iter in seq_len(NumSims)){
     # Update distances
     for ( i in seq_len(nrow(cur_dists)) )
       for ( j in i:nrow(cur_dists) )
         cur_dists[i,j] <- cur_dists[j,i] <- sqrt(sum((embedding[i,]-embedding[j,])**2))
     
     # Gravity force
-    g_vec <- -1 * gravity * embedding
+    g_vec <- -1 * Gravity * embedding
     
     # Coulomb and Attractive
     node_node <- g_vec
@@ -46,13 +46,13 @@ plot.ProtWeb <- function(x, nsim=10, gravity=0.05, coulomb=0.1, connection=5,
       for ( j in seq_len(nrow(embedding)) ){
         dir_force <- embedding[j,] - embedding[i,]
         r <- ifelse(cur_dists[i,j]==0, 1, cur_dists[i,j]**2)
-        attr <- dir_force * (cur_dists[i,j] - true_dists[i,j]) * connection
-        repel <- -1 * coulomb * dir_force / r
+        attr <- dir_force * (cur_dists[i,j] - true_dists[i,j]) * Connection
+        repel <- -1 * Coulomb * dir_force / r
         node_node[i,] <- node_node[i,] + (attr + repel) / nrow(embedding)
       }
     }
-    embedding <- embedding + move_rate*(node_node + g_vec)
-    if (verbose) setTxtProgressBar(pb, iter)
+    embedding <- embedding + MoveRate*(node_node + g_vec)
+    if (Verbose) setTxtProgressBar(pb, iter)
   }
   
   #return(embedding)
@@ -60,7 +60,7 @@ plot.ProtWeb <- function(x, nsim=10, gravity=0.05, coulomb=0.1, connection=5,
   colsvec <- vapply(seq_len(nrow(embedding)), 
                     function(x) sqrt(sum((embedding[x,] - center)**2)),
                     FUN.VALUE=numeric(1))
-  colors <- colorpalette(length(colsvec))
+  colors <- ColorPalette(length(colsvec))
   embedding <- embedding[order(colsvec, decreasing=FALSE),]
   plot(embedding[,1], embedding[,2], pch=19, cex=0.5, 
        xaxt='n', yaxt='n', ylab='', xlab='', col=colors,
