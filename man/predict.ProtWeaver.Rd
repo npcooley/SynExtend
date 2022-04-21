@@ -79,7 +79,7 @@ matrix with some extra S3 methods to make printing cleaner.
       \code{NoPrediction=TRUE} rather than use this parameter (see Details).
   }
   \item{Verbose}{
-    Should output be printed to the console?
+    Logical indicating whether to print progress bars and messages. Defaults to \code{TRUE}.
   }
   \item{...}{
     Additional parameters for consistency with generic.
