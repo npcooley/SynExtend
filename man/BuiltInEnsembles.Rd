@@ -24,7 +24,7 @@ See the examples for how to train your own ensemble model.
 ## using built-ins
 
 exData <- get(data("ExampleStreptomycesData"))
-pw <- ProtWeaver(exData$Genes[1:100])
+pw <- ProtWeaver(exData$Genes[1:50])
 datavals <- predict(pw, NoPrediction=TRUE)
                   
 # Make sure the actual values correspond to the right pairs! 
@@ -34,7 +34,7 @@ actual_values <- sample(c(0,1), nrow(datavals), replace=TRUE)
 datavals[,'y'] <- actual_values                  
 myModel <- glm(y~., datavals[,-c(1,2)], family='binomial')
 
-predictionPW <- ProtWeaver(exData$Genes[101:120])
+predictionPW <- ProtWeaver(exData$Genes[51:60])
 predict(predictionPW, 
           PretrainedModel=myModel)
 }
