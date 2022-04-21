@@ -1,5 +1,5 @@
-\name{Nitrosocosmicus_GeneCalls}
-\alias{Nitrosocosmicus_GeneCalls}
+\name{Endosymbionts_GeneCalls}
+\alias{Endosymbionts_GeneCalls}
 \docType{data}
 \title{
 Example genecalls
@@ -7,7 +7,7 @@ Example genecalls
 \description{
 A named list of \code{DataFrame}s.
 }
-\usage{data("Nitrosocosmicus_GeneCalls")}
+\usage{data("Endosymbionts_GeneCalls")}
 \format{
 A named list.
 }
@@ -15,6 +15,6 @@ A named list.
 Example genecalls.
 }
 \examples{
-data(Nitrosocosmicus_GeneCalls)
+data(Endosymbionts_GeneCalls)
 }
 \keyword{datasets}

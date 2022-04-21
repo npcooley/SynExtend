@@ -32,8 +32,8 @@ Nicholas Cooley \email{npc19@pitt.edu}
 \code{\link{FindSynteny}}, \code{\link{Synteny-class}}, \code{\link{PairSummaries}}, \code{\link{FindSets}}
 }
 \examples{
-data("Nitrosocosmicus_Pairs03", package = "SynExtend")
+data("Endosymbionts_Pairs03", package = "SynExtend")
 
-Sets <- DisjointSet(Pairs = Nitrosocosmicus_Pairs03,
+Sets <- DisjointSet(Pairs = Endosymbionts_Pairs03,
                     Verbose = TRUE)
 }

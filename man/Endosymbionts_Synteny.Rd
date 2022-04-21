@@ -1,5 +1,5 @@
-\name{Nitrosocosmicus_Synteny}
-\alias{Nitrosocosmicus_Synteny}
+\name{Endosymbionts_Synteny}
+\alias{Endosymbionts_Synteny}
 \docType{data}
 \title{
 A synteny object
@@ -7,7 +7,7 @@ A synteny object
 \description{
 An object of class \code{Synteny}.
 }
-\usage{data("Nitrosocosmicus_Synteny")}
+\usage{data("Endosymbionts_Synteny")}
 \format{
 An object of class \code{Synteny}.
 }
@@ -15,6 +15,6 @@ An object of class \code{Synteny}.
 An object of class \code{Synteny}.
 }
 \examples{
-data(Nitrosocosmicus_Synteny)
+data(Endosymbionts_Synteny)
 }
 \keyword{datasets}

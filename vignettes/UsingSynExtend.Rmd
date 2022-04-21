@@ -39,19 +39,19 @@ BiocManager::install("SynExtend")
 
 # Usage
 
-Using the `FindSynteny` function in `DECIPHER` build an object of class `Synteny`. In this tutorial, a prebuilt `DECIPHER` database is used. For database construction see `?Seqs2DB` in `DECIPHER`. This example starts with a database containing three archaea genomes: Nitrosopumilus adriaticus, Nitrosopumilus piranensis, and a Candidatus Nitrosopumilus.
+Using the `FindSynteny` function in `DECIPHER` build an object of class `Synteny`. In this tutorial, a prebuilt `DECIPHER` database is used. For database construction see `?Seqs2DB` in `DECIPHER`. This example starts with a database containing three endosymbiont genomes that were chosen to keep package data to a minimum.
 
 ```{r, build_synteny_object}
 library(SynExtend)
 
 DBPATH <- system.file("extdata",
-                      "Nitrosocosmicus.sqlite",
+                      "Endosymbionts.sqlite",
                       package = "SynExtend")
 
 Syn <- FindSynteny(dbFile = DBPATH)
 ```
 
-Synteny maps represent where genomes share order. Simply printing a synteny object to the console displays a gross level view of the data inside. Objects of class `Synteny` can also be plotted to clear visual representations of the data inside. The genomes used in this example are all from the same genus, and should be expected to be somewhat closely related.
+Synteny maps represent where genomes share order. Simply printing a synteny object to the console displays a gross level view of the data inside. Objects of class `Synteny` can also be plotted to provide clear visual representations of the data inside. The genomes used in this example are distantly related and fairly dissimilar.
 
 ```{r, synplots01}
 Syn
@@ -74,12 +74,12 @@ Next, GFF annotations for the associated genomes are parsed to provide gene call
 ```{r, generate_genecalls}
 # generating genecalls with local data:
 GC <- gffToDataFrame(GFF = system.file("extdata",
-                                       "GCF_900696045.1_Nitrosocosmicus_franklandus_C13_genomic.gff.gz",
+                                       "GCF_021065005.1_ASM2106500v1_genomic.gff.gz",
                                        package = "SynExtend"),
                      Verbose = TRUE)
 
 # in an effort to be space conscious, not all original gffs are kept within this package
-GeneCalls <- get(data("Nitrosocosmicus_GeneCalls", package = "SynExtend"))
+GeneCalls <- get(data("Endosymbionts_GeneCalls", package = "SynExtend"))
 ```
 
 `SynExtend`'s `gffToDataFrame` function will directly import gff files into a usable format, and includes other extracted information.

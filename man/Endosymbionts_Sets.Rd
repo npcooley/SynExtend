@@ -1,5 +1,5 @@
-\name{Nitrosocosmicus_Sets}
-\alias{Nitrosocosmicus_Sets}
+\name{Endosymbionts_Sets}
+\alias{Endosymbionts_Sets}
 \docType{data}
 \title{
 A list of disjoint sets.
@@ -7,7 +7,7 @@ A list of disjoint sets.
 \description{
 A named list of disjoint sets representing hypothetical COGs.
 }
-\usage{data("Nitrosocosmicus_Sets")}
+\usage{data("Endosymbionts_Sets")}
 \format{
 A named list of disjoint sets representing hypothetical COGs.
 }
@@ -15,6 +15,6 @@ A named list of disjoint sets representing hypothetical COGs.
 A named list of disjoint sets representing hypothetical COGs.
 }
 \examples{
-data(Nitrosocosmicus_Sets)
+data(Endosymbionts_Sets)
 }
 \keyword{datasets}

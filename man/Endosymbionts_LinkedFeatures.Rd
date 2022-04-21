@@ -1,5 +1,5 @@
-\name{Nitrosocosmicus_LinkedFeatures}
-\alias{Nitrosocosmicus_LinkedFeatures}
+\name{Endosymbionts_LinkedFeatures}
+\alias{Endosymbionts_LinkedFeatures}
 \docType{data}
 \title{
 Example synteny links
@@ -7,7 +7,7 @@ Example synteny links
 \description{
 An object of class \code{LinkedPairs}.
 }
-\usage{data("Nitrosocosmicus_LinkedFeatures")}
+\usage{data("Endosymbionts_LinkedFeatures")}
 \format{
 An object of class \code{LinkedPairs}.
 }
@@ -15,6 +15,6 @@ An object of class \code{LinkedPairs}.
 An object of class \code{LinkedPairs}.
 }
 \examples{
-data(Nitrosocosmicus_LinkedFeatures)
+data(Endosymbionts_LinkedFeatures)
 }
 \keyword{datasets}

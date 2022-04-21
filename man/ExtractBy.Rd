@@ -41,21 +41,21 @@ Nicholas Cooley \email{npc19@pitt.edu}
 }
 \examples{
 DBPATH <- system.file("extdata",
-                      "Nitrosocosmicus.sqlite",
+                      "Endosymbionts.sqlite",
                       package = "SynExtend")
-data("Nitrosocosmicus_Pairs03", package = "SynExtend")
-data("Nitrosocosmicus_Sets", package = "SynExtend")
+data("Endosymbionts_Pairs03", package = "SynExtend")
+data("Endosymbionts_Sets", package = "SynExtend")
 
 # extract the first 10 disjoint sets
-Sets <- ExtractBy(x = Nitrosocosmicus_Pairs03,
+Sets <- ExtractBy(x = Endosymbionts_Pairs03,
                   y = DBPATH,
-                  z = Nitrosocosmicus_Sets[1:10],
+                  z = Endosymbionts_Sets[1:10],
                   Verbose = TRUE)
                   
 
 \donttest{
 # extract just the pairs
-Sets <- ExtractBy(x = Nitrosocosmicus_Pairs03,
+Sets <- ExtractBy(x = Endosymbionts_Pairs03,
                   y = DBPATH,
                   Verbose = TRUE)
 }

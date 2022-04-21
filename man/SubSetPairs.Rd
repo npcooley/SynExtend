@@ -48,14 +48,14 @@ Nicholas Cooley \email{npc19@pitt.edu}
 \code{\link{PairSummaries}} \code{\link{NucleotideOverlap}}
 }
 \examples{
-data("Nitrosocosmicus_Pairs03", package = "SynExtend")
+data("Endosymbionts_Pairs03", package = "SynExtend")
 # remove competitors under default conditions
-Pairs2 <- SubSetPairs(CurrentPairs = Nitrosocosmicus_Pairs03,
+Pairs2 <- SubSetPairs(CurrentPairs = Endosymbionts_Pairs03,
                       Verbose = TRUE)
 THRESH <- c(0.5, 21)
 names(THRESH) <- c("Consensus", "ExactMatch")
 # remove pairs only based on user defined thresholds
-Pairs3 <- SubSetPairs(CurrentPairs = Nitrosocosmicus_Pairs03,
+Pairs3 <- SubSetPairs(CurrentPairs = Endosymbionts_Pairs03,
                       UserThresholds = THRESH,
                       RejectCompetitors = FALSE,
                       Verbose = TRUE)

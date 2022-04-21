@@ -48,8 +48,8 @@ Nicholas Cooley \email{npc19@pitt.edu}
 \code{\link{FindSynteny}}, \code{\link{Synteny-class}}, \code{\link{PairSummaries}}
 }
 \examples{
-data("Nitrosocosmicus_Pairs02", package = "SynExtend")
-Pairs03 <- BlockReconciliation(Pairs = Nitrosocosmicus_Pairs02,
+data("Endosymbionts_Pairs02", package = "SynExtend")
+Pairs03 <- BlockReconciliation(Pairs = Endosymbionts_Pairs02,
                                ConservativeRejection = FALSE,
                                Verbose = TRUE)
 }

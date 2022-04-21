@@ -44,11 +44,11 @@ Nicholas Cooley \email{npc19@pitt.edu}
 \code{\link{FindSynteny}}, \code{\link{Synteny-class}}
 }
 \examples{
-data("Nitrosocosmicus_GeneCalls", package = "SynExtend")
-data("Nitrosocosmicus_Synteny", package = "SynExtend")
+data("Endosymbionts_GeneCalls", package = "SynExtend")
+data("Endosymbionts_Synteny", package = "SynExtend")
 
-Links <- NucleotideOverlap(SyntenyObject = Nitrosocosmicus_Synteny,
-                           GeneCalls = Nitrosocosmicus_GeneCalls,
+Links <- NucleotideOverlap(SyntenyObject = Endosymbionts_Synteny,
+                           GeneCalls = Endosymbionts_GeneCalls,
                            LimitIndex = FALSE,
                            Verbose = TRUE)
 }

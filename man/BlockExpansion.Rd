@@ -58,11 +58,11 @@ Nicholas Cooley \email{npc19@pitt.edu}
 }
 \examples{
 DBPATH <- system.file("extdata",
-                      "Nitrosocosmicus.sqlite",
+                      "Endosymbionts.sqlite",
                       package = "SynExtend")
                       
-data("Nitrosocosmicus_Pairs01", package = "SynExtend")
-Pairs02 <- BlockExpansion(Pairs = Nitrosocosmicus_Pairs01,
+data("Endosymbionts_Pairs01", package = "SynExtend")
+Pairs02 <- BlockExpansion(Pairs = Endosymbionts_Pairs01,
                           NewPairsOnly = FALSE,
                           DBPATH = DBPATH,
                           Verbose = TRUE)

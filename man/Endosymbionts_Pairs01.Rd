@@ -1,5 +1,5 @@
-\name{Nitrosocosmicus_Pairs01}
-\alias{Nitrosocosmicus_Pairs01}
+\name{Endosymbionts_Pairs01}
+\alias{Endosymbionts_Pairs01}
 \docType{data}
 \title{
 Example predicted pairs
@@ -7,7 +7,7 @@ Example predicted pairs
 \description{
 An object of class \code{PairSummaries}.
 }
-\usage{data("Nitrosocosmicus_Pairs01")}
+\usage{data("Endosymbionts_Pairs01")}
 \format{
 An object of class \code{PairSummaries}.
 }
@@ -15,6 +15,6 @@ An object of class \code{PairSummaries}.
 An object of class \code{PairSummaries}.
 }
 \examples{
-data(Nitrosocosmicus_Pairs01)
+data(Endosymbionts_Pairs01)
 }
 \keyword{datasets}

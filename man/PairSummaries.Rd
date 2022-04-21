@@ -73,12 +73,12 @@ Nicholas Cooley \email{npc19@pitt.edu}
 }
 \examples{
 DBPATH <- system.file("extdata",
-                      "Nitrosocosmicus.sqlite",
+                      "Endosymbionts.sqlite",
                       package = "SynExtend")
                       
-data("Nitrosocosmicus_LinkedFeatures", package = "SynExtend")
+data("Endosymbionts_LinkedFeatures", package = "SynExtend")
 
-Pairs <- PairSummaries(SyntenyLinks = Nitrosocosmicus_LinkedFeatures,
+Pairs <- PairSummaries(SyntenyLinks = Endosymbionts_LinkedFeatures,
                        PIDs = FALSE,
                        DBPATH = DBPATH,
                        Verbose = TRUE)
