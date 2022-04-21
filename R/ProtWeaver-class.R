@@ -270,8 +270,11 @@ DCA_gradient_minimize_fxn <- function(params, R, spins, i){
 
 DCA_logrise_run <- function(spins, links, regterm, printProgress=FALSE, NumCores=1){
   if (NumCores != 1){
-    availableCores <- detectCores()
-    NumCores <- ifelse(NumCores < 0, availableCores, min(availableCores, NumCores))
+    availableCores <- max(detectCores() - 1, 1) #leave an extra core just in case
+    if (is.na(availableCores)) 
+      NumCores <- 1
+    else
+      NumCores <- ifelse(NumCores < 0, availableCores, min(availableCores, NumCores))
   }
   nnodes <- ncol(spins)
   if (printProgress){
@@ -292,7 +295,7 @@ DCA_logrise_run <- function(spins, links, regterm, printProgress=FALSE, NumCores
                                      if (printProgress && charsvec[i]) 
                                        system2('printf', '=')
                                      return(val)
-                                   }, mc.cores=NumCores, mc.preschedule = FALSE
+                                   }, mc.cores=NumCores, mc.preschedule = TRUE
   )
   )
   if (printProgress) cat('| ')
@@ -362,7 +365,7 @@ DCA_logrise_run <- function(spins, links, regterm, printProgress=FALSE, NumCores
                if (printProgress && charsvec[i]) system('printf =')
                return(probs)
              }, 
-             mc.cores=NumCores, mc.preschedule=FALSE))  
+             mc.cores=NumCores, mc.preschedule=TRUE))  
   if (printProgress) cat('| ')
   
   for ( i in seq_len(nrow(links)-1) ){
@@ -418,13 +421,13 @@ DCA_logRISE <- function(PAProfiles, niter=1, reg_const=1,
 getBuiltInEnsembleModel <- function(pw, flags){
   # Key: (val is binary + 1)
   # 000 => 1: Jaccard, Hamming, MI, ProfileDCA (base)
-  # 001 => 2: base and MT, CT
+  # 001 => 2: base and MT
   # 010 => 3: base and Behdenna
-  # 011 => 4: base and Behdenna, MT, CT
+  # 011 => 4: base and Behdenna, MT
   # 100 => 5: base and Coloc
-  # 101 => 6: base and Coloc, MT, CT
+  # 101 => 6: base and Coloc, MT
   # 110 => 7: base and Behdenna, Coloc
-  # 111 => 8: base and Behdenna, Coloc, MT, CT
+  # 111 => 8: base and Behdenna, Coloc, MT
   model <- 4 * flags[3] + 2 * flags[2] + 1 * flags[1] + 1
   builtins <- get(data('BuiltInEnsembles', envir=environment()))
   return(builtins[[model]])
@@ -641,7 +644,8 @@ MirrorTree.ProtWeaver <- function(pw, correction=c(),
   for ( i in uvals )
     pairscores[i,i] <- 1
   rownames(pairscores) <- colnames(pairscores) <- names(pw)
-  return(pairscores[uvals, uvals])
+  
+  return(abs(pairscores))
 }
 
 ContextTree.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, precalcProfs=NULL, 
@@ -830,7 +834,7 @@ MutualInformation.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   # Correction
   apccorr <- mean(pairscores[upper.tri(pairscores)], na.rm=TRUE)
   pairscores <- pairscores - apccorr
-  pairscore <- abs(pairscores)
+  pairscores <- abs(pairscores)
   # Normalize
   denom <- max(pairscores, na.rm=TRUE)
   pairscores <- pairscores / ifelse(denom==0, 1, denom)
@@ -1035,8 +1039,7 @@ Ensemble.ProtWeaver <- function(pw,
   
   submodels <- c('ProfileDCA', 'Jaccard', 'Hamming', 'MutualInformation')
   if (attr(pw, 'useMT')){
-    # not yet implemented
-    # flags[1] <- TRUE
+    flags[1] <- TRUE
     if (Verbose) cat('Calculating Cophenetic profiles:\n')
     CPs <- CophProfiles(pw, uvals, Verbose=Verbose)
     submodels <- c(submodels, takesCP)
