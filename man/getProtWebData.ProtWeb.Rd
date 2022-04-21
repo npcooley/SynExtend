@@ -1,6 +1,6 @@
-\name{getProtWebData.ProtWeb}
-\alias{getProtWebData.ProtWeb}
-\alias{getProtWebData}
+\name{GetProtWebData.ProtWeb}
+\alias{GetProtWebData.ProtWeb}
+\alias{GetProtWebData}
 \title{
 Extract information from a ProtWeb object
 }
@@ -10,13 +10,13 @@ ProtWeb objects are outputted from \code{\link{predict.ProtWeaver}}.
 This function extracts the underlying data from the object.
 }
 \usage{
-\method{getProtWebData}{ProtWeb}(x, asDf=FALSE, ...)
+\method{GetProtWebData}{ProtWeb}(x, AsDf=FALSE, ...)
 }
 \arguments{
   \item{x}{
     A ProtWeb object
   }
-  \item{asDf}{
+  \item{AsDf}{
     Should data be printed as a pairwise entry? If \code{TRUE}, returns a matrix 
     with three columns, where the first two columns define the pair of genes/proteins 
     and the third column defines the prediction/score. If \code{FALSE}, returns an 
@@ -32,12 +32,12 @@ This function extracts the underlying data from the object.
 \code{\link{predict.ProtWeaver}} returns a \code{ProtWeb} object, which bundles some methods
 to make formatting and printing of results slightly nicer. This method extracts data form the \code{ProtWeb} object.
 
-If \code{asDf=TRUE}, the return data is a \code{3xN} \code{\link[base]{data.frame}}, with columns 3 showing
+If \code{AsDf=TRUE}, the return data is a \code{3xN} \code{\link[base]{data.frame}}, with columns 3 showing
 the prediction for the pair of genes/proteins specified in columns 1 and 2. This format 
 is when predictions are made on small number of pairs (meaning the resulting adjacency 
 matrix is sparse).
 
-If \code{asDf=FALSE}, the return data is a \code{NxN} adjacency matrix, with entry
+If \code{AsDf=FALSE}, the return data is a \code{NxN} adjacency matrix, with entry
 \code{i,j} containing the prediction for genes \code{i} and \code{j}. 
 }
 \value{
@@ -56,14 +56,15 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 ###############
 
 exData <- get(data("ExampleStreptomycesData"))
-pw <- ProtWeaver(exData$Genes)
 
 # Subset isn't necessary but is faster for a working example
-protweb <- predict(pw, method='Jaccard', subset=1:50)
+pw <- ProtWeaver(exData$Genes[1:10])
+
+protweb <- predict(pw, method='Jaccard')
 
 # print out results as an adjacency matrix
-getProtWebData(protweb)
+GetProtWebData(protweb)
 
 # print out results as a pairwise data.frame
-getProtWebData(protweb, asDf=TRUE)
+GetProtWebData(protweb, AsDf=TRUE)
 }

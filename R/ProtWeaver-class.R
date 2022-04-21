@@ -2,9 +2,6 @@
 # author: Aidan Lakshman
 # contact: ahl27@pitt.edu
 
-## Defining S3 class for ProtWeaver Object
-
-
 #### DEFINITION ####
 # Class expects as input one of the following:
 #   1. A list of dendrograms

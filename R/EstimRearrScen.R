@@ -1,36 +1,29 @@
+##### -- Function to estimate genome rearrangement scenarios -------------------
+# author: Aidan Lakshman
+# contact: ahl27@pitt.edu
+
 ##########
 #Function to generate most likely rearrangement scenario
 #Expects as input a synteny object
 #Returns a list containing the rearrangement steps in order
 
 ##########
-EstimateRearrangementScenarios <- function(synt,
-                                           num_runs = -1,
-                                           verbose = TRUE,
-                                           mean = FALSE,
-                                           opp_value = 0,
-                                           min_unique_length = 10,
-                                           min_block_length = -1,
-                                           actual = c(),
-                                           test_run = 0) { #internal parameters
-
-  if (!is(object = synt,
+EstimRearrScen <- function(SyntenyObject,
+                                           NumRuns = -1,
+                                           Mean = FALSE,
+                                           MinBlockLength = -1,
+                                           Verbose = TRUE) {
+  if (!is(object = SyntenyObject,
           class2 = "Synteny")) {
     stop ("Expected class of type 'Synteny'.")
   }
-  # if(!is(synt, "Synteny")
-  #   stop("Expected class of type 'Synteny'")
   
-  rearrange_chromosome <- function(synblocks, syn, num_runs=-1,
-                                   verbose = FALSE, mean = FALSE, #main user parameters
-                                   opp_value = 0, min_unique_length = 10, min_block_length = -1, #extra user parameters
-                                   actual=c(), test_run=0, first_gen=1, second_gen=2, chrom=-1){ #internal parameters  
+  rearrange_chromosome <- function(synblocks, syn, NumRuns=-1,
+                                   Verbose = FALSE, Mean = FALSE, #main user parameters
+                                   MinBlockLength = -1, #extra user parameters
+                                  first_gen=1, second_gen=2, chrom=-1, EarlyOutput=FALSE){ #internal parameters  
     # ERROR CHECKING  --------------------------------------------------------------
     #set.seed(13)
-    if(length(actual) > 5)
-      warning("vector provided is of length greater than 5. Only the first 5 entries will be used.")
-    else if(length(actual) < 5 && length(actual) != 0)
-      stop("vector provided for actual values is of incorrect length. Expected length 0 or 5.")
     
     stopifnot("Error: Incorrect genome indices provided. Make sure indices are not the same."=
                 second_gen!=first_gen)
@@ -46,10 +39,10 @@ EstimateRearrangementScenarios <- function(synt,
     if(nrow(syn[[second_gen,first_gen]]) == 1){
       len_1 <- syn[[1,1]]
       len_2 <- syn[[2,2]]
-      start_1 <- synt[[2,1]][,5]
-      start_2 <- synt[[2,1]][,6]
-      end_1 <- synt[[2,1]][,7]
-      end_2 <- synt[[2,1]][,8]
+      start_1 <- SyntenyObject[[2,1]][,5]
+      start_2 <- SyntenyObject[[2,1]][,6]
+      end_1 <- SyntenyObject[[2,1]][,7]
+      end_2 <- SyntenyObject[[2,1]][,8]
       
       ins_del_trans <- 0
       if(start_1 != 1)
@@ -61,10 +54,10 @@ EstimateRearrangementScenarios <- function(synt,
       if(end_2 != len_2)
         ins_del_trans <- ins_del_trans + 1
       
-      if(test_run == 2)
+      if(EarlyOutput)
         return(c(0, 0, ins_del_trans))
       rearrangements = c('Original: 1')
-      block_key <- matrix(c(1,1,1,synt[[1,1]], 1), nrow=1)
+      block_key <- matrix(c(1,1,1,SyntenyObject[[1,1]], 1), nrow=1)
       colnames(block_key) <- c('start1', 'start2', 'length', 'rel_direction_on_2', 'index1')
       
       return(list('counts'=c(0, 0, ins_del_trans),
@@ -212,7 +205,7 @@ EstimateRearrangementScenarios <- function(synt,
           #(as we could sort any vector into place by transposing each block one at a time and then inverting it)
           #Thus if we ever get to triple the number of blocks, we can be sure it's in an infinite loop
           fname <- "./ERRONEOUS_SYNT_OBJ.RData"
-          save(synt, file=fname)
+          save(SyntenyObject, file=fname)
           err_msg <- paste("Infinite Loop, bug in code. Error-producing synteny object saved to ", fname, sep="")
           stop(err_msg)
         }
@@ -370,13 +363,13 @@ EstimateRearrangementScenarios <- function(synt,
       
       start2 <- row[6]
       #get direction of the block
-      if(row[3] == opp_value){ 
+      if(row[3] == 0){ 
         dir <- 1
       }
       else{ 
         dir <- -1
       }
-      if (blocklength > min_block_length){ #drop blocks that are SNPs
+      if (blocklength > MinBlockLength){ #drop blocks that are SNPs
         block_matrix[rowindex, 1] <- start1
         block_matrix[rowindex, 2] <- start2
         block_matrix[rowindex, 3] <- blocklength
@@ -520,19 +513,19 @@ EstimateRearrangementScenarios <- function(synt,
     # ===== finished creating breakpoint graph =====
     
     # ===== Rearrangement Scenarios =====
-    if (num_runs < 1)
-      num_runs <- 2*length(graph_to_genome(bpg))
+    if (NumRuns < 1)
+      NumRuns <- ceiling(sqrt(length(graph_to_genome(bpg))))
     
-    if(verbose)
-      progress <- txtProgressBar(max = num_runs, char = "=", style=3)
+    if(Verbose)
+      progress <- txtProgressBar(max = NumRuns, char = "=", style=3)
     
-    if(mean){
+    if(Mean){
       invert_count <- 0
       block_count <- 0
-      seq_skip_inv_probs <- seq(0, 0.75, length.out=num_runs)
-      seq_skip_bi_probs <- seq(0.75, 0, length.out=num_runs)
+      seq_skip_inv_probs <- seq(0, 0.75, length.out=NumRuns)
+      seq_skip_bi_probs <- seq(0.75, 0, length.out=NumRuns)
       min_total_seen <- 6 * length(graph_to_genome(bpg))
-      for(i in seq_len(num_runs)){
+      for(i in seq_len(NumRuns)){
         rearr <- generate_rearrangements(bpg, 
                                          bi_skip_prob=seq_skip_bi_probs[i], 
                                          inv_skip_prob=seq_skip_inv_probs[i])
@@ -543,17 +536,17 @@ EstimateRearrangementScenarios <- function(synt,
           min_total_seen <- ctot
           rearrangements <- rearr$rearrangements
         }
-        if (verbose)
+        if (Verbose)
           setTxtProgressBar(progress, i)
       }
-      invert_count <- invert_count / num_runs
-      block_count <- block_count / num_runs
+      invert_count <- invert_count / NumRuns
+      block_count <- block_count / NumRuns
     }
     else{
       block_count <- invert_count <- 3*length(graph_to_genome(bpg))
-      seq_skip_inv_probs <- seq(0, 0.75, length.out=num_runs)
-      seq_skip_bi_probs <- seq(0.75, 0, length.out=num_runs)
-      for (i in seq_len(num_runs)){
+      seq_skip_inv_probs <- seq(0, 0.75, length.out=NumRuns)
+      seq_skip_bi_probs <- seq(0.75, 0, length.out=NumRuns)
+      for (i in seq_len(NumRuns)){
         rearr <- generate_rearrangements(bpg, 
                                          bi_skip_prob=seq_skip_bi_probs[i], 
                                          inv_skip_prob=seq_skip_inv_probs[i])
@@ -563,7 +556,7 @@ EstimateRearrangementScenarios <- function(synt,
           rearrangements <- rearr$rearrangements
           graph <- rearr$rearrangements
         }
-        if (verbose)
+        if (Verbose)
           setTxtProgressBar(progress, i)
       }
     }
@@ -571,22 +564,17 @@ EstimateRearrangementScenarios <- function(synt,
     # ===== end rearrangement scenarios =====
     
     # OUTPUT ---------------------------------------------------------------------
-    if(test_run == 1){
-      cat(c("\n", invert_count, "(", actual[1], ")\n"))
-      cat(c(block_count, "(", actual[4], ")\n"))
-      cat(c(length(unique_1)/2 + length(unique_2)/2, "(", actual[3]+actual[5]+actual[2], ")\n\n"))
-    }
     return(list('counts'=c(invert_count, block_count, length(unique_1)/2 + length(unique_2)/2),
                 'scenario'=rearrangements,
                 'block_key'=block_key))
   }
   
-  num_genomes <- nrow(synt)
+  num_genomes <- nrow(SyntenyObject)
   rearr_mat <- matrix(data=list(), nrow=num_genomes, ncol=num_genomes)
   rearrangements <- list("Translocations"=0, "Gen1Dup"=0, "Gen2Dup"=0, 
                          "Inversions"=0, "Transpositions"=0, "InsDel"=0, 
                          "pct_hits"=0)
-  row_names <- rownames(synt)
+  row_names <- rownames(SyntenyObject)
 
   rownames(rearr_mat) <- row_names
   colnames(rearr_mat) <- row_names
@@ -594,21 +582,21 @@ EstimateRearrangementScenarios <- function(synt,
   for ( i in seq_len(num_genomes) ){
     for ( j in i:num_genomes ){
       if (j == i){
-        rearr_mat[[i, j]] <- synt[[i,j]]
+        rearr_mat[[i, j]] <- SyntenyObject[[i,j]]
         next
       }
         
       gen1 <- max(i, j)
       gen2 <- min(i, j)
       
-      p_hits <- (sum(synt[[gen2, gen1]][,"width"])*2) / (sum(unlist(synt[[gen1,gen1]])) + sum(unlist(synt[[gen2, gen2]])))
+      p_hits <- (sum(SyntenyObject[[gen2, gen1]][,"width"])*2) / (sum(unlist(SyntenyObject[[gen1,gen1]])) + sum(unlist(SyntenyObject[[gen2, gen2]])))
       rearrangements$pct_hits <- p_hits
       rearr_mat[[gen2, gen1]] <- paste(round(p_hits*100, 2), "% hits", sep='')
       
-      gen_info <- synt[[gen1, gen2]]
+      gen_info <- SyntenyObject[[gen1, gen2]]
       
       num_chrom <- max(gen_info[,1],gen_info[,2]) 
-      if(verbose)
+      if(Verbose)
         cat("\nComputing Scenario for Genomes ", i, " and ", j, "...", sep='')
       for ( chrom in seq_len(num_chrom) ){
         rows <- gen_info[gen_info[,1] == chrom | gen_info[,2] == chrom,]
@@ -623,7 +611,7 @@ EstimateRearrangementScenarios <- function(synt,
 
         if (nrow(rows) == 0) #if no rows match, continue
         {
-          if (verbose){
+          if (Verbose){
             cat("\n\tChromosome ", chrom, " of ", num_chrom, ":\n", sep='')
             progress <- txtProgressBar(max = 1, char = "=", style=3)
             setTxtProgressBar(progress, 1)
@@ -634,7 +622,7 @@ EstimateRearrangementScenarios <- function(synt,
         #eliminating rows we've already seen
         rows <- rows[rows[,1] >= chrom,]
         if (is.null(nrow(rows)) || nrow(rows) == 0){ #if no rows match, continue
-          if (verbose){
+          if (Verbose){
             cat("\n\tChromosome ", chrom, " of ", num_chrom, ":\n", sep='')
             progress <- txtProgressBar(max = 1, char = "=", style=3)
             setTxtProgressBar(progress, 1)
@@ -644,7 +632,7 @@ EstimateRearrangementScenarios <- function(synt,
 
         rows <- rows[rows[,2] >= chrom,]
         if (is.null(nrow(rows)) || nrow(rows) == 0){ #if no rows match, continue
-          if ( verbose ) { 
+          if ( Verbose ) { 
            cat("\n\tChromosome ", chrom, " of ", num_chrom, ":\n", sep='')
             progress <- txtProgressBar(max = 1, char = "=", style=3)
             setTxtProgressBar(progress, 1)
@@ -695,11 +683,13 @@ EstimateRearrangementScenarios <- function(synt,
         if (nrow(matching) == 0){
           next()
         }
-        if(verbose)
+        if(Verbose)
           cat("\n\tChromosome ", chrom, " of ", num_chrom, ":\n", sep='')  
-        chrom_results <- rearrange_chromosome(matching, synt, verbose=verbose, mean=mean, chrom=chrom,
-                                              opp_value = opp_value, min_unique_length=min_unique_length, num_runs=num_runs,
-                                              min_block_length=min_block_length, first_gen = gen1, second_gen=gen2, test_run=2)
+        chrom_results <- rearrange_chromosome(matching, SyntenyObject, Verbose=Verbose, 
+                                              Mean=Mean, chrom=chrom,
+                                              NumRuns=NumRuns,
+                                              MinBlockLength=MinBlockLength, 
+                                              first_gen = gen1, second_gen=gen2, EarlyOutput=TRUE)
         counts <- chrom_results$counts
         rearrangements$Inversions <- rearrangements$Inversions+counts[1]
         rearrangements$Transpositions <- rearrangements$Transpositions+counts[2]
@@ -714,7 +704,7 @@ EstimateRearrangementScenarios <- function(synt,
       rearrangements <- list("Translocations"=0, "Gen1Dup"=0, "Gen2Dup"=0, "Inversions"=0, "Transpositions"=0, "InsDel"=0)
     }
   }
-  if(verbose)
+  if(Verbose)
     cat("\nComplete.\n")
   return(rearr_mat)
 }

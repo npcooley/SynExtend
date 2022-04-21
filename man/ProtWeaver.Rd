@@ -1,5 +1,6 @@
 \name{ProtWeaver}
 \alias{ProtWeaver}
+\alias{ProtWeaver-class}
 \title{
 ProtWeaver: Predicting Protein Functional Association Networks
 }

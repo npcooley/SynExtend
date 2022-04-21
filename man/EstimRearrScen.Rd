@@ -1,64 +1,47 @@
-\name{EstimateRearrangementScenarios}
+\name{EstimRearrScen}
+\alias{EstimRearrScen}
 \alias{EstimateRearrangementScenarios}
 
 \title{
 Estimate Genome Rearrangement Events with Double Cut and Join Operations
 }
 \description{
-Take in a Synteny object from FindSynteny and return predicted rearrangement events.
+Take in a \code{\link[=Synteny-class]{Synteny}} object and return predicted rearrangement events.
 }
 \usage{
-EstimateRearrangementScenarios(synt,
-                               num_runs = -1, 
-                               verbose = TRUE,
-                               mean = FALSE,
-                               opp_value = 0,
-                               min_unique_length = 10,
-                               min_block_length = -1,
-                               actual = c(),
-                               test_run = 0)
+EstimRearrScen(SyntenyObject, NumRuns = -1,
+                Mean = FALSE, MinBlockLength = -1,
+                Verbose = TRUE)
 }
 
 \arguments{
-  \item{synt}{
-  Synteny object obtained from running the FindSynteny object. Expected input is 
-  unichromosomal sequences, though multichromosomal sequences are supported.
+  \item{SyntenyObject}{
+  \code{\link[=Synteny-class]{Synteny}} object, as obtained from running \code{\link{FindSynteny}}. 
+  Expected input is unichromosomal sequences, though multichromosomal sequences are supported.
   }
-  \item{num_runs}{
+  \item{NumRuns}{
   Numeric; Number of times to simulate scenarios. The default value of -1 (and all non-positive
-  values) runs each analysis for \emph{2b} iterations, where \emph{b} is the number of unique
+  values) runs each analysis for \eqn{\sqrt b} iterations, where \code{b} is the number of unique
   breakpoints.
   }
-  \item{mean}{
-  If TRUE, returns the mean number of inversions and transpositions found. If FALSE,
+  \item{Mean}{
+  Logical; If TRUE, returns the mean number of inversions and transpositions found. If FALSE,
   returns the scenario corresponding to the minimum total number of operations 
   across all runs. This parameter only affects the number of inversions and 
   transpositions reported; the specific scenario returned is one of the runs that 
   resulted in a minimum value.
   }
-  \item{min_block_length}{
-  Minimum size of syntenic blocks to use for analysis. The default value accepts all blocks.
+  \item{MinBlockLength}{
+  Numeric; Minimum size of syntenic blocks to use for analysis. The default value accepts all blocks.
   Set to a larger value to ignore sections of short mutations that could be the 
   result of SNPs or other small-scale mutations.
   }
-  \item{verbose}{
-  Displays progress bars if verbose=TRUE.
-  }
-  \item{opp_value}{
-  A parameter.
-  }
-  \item{min_unique_length}{
-  A parameter.
-  }
-  \item{actual}{
-  A parameter.
-  }
-  \item{test_run}{
-  A parameter.
+  \item{Verbose}{
+  Logical; indicates whether or not to display a progress bar and print the time difference upon completion.
   }
 }
 \details{
-\code{EstimateRearrangementScenarios} is an implementation of the Double Cut and Join
+\code{EstimRearrScen} is an implementation of the Double Cut and Join
 (DCJ) method for analyzing large scale mutation events. This implementation incentivizes
 minimum number of total events rather than total number of DCJs. Multiple scenarios are
 computed, and results of estimation are returned to the user. 
@@ -72,7 +55,7 @@ In the upper triangle, entry
 \code{[i,j]} corresponds to the percent hits between genome \code{i} and genome \code{j}.
 In the lower triangle, entry \code{[i,j]} contains a List object with 5 properties:
 \itemize{
-\item \code{$Inversions} and \code{$Transpositions} contain the (mean/min) number of estimated inversions
+\item \code{$Inversions} and \code{$Transpositions} contain the (Mean/min) number of estimated inversions
 and transpositions (resp.) between genome \code{i} and genome \code{j}. 
 \item \code{$pct_hits}
 contains percent hits between the genomes. 
@@ -96,13 +79,15 @@ Aidan Lakshman (\email{ahl27@pitt.edu})
 
 \seealso{
 \code{\link[DECIPHER]{FindSynteny}}
+
+\code{\link[=Synteny-class]{Synteny}}
 }
 \examples{
 db <- system.file("extdata", "Influenza.sqlite", package="DECIPHER")
 synteny <- FindSynteny(db)
 synteny
 
-rearrs <- EstimateRearrangementScenarios(synteny)
+rearrs <- EstimRearrScen(synteny)
 
 rearrs          # view whole object
 rearrs[[2,1]]   # view details on Genomes 1 and 2
