@@ -19,7 +19,7 @@ plot.ProtWeb <- function(x, NumSims=10, Gravity=0.05, Coulomb=0.1, Connection=5,
   # - Coulomb force (repels nodes)
   # - Connection force
   web <- x
-  
+  starttime <- Sys.time()
   if (Verbose) cat('Finding a descriptive embedding...\n')
   # Change similarity scores to distances
   web <- abs(web)
@@ -62,6 +62,10 @@ plot.ProtWeb <- function(x, NumSims=10, Gravity=0.05, Coulomb=0.1, Connection=5,
                     FUN.VALUE=numeric(1))
   colors <- ColorPalette(length(colsvec))
   embedding <- embedding[order(colsvec, decreasing=FALSE),]
+  if (Verbose)
+    cat('Done.\n\nTime difference of', 
+        round(difftime(Sys.time(), starttime, units = 'secs'), 2),
+        'seconds.\n')
   plot(embedding[,1], embedding[,2], pch=19, cex=0.5, 
        xaxt='n', yaxt='n', ylab='', xlab='', col=colors,
        main='Force-directed embedding of COGs', ...)

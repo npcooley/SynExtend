@@ -42,9 +42,40 @@ EstimRearrScen(SyntenyObject, NumRuns = -1,
 }
 \details{
 \code{EstimRearrScen} is an implementation of the Double Cut and Join
-(DCJ) method for analyzing large scale mutation events. This implementation incentivizes
-minimum number of total events rather than total number of DCJs. Multiple scenarios are
-computed, and results of estimation are returned to the user. 
+(DCJ) method for analyzing large scale mutation events. 
+
+The DCJ model is commonly used to model genome rearrangement operations. Given a genome,
+we can create a connected graph encoding the order of conserved genomic regions. 
+Each syntenic region is split into two nodes, with one encoding the beginning and one encoding the end
+(beginning and end defined relative to the direction of transcription). Each node
+is then connected to the two nodes it is adjacent to in the genome.
+
+For example, given a genome with 3 syntenic regions \eqn{a-b-c} such that \eqn{b}
+is transcribed in the opposite direction relative to \eqn{a,c}, our graph would consist 
+of nodes and edges \eqn{a1-a2-b2-b1-c1-c2}.
+
+Given two genomes, we derive syntenic regions between the two samples and then construct
+two of these graph structures. A DCJ operation is one that cuts two connections 
+of a common color and creates two new edges. The goal of the DCJ model is to rearrange
+the graph of the first genome into the second genome using DCJ operations. The
+DCJ distance is defined as the minimum number of DCJ operations to transform one
+graph into another.
+
+It can be easily shown that inversions can be performed with a single DCJ operation,
+and block interchanges/order rearrangements can be performed with a sequence of 
+two DCJ operations. DCJ distance defines a metric space, and prior work has 
+demonstrated algorithms for fast computation of the DCJ distance. 
+
+However, DCJ distance inherently incentivizes inversions over block interchanges 
+due to the former requiring half as many DCJ operations. This is a strong assumption,
+and there is no evidence to support gene order rearrangements occuring half as often
+as gene inversions.
+
+This implementation incentivizes minimum number of total events rather than total number of DCJs. 
+As the search space is large and multiple sequences of events can be equally parsimonious,
+this algorithm computes multiple scenarios with random sequences of operations to
+try to find the minimum amount of events. Users can choose to receive the best found
+solution or the mean number of events from all solutions.
 }
 \value{
 An \emph{NxN} matrix with the same shape as the input Synteny object. 

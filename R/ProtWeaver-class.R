@@ -27,7 +27,7 @@ Ensemble <- function(pw, ...) UseMethod('Ensemble')
 ########
 
 
-#### Class Constructor and Base Generic Redefinitions ####
+#### Class Constructor ####
 new_ProtWeaver <- function(validatedInput){
   structure(validatedInput$ipt,
             allOrgs=validatedInput$allgenomes,
@@ -99,7 +99,9 @@ validate_ProtWeaver <- function(ipt, noWarn=FALSE){
   
   return(list(ipt=ipt, allgenomes=allentries, flags=bitflags))
 }
+########
 
+#### User-Exposed S3 Methods ####
 show.ProtWeaver <- function(x, ...){
   if (length(x) == 1){
     cat(paste('a ProtWeaver object with', length(x),
@@ -132,21 +134,26 @@ predict.ProtWeaver <- function(object, Method='Ensemble', Subset=NULL, NumCores=
                                ReturnRawData=FALSE, Verbose=TRUE, ...){
   pw <- object
   func <- getS3method(Method, 'ProtWeaver')
+  if(Verbose && !ReturnRawData) starttime <- Sys.time()
+  
   preds <- func(pw, Subset=Subset, Verbose=Verbose, 
                 MySpeciesTree=MySpeciesTree, NumCores=NumCores,
                 PretrainedModel=PretrainedModel, RawZScores=RawZScores, 
                 NoPrediction=NoPrediction, ...)
   
+  if (Verbose && !ReturnRawData) cat('Done.\n\nTime difference of', 
+                                     round(difftime(Sys.time(), starttime, units = 'secs'), 2),
+                                     'seconds.\n')
   if (is(preds, 'list') && !is.null(preds$noPostFormatting))
-    return(preds$res)
+    invisible(preds$res)
   if (ReturnRawData)
-    return(preds)
+    invisible(preds)
   
   rs <- structure(preds,
                   method=Method,
                   class='ProtWeb')
   
-  return(rs)
+  invisible(rs)
 }
 
 ########
@@ -394,7 +401,7 @@ DCA_logRISE <- function(PAProfiles, niter=1, reg_const=1,
     truelinks <- truelinks + mult * iterlink
     if(Verbose & !pp) setTxtProgressBar(pb, i)
   }
-  if(Verbose) cat('\n')
+  if(Verbose & !pp) cat('\n')
   
   if (zero_cutoff > 0) {
     cutoff <- ifelse(zero_cutoff > 1, zero_cutoff, zero_cutoff * niter)
@@ -423,7 +430,7 @@ getBuiltInEnsembleModel <- function(pw, flags){
 ########
 
 
-#### S3 Methods Not Exposed to User ####
+#### Internal S3 Methods ####
 
 PAProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE, 
                                   speciesList=NULL, ...){
@@ -1055,7 +1062,7 @@ Ensemble.ProtWeaver <- function(pw,
     if (model %in% takesCP) profs <- CPs
     else profs <- PAs
     results[[model]] <- predict(pw, model, Verbose=Verbose, 
-                              returnRawData=TRUE, precalcProfs=profs,
+                              ReturnRawData=TRUE, precalcProfs=profs,
                               precalcSubset=subs, 
                               MySpeciesTree=MySpeciesTree, ...)
   }
