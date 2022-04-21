@@ -141,19 +141,21 @@ predict.ProtWeaver <- function(object, Method='Ensemble', Subset=NULL, NumCores=
                 PretrainedModel=PretrainedModel, RawZScores=RawZScores, 
                 NoPrediction=NoPrediction, ...)
   
-  if (Verbose && !ReturnRawData) cat('Done.\n\nTime difference of', 
-                                     round(difftime(Sys.time(), starttime, units = 'secs'), 2),
-                                     'seconds.\n')
+  if (Verbose && !ReturnRawData){
+    cat('Done.\n\nTime difference of', 
+        round(difftime(Sys.time(), starttime, units = 'secs'), 2),
+        'seconds.\n')
+  } 
   if (is(preds, 'list') && !is.null(preds$noPostFormatting))
-    invisible(preds$res)
+    return(invisible(preds$res))
   if (ReturnRawData)
-    invisible(preds)
+    return(invisible(preds))
   
   rs <- structure(preds,
                   method=Method,
                   class='ProtWeb')
   
-  invisible(rs)
+  return(invisible(rs))
 }
 
 ########

@@ -184,8 +184,7 @@ GetProtWebData(protweb1)
 ## Training own ensemble model
 ###############
 
-datavals <- predict(pw, 
-                  NoPrediction=TRUE)
+datavals <- predict(pw, NoPrediction=TRUE)
                   
 actual_values <- sample(c(0,1), nrow(datavals), replace=TRUE)
 # This example just picks random numbers
