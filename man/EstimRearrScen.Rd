@@ -129,21 +129,20 @@ Step 1 is the original state of genome 2, step 2 inverts 2 elements to arrive at
 \code{(3 1 2 4)}, and then step 3 moves one element to arrive at \code{(1 2 3 4)}. 
 
 It is important to note that the numbered genomic regions in \code{$Scenario} are not genes,
-they are blocks of syntentic regions between the genomes. These blocks may not match
+they are blocks of conserved syntenic regions between the genomes. These blocks may not match
 up with the original blocks from the Synteny object, since some are combined during
 pre-processing to expedite calculations. 
 
-\code{$Key} is a mapping between these numbered regions and the original genetic regions.
+\code{$Key} is a mapping between these numbered regions and the original genomic regions.
 This is a 5 column matrix with the following columns (in order):
 \enumerate{
-  \item \code{start1}: Nucleotide positon for the first nucleotide in of the syntenic region
+  \item \code{start1}: Nucleotide position for the first nucleotide in of the syntenic region
   on genome 1.
   \item \code{start2}: Same as \code{start1}, but for genome 2
   \item \code{length}: Length of block, in nucleotides
   \item \code{rel_direction_on_2}: 1 if the blocks have the same transcriptonal direction on both 
   genomes, and 0 if the direction is reversed in genome 2
   \item \code{index1}: Label of the genetic region used in \code{$Scenario} output
-}
 }
 }
 \references{
