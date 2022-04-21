@@ -78,7 +78,7 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 \seealso{
 \code{\link{predict.ProtWeaver}}
 
-\code{\link{getProtWebData.ProtWeb}}
+\code{\link{GetProtWebData.ProtWeb}}
 }
 \examples{
 exData <- get(data("ExampleStreptomycesData"))

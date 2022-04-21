@@ -7,7 +7,7 @@
 ##  This is just an S3 class to make output of ProtWeaver predictions 
 ##  easier to manage.
 
-getProtWebData <- function(x, ...) UseMethod('getProtWebData')
+GetProtWebData <- function(x, ...) UseMethod('GetProtWebData')
 
 plot.ProtWeb <- function(x, nsim=10, gravity=0.05, coulomb=0.1, connection=5,
                          move_rate=0.25, cutoff=0.2, 
@@ -71,7 +71,7 @@ summary.ProtWeb <- function(object, ...){
   cat('a ProtWeb object.\n')
   a <- attributes(object)
   cat('\tMethod used:', a$method, '\n')
-  d <- getProtWebData(object)
+  d <- GetProtWebData(object)
   numGenes <- ncol(d)
   numPreds <- sum(upper.tri(d,diag=TRUE) & !is.na(d))
   cat('\tNumber of genes:', numGenes, '\n')
@@ -86,7 +86,7 @@ show.ProtWeb <- function(x, ...){
   summary(x)
 }
 
-getProtWebData.ProtWeb <- function(x, asDf=FALSE, ...){
+GetProtWebData.ProtWeb <- function(x, AsDf=FALSE, ...){
   dims <- dim(x)
   rnames <- rownames(x)
   cnames <- colnames(x)
@@ -94,7 +94,7 @@ getProtWebData.ProtWeb <- function(x, asDf=FALSE, ...){
   arr <- array(x, dim=dims)
   rownames(arr) <- rnames
   colnames(arr) <- cnames
-  if (asDf){
+  if (AsDf){
     arr <- ProtWebMatToDf(arr)
   }
   return(arr)

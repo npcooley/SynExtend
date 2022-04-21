@@ -9,20 +9,20 @@ This returns an object of type \code{ProtWeb}, which is essentially an adjacency
 matrix with some extra S3 methods to make printing cleaner.
 }
 \usage{
-\method{predict}{ProtWeaver}(object, method='Ensemble',
-         subset=NULL, numCores=1,
-         mySpeciesTree=NULL, pretrainedModel=NULL,
-         rawZscores=FALSE, noPrediction=FALSE,
-         verbose=TRUE, returnRawData=FALSE, ...)
+\method{predict}{ProtWeaver}(object, Method='Ensemble',
+         Subset=NULL, NumCores=1,
+         MySpeciesTree=NULL, PretrainedModel=NULL,
+         RawZScores=FALSE, NoPrediction=FALSE,
+         ReturnRawData=FALSE, Verbose=TRUE, ...)
 }
 \arguments{
   \item{object}{
-A ProtWeaver object
-}
-  \item{method}{
-Method to use for prediction. See 'Details'.
-}
-  \item{subset}{
+    A ProtWeaver object
+  }
+  \item{Method}{
+    Method to use for prediction. See 'Details'.
+  }
+  \item{Subset}{
     Subset of data to predict on. This can either be a vector or a \code{2xN} matrix.
     
     
@@ -37,34 +37,34 @@ Method to use for prediction. See 'Details'.
     \code{subset=cbind(c(1,1,2), c(2,3,3))} produces equivalent functionality to 
     \code{subset=1:3}.
   }
-  \item{numCores}{
+  \item{NumCores}{
     Number of cores to use for methods that support multithreaded execution. 
     Currently only supported for methods \code{'ProfDCA'} and \code{'Ensemble'}. Setting
-    to a negative value will use as many cores as are available. If \code{numCores}
+    to a negative value will use as many cores as are available. If \code{NumCores}
     is larger than the number of available cores, only the number of available
     cores will be used. This parameter has no effect on Windows due to reliance on
     forking via \code{mclapply}.
   }
-  \item{mySpeciesTree}{
+  \item{MySpeciesTree}{
     Phylogenetic tree of all genomes in the dataset. Required for method \code{'Behdenna'},
     and can improve predictions for other methods.
   }
-  \item{pretrainedModel}{
+  \item{PretrainedModel}{
     A pretrained model for use with ensemble predictions. If unspecified when 
-    \code{method='Ensemble'}, the program will use built-in models 
+    \code{Method='Ensemble'}, the program will use built-in models 
     (see \code{\link{BuiltInEnsembles}}). See the examples for how to train an
-    ensemble method to pass to \code{pretrainedModel}. 
+    ensemble method to pass to \code{PretrainedModel}. 
     
-    Has no effect if \code{method != 'Ensemble'}.
+    Has no effect if \code{Method != 'Ensemble'}.
   }
-  \item{rawZscores}{
+  \item{RawZScores}{
     For methods that return z-scores, should raw scores be returned? If FALSE, instead
     returns normalized absolute value of predictions. These tend to be better predictions.
     
-    Currently, only \code{method='Behdenna'} uses this parameter.
+    Currently, only \code{Method='Behdenna'} uses this parameter.
   }
-  \item{noPrediction}{
-    For \code{method='Ensemble'}, should data be returned prior to making predictions?
+  \item{NoPrediction}{
+    For \code{Method='Ensemble'}, should data be returned prior to making predictions?
     
     If \code{TRUE}, this will instead return a dataframe (\link[base]{data.frame})
     with predictions from each algorithm for each pair. This dataframe is typically
@@ -73,13 +73,13 @@ Method to use for prediction. See 'Details'.
     If \code{FALSE}, ProtWeaver will return predictions for each pair (using user model
     if provided or a built-in otherwise).
   }
-  \item{verbose}{
-    Should output be printed to the console?
-  }
-  \item{returnRawData}{
+  \item{ReturnRawData}{
       Internal parameter used for ensemble predictions. If TRUE, returns predictions
       without formatting them into a ProtWeb object. Users should specify 
-      \code{noPrediction=TRUE} rather than use this parameter (see Details).
+      \code{NoPrediction=TRUE} rather than use this parameter (see Details).
+  }
+  \item{Verbose}{
+    Should output be printed to the console?
   }
   \item{...}{
     Additional parameters for consistency with generic.
@@ -87,7 +87,7 @@ Method to use for prediction. See 'Details'.
 }
 
 \details{
-\code{predict.ProtWeaver} wraps several methods to create an easy interface for multiple prediction types. The following values of \code{method} are currently supported: 
+\code{predict.ProtWeaver} wraps several methods to create an easy interface for multiple prediction types. The following values of \code{Method} are currently supported: 
 
 \itemize{
   \item \code{'Jaccard'}: Jaccard distance of PA profiles
@@ -105,24 +105,25 @@ Method to use for prediction. See 'Details'.
 This returns a \code{ProtWeb} object, which makes formatting and printing of 
 results slightly nicer. Data can be extracted form the \code{ProtWeb} object with:
 
-\code{getProtWebData(ProtWebObject, asDf=c(T,F))}
+\code{GetProtWebData(ProtWebObject, AsDf=c(T,F))}
 
-If \code{asDf=TRUE}, the return data is a \code{3xN} matrix, with columns 3 showing
+If \code{AsDf=TRUE}, the return data is a \code{3xN} matrix, with columns 3 showing
 the prediction for the pair of genes/proteins specified in columns 1 and 2. This format 
 is when predictions are made on small number of pairs (meaning the resulting adjacency 
 matrix is sparse).
 
-If \code{asDf=FALSE}, the return data is a \code{NxN} adjacency matrix, with entry
+If \code{AsDf=FALSE}, the return data is a \code{NxN} adjacency matrix, with entry
 \code{i,j} containing the prediction for genomes \code{i} and \code{j}. 
 }
 \value{
-Returns a ProtWeb object. See 
+Returns a ProtWeb object. See \code{\link{GetProtWebData.ProtWeb}} for more info.
 }
 \author{
 Aidan Lakshman \email{ahl27@pitt.edu}
 }
 
 \references{
+Behdenna, A., et al., \emph{Testing for Independence between Evolutionary Processes.} Systematic Biology, 2016. \bold{65}(5): p. 812-823.
 
 Franceschini, A., et al., \emph{SVD-phy: improved prediction of protein functional associations through singular value decomposition of phylogenetic profiles.} Bioinformatics, 2016. \bold{32}(7): p. 1085-1087.
 
@@ -160,6 +161,8 @@ Weigt, M., et al., \emph{Identification of direct residue contacts in protein-pr
 
 \seealso{
 \code{\link{ProtWeaver}}
+
+\code{\link{GetProtWebData.ProtWeb}}
 }
 \examples{
 ##############
@@ -170,17 +173,17 @@ exData <- get(data("ExampleStreptomycesData"))
 pw <- ProtWeaver(exData$Genes[1:50])
 
 # Subset isn't necessary but is faster for a working example
-protweb1 <- predict(pw, subset=1:10, mySpeciesTree=exData$Tree)
+protweb1 <- predict(pw, Subset=1:10, MySpeciesTree=exData$Tree)
 
 # print out results as an adjacency matrix
-getProtWebData(protweb1)
+GetProtWebData(protweb1)
 
 ###############
 ## Training own ensemble model
 ###############
 
 datavals <- predict(pw, 
-                  noPrediction=TRUE)
+                  NoPrediction=TRUE)
                   
 actual_values <- sample(c(0,1), nrow(datavals), replace=TRUE)
 # This example just picks random numbers
@@ -192,8 +195,8 @@ myModel <- glm(y~., datavals[,-c(1,2)], family='binomial')
 
 testProtWeaverObject <- ProtWeaver(exData$Genes[101:120])
 protweb2 <- predict(testProtWeaverObject, 
-                     pretrainedModel=myModel)
+                     PretrainedModel=myModel)
                      
 # Print result as a 3xN matrix of pairwise scores
-getProtWebData(protweb2, asDf=TRUE)
+GetProtWebData(protweb2, AsDf=TRUE)
 }

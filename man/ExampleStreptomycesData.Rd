@@ -29,6 +29,6 @@ of 301 unique genomes.
 exData <- get(data("ExampleStreptomycesData"))
 pw <- ProtWeaver(exData$Genes)
 # Subset isn't necessary but is faster for a working example
-predict(pw, subset=1:10, mySpeciesTree=exData$Tree)
+predict(pw, Subset=1:10, MySpeciesTree=exData$Tree)
 }
 \keyword{datasets}

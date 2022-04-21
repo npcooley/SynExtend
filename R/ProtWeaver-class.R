@@ -39,8 +39,8 @@ new_ProtWeaver <- function(validatedInput){
             class='ProtWeaver')
 }
 
-ProtWeaver <- function(listOfData, noWarn=FALSE){
-  vRes <- validate_ProtWeaver(listOfData, noWarn=noWarn)
+ProtWeaver <- function(ListOfData, NoWarn=FALSE){
+  vRes <- validate_ProtWeaver(ListOfData, noWarn=NoWarn)
   new_ProtWeaver(vRes)
 }
 
@@ -129,24 +129,24 @@ print.ProtWeaver <- function(x, ...){
   new_ProtWeaver(newv)
 }
 
-predict.ProtWeaver <- function(object, method='Ensemble', subset=NULL, numCores=1,
-                               mySpeciesTree=NULL,  pretrainedModel=NULL,
-                               rawZscores=FALSE, noPrediction=FALSE, 
-                               verbose=TRUE, returnRawData=FALSE, ...){
+predict.ProtWeaver <- function(object, Method='Ensemble', Subset=NULL, NumCores=1,
+                               MySpeciesTree=NULL, PretrainedModel=NULL,
+                               RawZScores=FALSE, NoPrediction=FALSE, 
+                               ReturnRawData=FALSE, Verbose=TRUE, ...){
   pw <- object
-  func <- getS3method(method, 'ProtWeaver')
-  preds <- func(pw, subset=subset, verbose=verbose, 
-                mySpeciesTree=mySpeciesTree, numCores=numCores,
-                pretrainedModel=pretrainedModel, rawZscores=rawZscores, 
-                noPrediction=noPrediction, ...)
+  func <- getS3method(Method, 'ProtWeaver')
+  preds <- func(pw, Subset=Subset, Verbose=Verbose, 
+                MySpeciesTree=MySpeciesTree, NumCores=NumCores,
+                PretrainedModel=PretrainedModel, RawZScores=RawZScores, 
+                NoPrediction=NoPrediction, ...)
   
   if (is(preds, 'list') && !is.null(preds$noPostFormatting))
     return(preds$res)
-  if (returnRawData)
+  if (ReturnRawData)
     return(preds)
   
   rs <- structure(preds,
-                  method=method,
+                  method=Method,
                   class='ProtWeb')
   
   return(rs)
@@ -157,31 +157,31 @@ predict.ProtWeaver <- function(object, method='Ensemble', subset=NULL, numCores=
 
 #### Helper Functions ####
 
-ProcessSubset <- function(pw, subset=NULL){
+ProcessSubset <- function(pw, Subset=NULL){
   pl <- length(pw)
   evalmap <- NULL
   uvals <- seq_len(pl)
-  if (!is.null(subset)){
+  if (!is.null(Subset)){
     n <- names(pw)
-    stopifnot("'subset' must be either character, numeric, or matrix"=
-                (is(subset, 'character') || is(subset, 'numeric') || is(subset, 'matrix')))
-    if (is(subset, 'matrix')){
-      if( ncol(subset) != 2)
-        stop('If subset is a matrix, it must have 2 columns')
-      if( is(subset[1], 'character') ){
-        subset <- matrix(vapply(c(subset), function(x) which(x==n), 0), ncol=2)
+    stopifnot("'Subset' must be either character, numeric, or matrix"=
+                (is(Subset, 'character') || is(Subset, 'numeric') || is(Subset, 'matrix')))
+    if (is(Subset, 'matrix')){
+      if( ncol(Subset) != 2)
+        stop('If Subset is a matrix, it must have 2 columns')
+      if( is(Subset[1], 'character') ){
+        Subset <- matrix(vapply(c(Subset), function(x) which(x==n), 0), ncol=2)
       }
-      for ( i in seq_len(nrow(subset))){
-        pos <- subset[i,]
+      for ( i in seq_len(nrow(Subset))){
+        pos <- Subset[i,]
         i1 <- as.character(min(pos))
         i2 <- max(pos)
         evalmap[[i1]] <- c(evalmap[[i1]], i2)
       }
-      uvals <- unique(c(subset))
+      uvals <- unique(c(Subset))
     } else {
-      if (is(subset, 'character'))
-        subset <- which(vapply(uvals, function(x) x == n, FUN.VALUE=logical(1)))
-      uvals <- unique(subset)
+      if (is(Subset, 'character'))
+        Subset <- which(vapply(uvals, function(x) x == n, FUN.VALUE=logical(1)))
+      uvals <- unique(Subset)
       evalmap <- lapply(uvals, function(x) uvals)
       names(evalmap) <- as.character(uvals)
     }
@@ -262,10 +262,10 @@ DCA_gradient_minimize_fxn <- function(params, R, spins, i){
   return(grad)
 }
 
-DCA_logrise_run <- function(spins, links, regterm, printProgress=FALSE, numCores=1){
-  if (numCores != 1){
+DCA_logrise_run <- function(spins, links, regterm, printProgress=FALSE, NumCores=1){
+  if (NumCores != 1){
     availableCores <- detectCores()
-    numCores <- ifelse(numCores < 0, availableCores, min(availableCores, numCores))
+    NumCores <- ifelse(NumCores < 0, availableCores, min(availableCores, NumCores))
   }
   nnodes <- ncol(spins)
   if (printProgress){
@@ -286,7 +286,7 @@ DCA_logrise_run <- function(spins, links, regterm, printProgress=FALSE, numCores
                                      if (printProgress && charsvec[i]) 
                                        system2('printf', '=')
                                      return(val)
-                                   }, mc.cores=numCores, mc.preschedule = FALSE
+                                   }, mc.cores=NumCores, mc.preschedule = FALSE
   )
   )
   if (printProgress) cat('| ')
@@ -356,7 +356,7 @@ DCA_logrise_run <- function(spins, links, regterm, printProgress=FALSE, numCores
                if (printProgress && charsvec[i]) system('printf =')
                return(probs)
              }, 
-             mc.cores=numCores, mc.preschedule=FALSE))  
+             mc.cores=NumCores, mc.preschedule=FALSE))  
   if (printProgress) cat('| ')
   
   for ( i in seq_len(nrow(links)-1) ){
@@ -373,7 +373,7 @@ DCA_logrise_run <- function(spins, links, regterm, printProgress=FALSE, numCores
 
 
 DCA_logRISE <- function(PAProfiles, niter=1, reg_const=1, 
-                        numCores=1, zero_cutoff=0, verbose=TRUE, ...){
+                        NumCores=1, zero_cutoff=0, Verbose=TRUE, ...){
   
   mult <- 1/niter
   intPA <- PAProfiles + 0
@@ -381,8 +381,8 @@ DCA_logRISE <- function(PAProfiles, niter=1, reg_const=1,
   nc <- ncol(intPA)
   pp <- FALSE
   
-  if (verbose & niter==1) pp <- TRUE  
-  else if (verbose){
+  if (Verbose & niter==1) pp <- TRUE  
+  else if (Verbose){
     cat('Running DCA with', niter, 'iterations:\n')
     pb <- txtProgressBar(max=niter, style=3)
   } 
@@ -392,12 +392,12 @@ DCA_logRISE <- function(PAProfiles, niter=1, reg_const=1,
     #initlinks <- matrix(0, nrow=nc, ncol=nc)
     initlinks <- matrix(rnorm(nc**2), nrow=nc)
     iterlink <- DCA_logrise_run(intPA, initlinks, reg_const, 
-                                printProgress=pp, numCores=numCores)
+                                printProgress=pp, NumCores=NumCores)
     countsmat <- countsmat + (iterlink != 0)
     truelinks <- truelinks + mult * iterlink
-    if(verbose & !pp) setTxtProgressBar(pb, i)
+    if(Verbose & !pp) setTxtProgressBar(pb, i)
   }
-  if(verbose) cat('\n')
+  if(Verbose) cat('\n')
   
   if (zero_cutoff > 0) {
     cutoff <- ifelse(zero_cutoff > 1, zero_cutoff, zero_cutoff * niter)
@@ -426,9 +426,9 @@ getBuiltInEnsembleModel <- function(pw, flags){
 ########
 
 
-#### Class-Specific Method Definitions ####
+#### S3 Methods Not Exposed to User ####
 
-PAProfiles.ProtWeaver <- function(pw, toEval=NULL, verbose=TRUE, 
+PAProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE, 
                                   speciesList=NULL, ...){
   cols <- names(pw)
   ao <- attr(pw, 'allOrgs')
@@ -453,19 +453,19 @@ PAProfiles.ProtWeaver <- function(pw, toEval=NULL, verbose=TRUE,
   profiles <- matrix(FALSE, nrow=length(allOrgs), ncol=length(pw))
   rownames(profiles) <- allOrgs
   colnames(profiles) <- cols
-  if (verbose) pb <- txtProgressBar(max=length(pw), style=3)
+  if (Verbose) pb <- txtProgressBar(max=length(pw), style=3)
   for ( i in seq_len(length(pw)) ){
     if( !skip || i %in% locs)
       profiles[pw[[i]],i] <- TRUE
-    if (verbose) setTxtProgressBar(pb, i)
+    if (Verbose) setTxtProgressBar(pb, i)
   }
-  if (verbose) cat('\n')
+  if (Verbose) cat('\n')
   if (!is.null(toEval))
     profiles <- profiles[,locs]
   return(profiles)
 }
 
-CophProfiles.ProtWeaver <- function(pw, toEval=NULL, verbose=TRUE, ...){
+CophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE, ...){
   ## TODO: Some way to handle paralogs
   cols <- names(pw)
   allOrgs <- attr(pw, 'allOrgs')
@@ -486,7 +486,7 @@ CophProfiles.ProtWeaver <- function(pw, toEval=NULL, verbose=TRUE, ...){
   dummycoph <- matrix(NA, nrow=l, ncol=l)
   ut <- upper.tri(dummycoph)
   rownames(dummycoph) <- colnames(dummycoph) <- allOrgs
-  if (verbose) pb <- txtProgressBar(max=length(pw), style=3)
+  if (Verbose) pb <- txtProgressBar(max=length(pw), style=3)
   for ( i in seq_along(pw) ){
     if ( !skip || i %in% locs ){
       dummycoph[] <- NA
@@ -502,9 +502,9 @@ CophProfiles.ProtWeaver <- function(pw, toEval=NULL, verbose=TRUE, ...){
       dummycoph[copOrgNames, copOrgNames] <- cop
       outmat[,i] <- dummycoph[ut]
     }
-    if (verbose) setTxtProgressBar(pb, i)
+    if (Verbose) setTxtProgressBar(pb, i)
   }
-  if(verbose) cat('\n')
+  if(Verbose) cat('\n')
   colnames(outmat) <- cols
   if (!is.null(toEval)){
     outmat <- outmat[,locs]
@@ -516,16 +516,16 @@ CophProfiles.ProtWeaver <- function(pw, toEval=NULL, verbose=TRUE, ...){
 }
 
 MirrorTree.ProtWeaver <- function(pw, correction=c(),
-                                  subset=NULL, verbose=TRUE,
-                                  mySpeciesTree=NULL, precalcProfs=NULL, ...){
+                                  Subset=NULL, Verbose=TRUE,
+                                  MySpeciesTree=NULL, precalcProfs=NULL, ...){
   pl <- length(pw)
-  subs <- ProcessSubset(pw, subset)
+  subs <- ProcessSubset(pw, Subset)
   evalmap <- subs$evalmap
   uvals <- subs$uvals
   
   if (is.null(precalcProfs)){
-    if (verbose) cat('Pre-processing distance matrices...\n')
-    CPs <- CophProfiles(pw, uvals, verbose=verbose)
+    if (Verbose) cat('Pre-processing distance matrices...\n')
+    CPs <- CophProfiles(pw, uvals, Verbose=Verbose)
   } else {
     CPs <- precalcProfs
   }
@@ -538,17 +538,17 @@ MirrorTree.ProtWeaver <- function(pw, correction=c(),
   
   correction <- tolower(correction)
   if ('speciestree' %in% correction){
-    if (verbose) cat('Correcting with species tree...\n')
-    stopifnot('Missing mySpeciesTree'=!is.null(mySpeciesTree))
-    stopifnot('mySpeciesTree must be a dendrogram'=is(mySpeciesTree, 'dendrogram'))
-    corrvec <- as.matrix(Cophenetic(mySpeciesTree))
+    if (Verbose) cat('Correcting with species tree...\n')
+    stopifnot('Missing MySpeciesTree'=!is.null(MySpeciesTree))
+    stopifnot('MySpeciesTree must be a dendrogram'=is(MySpeciesTree, 'dendrogram'))
+    corrvec <- as.matrix(Cophenetic(MySpeciesTree))
     corrvec <- corrvec[upper.tri(corrvec)]
-    stopifnot('mySpeciesTree has incorrect number of leaf nodes'=
+    stopifnot('MySpeciesTree has incorrect number of leaf nodes'=
                 length(corrvec)==nrow(CPs))
     CPs <- CPs - corrvec
   }
   if ('normalize' %in% correction){
-    if (verbose) cat('Normalizing profiles...\n')
+    if (Verbose) cat('Normalizing profiles...\n')
     means <- colMeans(CPs, na.rm=TRUE)
     vars <- apply(CPs, MARGIN=2, var, na.rm=TRUE)
     for ( i in seq_len(ncol(CPs)) ){
@@ -557,35 +557,35 @@ MirrorTree.ProtWeaver <- function(pw, correction=c(),
   }
   if ('satoaverage' %in% correction){
     means <- rowMeans(CPs, na.rm = TRUE)
-    if (verbose) cat('Calculating Sato projection vectors...\n')
+    if (Verbose) cat('Calculating Sato projection vectors...\n')
     
     # Big profiles lead to space issues that crash R
     if (nrow(CPs)**2 < (2**28)){
-      if (verbose) pb <- txtProgressBar(max=ncol(CPs), style=3)
+      if (Verbose) pb <- txtProgressBar(max=ncol(CPs), style=3)
       proj_op <- diag(nrow=nrow(CPs)) - (means %*% t(means))
       for ( i in seq_len(ncol(CPs)) ){
         CPs[,i] <- c(CPs[,i] %*% proj_op)
-        if ( verbose ) setTxtProgressBar(pb, i)
+        if ( Verbose ) setTxtProgressBar(pb, i)
       }
     } else {
-      if (verbose) pb <- txtProgressBar(max=(ncol(CPs)*nrow(CPs)), style=3)
+      if (Verbose) pb <- txtProgressBar(max=(ncol(CPs)*nrow(CPs)), style=3)
       for ( i in seq_len(ncol(CPs)) ){
         v <- projv <- CPs[,i]
         multv <- means * v
         for ( j in seq_len(nrow(CPs)) ){
           if ( !is.na(v[j]) )
             projv[j] <- sum(multv * means[j])
-          if ( verbose ) setTxtProgressBar(pb, (i-1)*nrow(CPs) + j)
+          if ( Verbose ) setTxtProgressBar(pb, (i-1)*nrow(CPs) + j)
         }
         CPs[,i] <- v - projv
       }
     }
-    if (verbose) cat('\n')
+    if (Verbose) cat('\n')
   }
   
   pairscores <- matrix(NA, nrow=pl, ncol=pl)
   ctr <- 1
-  if (verbose) pb <- txtProgressBar(max=(pl*(pl-1) / 2), style=3)
+  if (Verbose) pb <- txtProgressBar(max=(pl*(pl-1) / 2), style=3)
   for ( i in seq_len(pl-1) ){
     acc1 <- which(i == uvals)
     if (length(acc1) == 0) acc1 <- 1
@@ -598,15 +598,15 @@ MirrorTree.ProtWeaver <- function(pw, correction=c(),
         pairscores[i,j] <- pairscores[j,i] <- ifelse(is.na(val), 0, val)
       }
       ctr <- ctr + 1
-      if (verbose) setTxtProgressBar(pb, ctr)
+      if (Verbose) setTxtProgressBar(pb, ctr)
     }
   }
-  if (verbose) cat('\n')
+  if (Verbose) cat('\n')
   for ( i in uvals )
     pairscores[i,i] <- 1
   if ('partialcorrelation' %in% correction){
     flag <- TRUE
-    if (!is.null(subset)){
+    if (!is.null(Subset)){
       opsm <- pairscores
       pairscores <- pairscores[uvals, uvals]
       if (any(is.na(pairscores))){
@@ -626,7 +626,7 @@ MirrorTree.ProtWeaver <- function(pw, correction=c(),
         divisor <- sqrt(cols * rows)
         pairscores <- (-1 * inv) / divisor
       }
-      if ( !is.null(subset) ){
+      if ( !is.null(Subset) ){
         opsm[uvals,uvals] <- pairscores
         pairscores <- opsm
       }
@@ -638,10 +638,10 @@ MirrorTree.ProtWeaver <- function(pw, correction=c(),
   return(pairscores[uvals, uvals])
 }
 
-ContextTree.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE, precalcProfs=NULL, 
-                                   mySpeciesTree=NULL, ...){
+ContextTree.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, precalcProfs=NULL, 
+                                   MySpeciesTree=NULL, ...){
   
-  if ( !is.null(mySpeciesTree) && is(mySpeciesTree, 'dendrogram')){
+  if ( !is.null(MySpeciesTree) && is(MySpeciesTree, 'dendrogram')){
     correction <- c('speciestree', 'normalize', 'partialcorrelation')
   } else { 
     correction <- c('normalize', 
@@ -650,24 +650,24 @@ ContextTree.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE, precalcProfs=N
   }
   
   return(MirrorTree(pw, correction=correction,
-                    verbose=verbose, 
+                    Verbose=Verbose, 
                     precalcCProfs=precalcProfs,
-                    mySpeciesTree=mySpeciesTree))
+                    MySpeciesTree=MySpeciesTree))
 }
 
-Jaccard.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE,
+Jaccard.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
                                precalcProfs=NULL, precalcSubset=NULL, ...){
   
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
-    subs <- ProcessSubset(pw, subset)
+    subs <- ProcessSubset(pw, Subset)
   uvals <- subs$uvals
   evalmap <- subs$evalmap
 
   if ( is.null(precalcProfs) ){
-    if (verbose) cat('Calculating PA Profiles...\n')
-    pap <- PAProfiles(pw, uvals, verbose=verbose)
+    if (Verbose) cat('Calculating PA Profiles...\n')
+    pap <- PAProfiles(pw, uvals, Verbose=Verbose)
   } else {
     pap <- precalcProfs
   }
@@ -680,7 +680,7 @@ Jaccard.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE,
   }
   pairscores <- matrix(NA, nrow=l, ncol=l)
   ctr <- 1
-  if (verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
+  if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
   for ( i in seq_len(l) ){
     uval1 <- uvals[i]
     p1 <- pap[,i]
@@ -698,10 +698,10 @@ Jaccard.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE,
         pairscores[i,j] <- pairscores[j,i] <- dJ
       }
       ctr <- ctr + 1
-      if (verbose) setTxtProgressBar(pb, ctr)
+      if (Verbose) setTxtProgressBar(pb, ctr)
     }
   }
-  if (verbose) cat('\n')
+  if (Verbose) cat('\n')
   diag(pairscores) <- 0
   n <- n[uvals]
   rownames(pairscores) <- colnames(pairscores) <- n
@@ -709,17 +709,17 @@ Jaccard.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE,
   return(pairscores)
 }
 
-Hamming.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE, 
+Hamming.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
                                precalcProfs=NULL, precalcSubset=NULL, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
-    subs <- ProcessSubset(pw, subset)
+    subs <- ProcessSubset(pw, Subset)
   uvals <- subs$uvals
   evalmap <- subs$evalmap
   if ( is.null(precalcProfs) ){
-    if (verbose) cat('Calculating PA Profiles...\n')
-    pap <- PAProfiles(pw, verbose=verbose)
+    if (Verbose) cat('Calculating PA Profiles...\n')
+    pap <- PAProfiles(pw, Verbose=Verbose)
   } else {
     pap <- precalcProfs
   }
@@ -732,7 +732,7 @@ Hamming.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE,
   }
   pairscores <- matrix(NA, nrow=l, ncol=l)
   ctr <- 1
-  if (verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
+  if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
   for ( i in seq_len(l) ){
     uval1 <- uvals[i]
     p1 <- pap[,i]
@@ -745,10 +745,10 @@ Hamming.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE,
         pairscores[i,j] <- pairscores[j,i] <- sum(xor(p1,p2)) / ncol(pap)
       }
       ctr <- ctr + 1
-      if (verbose) setTxtProgressBar(pb, ctr)
+      if (Verbose) setTxtProgressBar(pb, ctr)
     }
   }
-  if (verbose) cat('\n')
+  if (Verbose) cat('\n')
   diag(pairscores) <- 0
   n <- n[uvals]
   rownames(pairscores) <- colnames(pairscores) <- n
@@ -757,17 +757,17 @@ Hamming.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE,
   return(pairscores)
 }
 
-MutualInformation.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE, 
+MutualInformation.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
                                          precalcProfs=NULL, precalcSubset=NULL, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
-    subs <- ProcessSubset(pw, subset)
+    subs <- ProcessSubset(pw, Subset)
   uvals <- subs$uvals
   evalmap <- subs$evalmap
   if ( is.null(precalcProfs) ){
-    if (verbose) cat('Calculating PA Profiles...\n')
-    pap <- PAProfiles(pw, uvals, verbose=verbose)
+    if (Verbose) cat('Calculating PA Profiles...\n')
+    pap <- PAProfiles(pw, uvals, Verbose=Verbose)
   } else {
     pap <- precalcProfs
   }
@@ -780,7 +780,7 @@ MutualInformation.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE,
   }
   pairscores <- matrix(NA, nrow=l, ncol=l)
   ctr <- 1
-  if (verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
+  if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
   for ( i in seq_len(l) ){
     uval1 <- uvals[i]
     v1 <- pap[,i]
@@ -814,10 +814,10 @@ MutualInformation.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE,
         pairscores[i,j] <- pairscores[j,i] <- score
       }
       ctr <- ctr + 1
-      if (verbose) setTxtProgressBar(pb, ctr)
+      if (Verbose) setTxtProgressBar(pb, ctr)
     }
   }
-  if (verbose) cat('\n')
+  if (Verbose) cat('\n')
   n <- n[uvals]
   rownames(pairscores) <- colnames(pairscores) <- n
   
@@ -833,17 +833,17 @@ MutualInformation.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE,
   return(pairscores)
 }
 
-ProfileDCA.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE, numCores=1,
+ProfileDCA.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, NumCores=1,
                            precalcProfs=NULL, precalcSubset=NULL, useAbs=TRUE, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
-    subs <- ProcessSubset(pw, subset)
+    subs <- ProcessSubset(pw, Subset)
   uvals <- subs$uvals
   
   if ( is.null(precalcProfs) ){
-    if (verbose) cat('Calculating PA Profiles...\n')
-    pap <- PAProfiles(pw, uvals, verbose=verbose)
+    if (Verbose) cat('Calculating PA Profiles...\n')
+    pap <- PAProfiles(pw, uvals, Verbose=Verbose)
   } else {
     pap <- precalcProfs
   }
@@ -855,7 +855,7 @@ ProfileDCA.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE, numCores=1,
     return(mat)
   }
   
-  pairscores <- DCA_logRISE(pap, verbose=verbose, numCores=numCores, ...)
+  pairscores <- DCA_logRISE(pap, Verbose=Verbose, NumCores=NumCores, ...)
   rownames(pairscores) <- colnames(pairscores) <- n
   if (useAbs) pairscores <- abs(pairscores)
   if (max(pairscores) != 0)
@@ -865,12 +865,12 @@ ProfileDCA.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE, numCores=1,
   return(pairscores)
 }
 
-Coloc.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE, 
+Coloc.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
                              precalcProfs=NULL, precalcSubset=NULL, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
-    subs <- ProcessSubset(pw, subset)
+    subs <- ProcessSubset(pw, Subset)
   uvals <- subs$uvals
   evalmap <- subs$evalmap
   stopifnot('Colocalization is disabled.'=attr(pw,'useColoc'))
@@ -883,7 +883,7 @@ Coloc.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE,
   n <- names(pw)[uvals]
   pairscores <- matrix(NA, nrow=l, ncol=l)
   ctr <- 0
-  if (verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
+  if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
   for ( i in seq_len(l)){
     uval1 <- uvals[i]
     lab1 <- labvecs[[i]]
@@ -913,10 +913,10 @@ Coloc.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE,
         pairscores[i,j] <- pairscores[j,i] <- score
       }
       ctr <- ctr + 1
-      if (verbose) setTxtProgressBar(pb, ctr)
+      if (Verbose) setTxtProgressBar(pb, ctr)
     }
   }
-  if (verbose) cat('\n')
+  if (Verbose) cat('\n')
   m <- ifelse(max(pairscores, na.rm=TRUE) != 0, max(pairscores,na.rm=TRUE), 1)
   pairscores <- pairscores / m
   diag(pairscores) <- 1
@@ -924,35 +924,35 @@ Coloc.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE,
   return(pairscores)
 }
 
-Behdenna.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE, 
-                                mySpeciesTree=NULL, useSubtree=FALSE, 
+Behdenna.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
+                                MySpeciesTree=NULL, useSubtree=FALSE, 
                                 useACCTRAN=TRUE, rawZScores=FALSE, 
                                 precalcProfs=NULL, precalcSubset=NULL, ...){
-  stopifnot('No species tree provided.'=(!is.null(mySpeciesTree)))
+  stopifnot('No species tree provided.'=(!is.null(MySpeciesTree)))
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
-    subs <- ProcessSubset(pw, subset)
+    subs <- ProcessSubset(pw, Subset)
   uvals <- subs$uvals
   evalmap <- subs$evalmap
   n <- names(pw)[uvals]
   if ( is.null(precalcProfs) ){
-    if (verbose) cat('Calculating PA Profiles...\n')
-    pap <- PAProfiles(pw, uvals, verbose=verbose, speciesList=labels(mySpeciesTree))
+    if (Verbose) cat('Calculating PA Profiles...\n')
+    pap <- PAProfiles(pw, uvals, Verbose=Verbose, speciesList=labels(MySpeciesTree))
   } else {
     pap <- precalcProfs
   }
   l <- length(uvals)
   stopifnot(nrow(pap) > 1)
-  fd <- FastDend(mySpeciesTree)
+  fd <- FastDend(MySpeciesTree)
   v1 <- abs(generateGainLossVec(fd, pap[,1], moveEventsUpward=useACCTRAN))
   glmat <- matrix(0, nrow=length(v1), ncol=ncol(pap))
   glmat[,1] <- v1
-  if (verbose) cat('  Calculating gain/loss vectors:\n')
-  if (verbose) pb <- txtProgressBar(max=ncol(pap), style=3)
+  if (Verbose) cat('  Calculating gain/loss vectors:\n')
+  if (Verbose) pb <- txtProgressBar(max=ncol(pap), style=3)
   for ( i in 2:ncol(pap) ){
     glmat[,i] <- abs(generateGainLossVec(fd, pap[,i], moveEventsUpward=useACCTRAN))
-    if (verbose) setTxtProgressBar(pb, i)
+    if (Verbose) setTxtProgressBar(pb, i)
   }
   
   vals <- calc_SId_mat(fd, IdOnly=!useSubtree)
@@ -967,8 +967,8 @@ Behdenna.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE,
   pairscores <- matrix(NA, nrow=l, ncol=l)
   
   ctr <- 0
-  if (verbose) cat('\n  Calculating pairscores:\n')
-  if (verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
+  if (Verbose) cat('\n  Calculating pairscores:\n')
+  if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
   for ( i in seq_len(l)){
     uval1 <- uvals[i]
     gl1 <- glmat[,i]
@@ -990,10 +990,10 @@ Behdenna.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE,
         pairscores[i,j] <- pairscores[j,i] <- score
       }
       ctr <- ctr + 1
-      if (verbose) setTxtProgressBar(pb, ctr)
+      if (Verbose) setTxtProgressBar(pb, ctr)
     }
   }
-  if (verbose) cat('\n')
+  if (Verbose) cat('\n')
   diag(pairscores) <- 0 #because z-scores
   
   if (!rawZScores){
@@ -1007,23 +1007,23 @@ Behdenna.ProtWeaver <- function(pw, subset=NULL, verbose=TRUE,
 }
 
 Ensemble.ProtWeaver <- function(pw,
-                                subset=NULL, verbose=TRUE, mySpeciesTree=NULL,
-                                pretrainedModel=NULL,
-                                noPrediction=FALSE, ...){
+                                Subset=NULL, Verbose=TRUE, MySpeciesTree=NULL,
+                                PretrainedModel=NULL,
+                                NoPrediction=FALSE, ...){
   
   flags <- rep(FALSE, 3)
   
-  subs <- ProcessSubset(pw, subset)
+  subs <- ProcessSubset(pw, Subset)
   n <- names(pw)
   uvals <- subs$uvals
   unames <- vapply(uvals, function(x) n[x], FUN.VALUE=character(1))
   splist <- NULL
-  if (!is.null(mySpeciesTree)){
-    splist <- labels(mySpeciesTree)
+  if (!is.null(MySpeciesTree)){
+    splist <- labels(MySpeciesTree)
   }
     
-  if (verbose) cat('Calculating P/A profiles:\n')
-  PAs <- PAProfiles(pw, uvals, verbose=verbose, speciesList=splist)
+  if (Verbose) cat('Calculating P/A profiles:\n')
+  PAs <- PAProfiles(pw, uvals, Verbose=Verbose, speciesList=splist)
   CPs <- NULL
   takesCP <- c('ContextTree', 'MirrorTree')
   
@@ -1031,12 +1031,12 @@ Ensemble.ProtWeaver <- function(pw,
   if (attr(pw, 'useMT')){
     # not yet implemented
     # flags[1] <- TRUE
-    if (verbose) cat('Calculating Cophenetic profiles:\n')
-    CPs <- CophProfiles(pw, uvals, verbose=verbose)
+    if (Verbose) cat('Calculating Cophenetic profiles:\n')
+    CPs <- CophProfiles(pw, uvals, Verbose=Verbose)
     submodels <- c(submodels, takesCP)
   }
   
-  if (!is.null(mySpeciesTree)){
+  if (!is.null(MySpeciesTree)){
     flags[2] <- TRUE
     submodels <- c(submodels, 'Behdenna')
   }
@@ -1046,21 +1046,21 @@ Ensemble.ProtWeaver <- function(pw,
     submodels <- c(submodels, 'Coloc')
   }
   
-  if(!is.null(pretrainedModel)) {
-    predictionmodel <- pretrainedModel
+  if(!is.null(PretrainedModel)) {
+    predictionmodel <- PretrainedModel
   } else {
     predictionmodel <- getBuiltInEnsembleModel(pw, flags)
   }
   
   results <- list()
   for ( model in submodels ){
-    if (verbose) cat('Running ', model, ':\n', sep='')
+    if (Verbose) cat('Running ', model, ':\n', sep='')
     if (model %in% takesCP) profs <- CPs
     else profs <- PAs
-    results[[model]] <- predict(pw, model, verbose=verbose, 
+    results[[model]] <- predict(pw, model, Verbose=Verbose, 
                               returnRawData=TRUE, precalcProfs=profs,
                               precalcSubset=subs, 
-                              mySpeciesTree=mySpeciesTree, ...)
+                              MySpeciesTree=MySpeciesTree, ...)
   }
   
   cat('Calculating additional P/A Statistics...\n')
@@ -1069,9 +1069,9 @@ Ensemble.ProtWeaver <- function(pw,
   results[,'AvgOcc'] <- pas$avg
   results[,'OccDiff'] <- pas$diff
 
-  if (noPrediction) return(list(res=results, noPostFormatting=TRUE))
+  if (NoPrediction) return(list(res=results, noPostFormatting=TRUE))
   
-  if (verbose) cat('Predicting with Ensemble method...\n')
+  if (Verbose) cat('Predicting with Ensemble method...\n')
   if (is(predictionmodel, 'glm'))
     predictions <- predict(predictionmodel, results[,-c(1,2)], type='response')
   else

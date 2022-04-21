@@ -8,36 +8,36 @@ ProtWeaver is an S3 class with methods for predicting functional association usi
 protein or gene data. ProtWeaver implements several methods utilized in the literature, with many more planned for future implementation. For details on predictions, see \code{\link{predict.ProtWeaver}}.
 }
 \usage{
-ProtWeaver(listOfData, noWarn=FALSE)
+ProtWeaver(ListOfData, NoWarn=FALSE)
 }
 \arguments{
-  \item{listOfData}{
+  \item{ListOfData}{
 A list of gene data, where each entry corresponds to information on a particular
 gene. List must contain either dendrograms or vectors, and cannot contain a mixture. 
 If list is composed of dendrograms, each dendrogram is a gene tree for the corresponding entry. If list is composed of vectors, vectors should be numeric or character vectors denoting the genomes containing that gene. 
 }
-\item{noWarn}{
-Several algorithms depend on having certain data. When a \code{ProtWeaver} object is initialized, it automatically selects which algorithms can be used given the input data. By default, ProtWeaver will notify the user of algorithms that cannot be used with warnings. Setting \code{noWarn=TRUE} will suppress these messages.
+\item{NoWarn}{
+Several algorithms depend on having certain data. When a \code{ProtWeaver} object is initialized, it automatically selects which algorithms can be used given the input data. By default, ProtWeaver will notify the user of algorithms that cannot be used with warnings. Setting \code{NoWarn=TRUE} will suppress these messages.
 }
 }
 \details{
 ProtWeaver expects input data to be a list. All entries must be one of the following:
 \enumerate{
   \item{
-    \code{listOfData[[i]] = c('ID#1', 'ID#2', ..., 'ID#k')}
+    \code{ListOfData[[i]] = c('ID#1', 'ID#2', ..., 'ID#k')}
   }
   \item{
-  \code{listOfData[[i]] = c('i1_d1_p1', 'i2_d2_p2', ..., 'ik_dk_pk') }
+  \code{ListOfData[[i]] = c('i1_d1_p1', 'i2_d2_p2', ..., 'ik_dk_pk') }
   }
   \item{
-  \code{listOfData[[i]] = dendrogram(...)}
+  \code{ListOfData[[i]] = dendrogram(...)}
   }
 }
 In (1), each ID#i corresponds to the unique identifier for genome #i. For entry #j in the list, the presence of 'ID#i' means genome #i has an ortholog for gene/protein #j. 
 
 Case (2) is the same as (1), just with the formatting of names slightly different. Each entry is of the form \code{i_d_p}, where \code{i} is the unique identifier for the genome, \code{d} is which chromosome the ortholog is located, and \code{p} is what position the ortholog appears in on that chromosome. \code{p} must be a \code{numeric}, while the other entries can be any value.
 
-Case (3) expects gene trees for each gene, with labeled leaves corresponding to each source genome. If \code{listOfData} is in this format, taking \code{labels(listOfData[[i]])} should produce a character vector that matches the format of either (2) or (1).
+Case (3) expects gene trees for each gene, with labeled leaves corresponding to each source genome. If \code{ListOfData} is in this format, taking \code{labels(ListOfData[[i]])} should produce a character vector that matches the format of either (2) or (1).
 
 \emph{See the Examples section for illustrative examples.}
 
