@@ -17,6 +17,7 @@ EstimRearrScen <- function(SyntenyObject,
           class2 = "Synteny")) {
     stop ("Expected class of type 'Synteny'.")
   }
+  starttime <- Sys.time()
   
   rearrange_chromosome <- function(synblocks, syn, NumRuns=-1,
                                    Verbose = FALSE, Mean = FALSE, #main user parameters
@@ -24,7 +25,6 @@ EstimRearrScen <- function(SyntenyObject,
                                   first_gen=1, second_gen=2, chrom=-1, EarlyOutput=FALSE){ #internal parameters  
     # ERROR CHECKING  --------------------------------------------------------------
     #set.seed(13)
-    starttime <- Sys.time()
     stopifnot("Error: Incorrect genome indices provided. Make sure indices are not the same."=
                 second_gen!=first_gen)
     if ( second_gen < first_gen ){
