@@ -1,3 +1,8 @@
+# SynExtend 1.7.14
+* Various improvements for `GenRearrScen`, improves consistency and output formatting
+* Major bugfix for `ProtWeaver` methods using dendrogram objects
+* `ProtWeaver` now correctly guards against non-bifurcating dendrograms in methods that expect it
+
 # SynExtend 1.7.13
 * Introduces new `ProtWeaver` class to predict functional association of genes from COGs or gene trees. This implements many algorithms commonly used in the literature, such as MirrorTree and Inverse Potts Models.
 * `predict(ProtWeaverObject)` returns a `ProtWeb` class with information on predicted associations. 
