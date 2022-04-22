@@ -226,6 +226,16 @@ PAStats <- function(predDf, paps){
   return(list(avg=av, diff=d))
 }
 
+# RemoveCophParalogs <- function(Coph, useColoc=FALSE){
+#   if (useColoc){
+#     rownamevec <- gsub('(.*)_.*_[0-9]*', '\\1', rownames(Coph))
+#   } else {
+#     rownamevec <- rownames(Coph)
+#   }
+#   
+#   paralogs <- 
+# }
+
 DCA_minimize_fxn <- function(params, R, spins, i){
   sigi <- spins[,i]
   sigj <- spins[,-i]
@@ -492,10 +502,17 @@ PAProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
   return(profiles)
 }
 
-CophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE, ...){
+CophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE, 
+                                    speciesList=NULL, ...){
   ## TODO: Some way to handle paralogs
   cols <- names(pw)
-  allOrgs <- attr(pw, 'allOrgs')
+  ao <- attr(pw, 'allOrgs')
+  if (!is.null(speciesList)){
+    stopifnot('Species list is missing species!'=all(ao %in% speciesList))
+    allOrgs <- speciesList
+  } else {
+    allOrgs <- ao
+  }
   useColoc <- attr(pw, 'useColoc')
   useMT <- attr(pw, 'useMT')
   
@@ -535,27 +552,34 @@ CophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE, ...){
   colnames(outmat) <- cols
   if (!is.null(toEval)){
     outmat <- outmat[,locs]
-    ltr <- vapply(seq_len(nrow(outmat)), function(x) all(is.na(outmat[x,])),
-                  FUN.VALUE=logical(1))
-    outmat <- outmat[!ltr,]
+    #ltr <- vapply(seq_len(nrow(outmat)), function(x) all(is.na(outmat[x,])),
+    #              FUN.VALUE=logical(1))
+    #outmat <- outmat[!ltr,]
   }
   return(outmat)
 }
 
-MirrorTree.ProtWeaver <- function(pw, correction=c(),
+MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
                                   Subset=NULL, Verbose=TRUE,
-                                  MySpeciesTree=NULL, precalcProfs=NULL, ...){
-  pl <- length(pw)
-  subs <- ProcessSubset(pw, Subset)
-  evalmap <- subs$evalmap
+                                  MySpeciesTree=NULL, 
+                                  precalcProfs=NULL, precalcSubset=NULL, ...){
+  if (!is.null(precalcSubset))
+    subs <- precalcSubset
+  else
+    subs <- ProcessSubset(pw, Subset)
   uvals <- subs$uvals
+  evalmap <- subs$evalmap
+  pl <- length(uvals)
   
   if (is.null(precalcProfs)){
     if (Verbose) cat('Pre-processing distance matrices...\n')
-    CPs <- CophProfiles(pw, uvals, Verbose=Verbose)
+    spl <- NULL
+    if (!is.null(MySpeciesTree)) spl <- labels(MySpeciesTree)
+    CPs <- CophProfiles(pw, uvals, Verbose=Verbose, speciesList=spl)
   } else {
     CPs <- precalcProfs
   }
+  
   l <- ncol(CPs)
   if ( l == 1 ){
     mat <- matrix(1, nrow=1, ncol=1)
@@ -563,18 +587,19 @@ MirrorTree.ProtWeaver <- function(pw, correction=c(),
     return(mat)
   }
   
-  correction <- tolower(correction)
-  if ('speciestree' %in% correction){
+  MTCorrection <- tolower(MTCorrection)
+  if ('speciestree' %in% MTCorrection){
     if (Verbose) cat('Correcting with species tree...\n')
     stopifnot('Missing MySpeciesTree'=!is.null(MySpeciesTree))
     stopifnot('MySpeciesTree must be a dendrogram'=is(MySpeciesTree, 'dendrogram'))
     corrvec <- as.matrix(Cophenetic(MySpeciesTree))
+    
     corrvec <- corrvec[upper.tri(corrvec)]
     stopifnot('MySpeciesTree has incorrect number of leaf nodes'=
                 length(corrvec)==nrow(CPs))
     CPs <- CPs - corrvec
   }
-  if ('normalize' %in% correction){
+  if ('normalize' %in% MTCorrection){
     if (Verbose) cat('Normalizing profiles...\n')
     means <- colMeans(CPs, na.rm=TRUE)
     vars <- apply(CPs, MARGIN=2, var, na.rm=TRUE)
@@ -582,7 +607,7 @@ MirrorTree.ProtWeaver <- function(pw, correction=c(),
       CPs[,i] <- (CPs[,i] - means[i]) / (ifelse(vars[i]!=0, sqrt(vars), 1))
     }
   }
-  if ('satoaverage' %in% correction){
+  if ('satoaverage' %in% MTCorrection){
     means <- rowMeans(CPs, na.rm = TRUE)
     if (Verbose) cat('Calculating Sato projection vectors...\n')
     
@@ -614,13 +639,14 @@ MirrorTree.ProtWeaver <- function(pw, correction=c(),
   ctr <- 1
   if (Verbose) pb <- txtProgressBar(max=(pl*(pl-1) / 2), style=3)
   for ( i in seq_len(pl-1) ){
-    acc1 <- which(i == uvals)
-    if (length(acc1) == 0) acc1 <- 1
-    v1 <- CPs[,acc1]
+    uval1 <- uvals[i]
+    v1 <- CPs[,uval1]
     for ( j in (i+1):pl ){
-      if (evalmap[i,j]){
-        acc2 <- which( j == uvals )
-        v2 <- CPs[,acc2]
+      uval2 <- uvals[j]
+      accessor <- as.character(min(uval1, uval2))
+      entry <- max(uval1, uval2)
+      if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
+        v2 <- CPs[,uval2]
         val <- cor(v1, v2, use='na.or.complete', method='pearson')
         pairscores[i,j] <- pairscores[j,i] <- ifelse(is.na(val), 0, val)
       }
@@ -629,9 +655,8 @@ MirrorTree.ProtWeaver <- function(pw, correction=c(),
     }
   }
   if (Verbose) cat('\n')
-  for ( i in uvals )
-    pairscores[i,i] <- 1
-  if ('partialcorrelation' %in% correction){
+  diag(pairscores) <- 1
+  if ('partialcorrelation' %in% MTCorrection){
     flag <- TRUE
     if (!is.null(Subset)){
       opsm <- pairscores
@@ -659,8 +684,7 @@ MirrorTree.ProtWeaver <- function(pw, correction=c(),
       }
     }
   }
-  for ( i in uvals )
-    pairscores[i,i] <- 1
+  diag(pairscores) <- 1
   rownames(pairscores) <- colnames(pairscores) <- names(pw)
   
   return(abs(pairscores))
@@ -670,14 +694,13 @@ ContextTree.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, precalcProfs=N
                                    MySpeciesTree=NULL, ...){
   
   if ( !is.null(MySpeciesTree) && is(MySpeciesTree, 'dendrogram')){
-    correction <- c('speciestree', 'normalize', 'partialcorrelation')
+    MTCorrection <- c('speciestree', 'normalize', 'partialcorrelation')
   } else { 
-    correction <- c('normalize', 
-                    'satoaverage', 
+    MTCorrection <- c('normalize', 
                     'partialcorrelation')
   }
   
-  return(MirrorTree(pw, correction=correction,
+  return(MirrorTree(pw, MTCorrection=MTCorrection,
                     Verbose=Verbose, 
                     precalcCProfs=precalcProfs,
                     MySpeciesTree=MySpeciesTree))
@@ -1058,7 +1081,7 @@ Ensemble.ProtWeaver <- function(pw,
   submodels <- c('ProfileDCA', 'Jaccard', 'Hamming', 'MutualInformation')
   if (attr(pw, 'useMT')){
     if (Verbose) cat('Calculating Cophenetic profiles:\n')
-    CPs <- CophProfiles(pw, uvals, Verbose=Verbose)
+    CPs <- CophProfiles(pw, uvals, Verbose=Verbose, speciesList=splist)
     submodels <- c(submodels, takesCP)
   }
   
@@ -1113,7 +1136,7 @@ Ensemble.ProtWeaver <- function(pw,
     outmat[i1,i2] <- outmat[i2,i1] <- pred
   }
   rownames(outmat) <- colnames(outmat) <- uvals
-
+  diag(outmat) <- 1
   return(outmat)
 }
 
