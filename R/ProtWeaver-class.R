@@ -270,8 +270,11 @@ DCA_gradient_minimize_fxn <- function(params, R, spins, i){
 
 DCA_logrise_run <- function(spins, links, regterm, printProgress=FALSE, NumCores=1){
   if (NumCores != 1){
-    availableCores <- detectCores()
-    NumCores <- ifelse(NumCores < 0, availableCores, min(availableCores, NumCores))
+    availableCores <- max(detectCores() - 1, 1) #leave an extra core just in case
+    if (is.na(availableCores)) 
+      NumCores <- 1
+    else
+      NumCores <- ifelse(NumCores < 0, availableCores, min(availableCores, NumCores))
   }
   nnodes <- ncol(spins)
   if (printProgress){
@@ -292,7 +295,7 @@ DCA_logrise_run <- function(spins, links, regterm, printProgress=FALSE, NumCores
                                      if (printProgress && charsvec[i]) 
                                        system2('printf', '=')
                                      return(val)
-                                   }, mc.cores=NumCores, mc.preschedule = FALSE
+                                   }, mc.cores=NumCores, mc.preschedule = TRUE
   )
   )
   if (printProgress) cat('| ')
@@ -362,7 +365,7 @@ DCA_logrise_run <- function(spins, links, regterm, printProgress=FALSE, NumCores
                if (printProgress && charsvec[i]) system('printf =')
                return(probs)
              }, 
-             mc.cores=NumCores, mc.preschedule=FALSE))  
+             mc.cores=NumCores, mc.preschedule=TRUE))  
   if (printProgress) cat('| ')
   
   for ( i in seq_len(nrow(links)-1) ){
@@ -415,19 +418,37 @@ DCA_logRISE <- function(PAProfiles, niter=1, reg_const=1,
   return(truelinks)
 }
 
-getBuiltInEnsembleModel <- function(pw, flags){
+predictWithBuiltins <- function(preds){
   # Key: (val is binary + 1)
   # 000 => 1: Jaccard, Hamming, MI, ProfileDCA (base)
-  # 001 => 2: base and MT, CT
+  # 001 => 2: base and MT
   # 010 => 3: base and Behdenna
-  # 011 => 4: base and Behdenna, MT, CT
+  # 011 => 4: base and Behdenna, MT
   # 100 => 5: base and Coloc
-  # 101 => 6: base and Coloc, MT, CT
+  # 101 => 6: base and Coloc, MT
   # 110 => 7: base and Behdenna, Coloc
-  # 111 => 8: base and Behdenna, Coloc, MT, CT
-  model <- 4 * flags[3] + 2 * flags[2] + 1 * flags[1] + 1
+  # 111 => 8: base and Behdenna, Coloc, MT
+  modelsToUse <- rep(1, nrow(preds))
+  relevant_cnames <- c('MirrorTree', 'Behdenna', 'Coloc')
+  pred_cnames <- colnames(preds)
+  for (i in seq_along(relevant_cnames)){
+    rcn <- relevant_cnames[i]
+    if (rcn %in% pred_cnames){
+      idxs <- !is.na(preds[,rcn])
+      modelsToUse[idxs] <- modelsToUse[idxs] + (2**(i-1)) 
+    }
+  }
   builtins <- get(data('BuiltInEnsembles', envir=environment()))
-  return(builtins[[model]])
+  if (all(modelsToUse == modelsToUse[1])){
+    return(predict(builtins[[modelsToUse[i]]], preds, type='response'))
+  } else {
+    builtInPredictions <- rep(NA, nrow(preds))
+    for (i in seq_along(builtInPredictions)){
+      model <- builtins[[modelsToUse[i]]]
+      builtInPredictions[i] <- predict(model, preds[i,], type='response')
+    }
+    return(builtInPredictions)
+  }
 }
 ########
 
@@ -641,7 +662,8 @@ MirrorTree.ProtWeaver <- function(pw, correction=c(),
   for ( i in uvals )
     pairscores[i,i] <- 1
   rownames(pairscores) <- colnames(pairscores) <- names(pw)
-  return(pairscores[uvals, uvals])
+  
+  return(abs(pairscores))
 }
 
 ContextTree.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, precalcProfs=NULL, 
@@ -830,7 +852,7 @@ MutualInformation.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   # Correction
   apccorr <- mean(pairscores[upper.tri(pairscores)], na.rm=TRUE)
   pairscores <- pairscores - apccorr
-  pairscore <- abs(pairscores)
+  pairscores <- abs(pairscores)
   # Normalize
   denom <- max(pairscores, na.rm=TRUE)
   pairscores <- pairscores / ifelse(denom==0, 1, denom)
@@ -1031,31 +1053,28 @@ Ensemble.ProtWeaver <- function(pw,
   if (Verbose) cat('Calculating P/A profiles:\n')
   PAs <- PAProfiles(pw, uvals, Verbose=Verbose, speciesList=splist)
   CPs <- NULL
-  takesCP <- c('ContextTree', 'MirrorTree')
+  takesCP <- c('MirrorTree') # Just using MirrorTree for prediction
   
   submodels <- c('ProfileDCA', 'Jaccard', 'Hamming', 'MutualInformation')
   if (attr(pw, 'useMT')){
-    # not yet implemented
-    # flags[1] <- TRUE
     if (Verbose) cat('Calculating Cophenetic profiles:\n')
     CPs <- CophProfiles(pw, uvals, Verbose=Verbose)
     submodels <- c(submodels, takesCP)
   }
   
   if (!is.null(MySpeciesTree)){
-    flags[2] <- TRUE
     submodels <- c(submodels, 'Behdenna')
   }
 
   if (attr(pw, 'useColoc')){
-    flags[3] <- TRUE
     submodels <- c(submodels, 'Coloc')
   }
   
   if(!is.null(PretrainedModel)) {
+    UseBuiltIns <- FALSE
     predictionmodel <- PretrainedModel
   } else {
-    predictionmodel <- getBuiltInEnsembleModel(pw, flags)
+    UseBuiltIns <- TRUE
   }
   
   results <- list()
@@ -1078,10 +1097,13 @@ Ensemble.ProtWeaver <- function(pw,
   if (NoPrediction) return(list(res=results, noPostFormatting=TRUE))
   
   if (Verbose) cat('Predicting with Ensemble method...\n')
-  if (is(predictionmodel, 'glm'))
+  if (UseBuiltIns){
+    predictions <- predictWithBuiltins(results)
+  } else if (is(predictionmodel, 'glm')) {
     predictions <- predict(predictionmodel, results[,-c(1,2)], type='response')
-  else
+  } else {
     predictions <- predict(predictionmodel, results[,-c(1,2)])
+  }
   outmat <- matrix(NA, nrow=length(uvals), ncol=length(uvals))
 
   for (i in seq_along(predictions)){

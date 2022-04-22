@@ -40,9 +40,9 @@ matrix with some extra S3 methods to make printing cleaner.
   \item{NumCores}{
     Number of cores to use for methods that support multithreaded execution. 
     Currently only supported for methods \code{'ProfDCA'} and \code{'Ensemble'}. Setting
-    to a negative value will use as many cores as are available. If \code{NumCores}
-    is larger than the number of available cores, only the number of available
-    cores will be used. This parameter has no effect on Windows due to reliance on
+    to a negative value will use one less than the value of \code{detectCores()}, 
+    or one core if the number of available cores cannot be determined. See Note
+    for more information. This parameter has no effect on Windows due to reliance on
     forking via \code{mclapply}.
   }
   \item{MySpeciesTree}{
@@ -147,6 +147,14 @@ Weigt, M., et al., \emph{Identification of direct residue contacts in protein-pr
   53,000 proteins/genes). Next release will add more memory efficient storage to
   further increase this limit, though the memory capacity can never be better than
   \eqn{O(P^2)}, with \code{P} the number of proteins/genes.
+  
+  \code{NumCores} only uses 1 less core than is detected, or 1 core if \code{detectCores()}
+  cannot detect the number of available cores. This is because of a recurring issue
+  on my machine where the R session takes all available cores and is then locked
+  out of forking processes, with the only solution to restart the entire R session.
+  This may be an issue specific to ARM Macs, but out of an abundance of caution
+  I've made the default setting to be slightly slower but guarantee completion
+  rather than risk bricking a machine.
 
   More models will be implemented in the future. Planned models for next release
   include:
