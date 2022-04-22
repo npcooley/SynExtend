@@ -360,9 +360,9 @@ BlockReconciliation <- function(Pairs,
       # return(dr6)
       if (length(PRSETS) > 1L) {
         # no need to evaluate last set
-        PRSETS <- PRSETS[1:(length(PRSETS) - 1L)]
+        PRSETS <- PRSETS[seq_len(length(PRSETS) - 1L)]
         for (m3 in seq_along(PRSETS)) {
-          # which line call the current range
+          # which line - call the current range
           ph1 <- which(SETS == PRSETS[m3])
           if (length(ph1) == 1L) {
             # exit loop upon first occurrence of a block of size 1

@@ -39,7 +39,7 @@ SequenceSimilarity <- function(Seqs,
       PFASUM <- get(data(list = "PFASUM",
                          envir = environment(),
                          package = "DECIPHER"))
-      SubMat <- PFASUM[1:20, 1:20, 40]
+      SubMat <- PFASUM[seq_len(20), seq_len(20), 40]
     }
   }
   

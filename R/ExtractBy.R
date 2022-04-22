@@ -127,7 +127,7 @@ ExtractBy <- function(x,
     u3 <- matrix(data = as.integer(u3),
                  nrow = nrow(u3))
     # all strings to extract
-    u4 <- unique(u3[, 1:2])
+    u4 <- unique(u3[, c(1L, 2L)])
     # all identifiers that are necessary:
     u5 <- unique(u4[, 1L])
     L01 <- nrow(u4)
@@ -291,7 +291,7 @@ ExtractBy <- function(x,
     u3 <- matrix(data = as.integer(u3),
                  nrow = nrow(u3))
     # all strings to extract
-    u4 <- unique(u3[, 1:2])
+    u4 <- unique(u3[, c(1L, 2L)])
     # all identifiers that are necessary:
     u5 <- unique(u4[, 1L])
     L01 <- nrow(u4)

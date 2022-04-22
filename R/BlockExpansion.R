@@ -853,13 +853,13 @@ BlockExpansion <- function(Pairs,
       if (any(!is.na(PIDVector))) {
         L2 <- max(which(!is.na(PIDVector)))
         
-        p1placeholder <- p1placeholder[1:L2]
-        p2placeholder <- p2placeholder[1:L2]
-        p1FeatureLength <- p1FeatureLength[1:L2]
-        p2FeatureLength <- p2FeatureLength[1:L2]
-        PIDVector <- PIDVector[1:L2]
-        SCOREVector <- SCOREVector[1:L2]
-        AType <- AType[1:L2]
+        p1placeholder <- p1placeholder[seq_len(L2)]
+        p2placeholder <- p2placeholder[seq_len(L2)]
+        p1FeatureLength <- p1FeatureLength[seq_len(L2)]
+        p2FeatureLength <- p2FeatureLength[seq_len(L2)]
+        PIDVector <- PIDVector[seq_len(L2)]
+        SCOREVector <- SCOREVector[seq_len(L2)]
+        AType <- AType[seq_len(L2)]
         
         # if (m2 == 2L) {
         #   return(list(IMat,
