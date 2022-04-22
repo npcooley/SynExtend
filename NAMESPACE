@@ -28,6 +28,8 @@ export(GetProtWebData)
 S3method(`[`, "LinkedPairs")
 S3method(print, "LinkedPairs")
 
+S3method(print, 'GenRearr')
+
 export(ProtWeaver)
 S3method(show, 'ProtWeaver')
 S3method(print, 'ProtWeaver')

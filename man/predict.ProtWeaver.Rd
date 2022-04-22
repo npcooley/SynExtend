@@ -82,7 +82,7 @@ matrix with some extra S3 methods to make printing cleaner.
     Logical indicating whether to print progress bars and messages. Defaults to \code{TRUE}.
   }
   \item{...}{
-    Additional parameters for consistency with generic.
+    Additional parameters for other predictors and consistency with generic.
   }
 }
 

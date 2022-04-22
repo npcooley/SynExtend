@@ -298,7 +298,7 @@ EstimRearrScen <- function(SyntenyObject,
                 graph <- new_graph
                 #then we just do a DCJ on the left vertex of this block and its connected gray vertex
                 graph <- DCJ(graph, cut_vertex, graph[cut_vertex, 2])
-                rearrangements[[block_count + invert_count +2]] <- paste("block interchange: ", paste(graph_to_genome(graph), collapse=" "), "{", len_block, "}")
+                rearrangements[[block_count + invert_count +2]] <- paste("transposition: ", paste(graph_to_genome(graph), collapse=" "), "{", len_block, "}")
                 block_count <- block_count + 1
                 done <- FALSE
                 break()   
@@ -697,9 +697,11 @@ EstimRearrScen <- function(SyntenyObject,
         rearrangements$Scenario <- unlist(chrom_results$scenario)
         rearrangements$Key <- chrom_results$block_key
         
+      }
         # These aren't fully fleshed out and will probably be worse to include at this point
         rearrangements$Gen1Dup <- rearrangements$Gen2Dup <- rearrangements$Translocations <- rearrangements$InsDel <- NULL
-      }
+        if (is.null(rearrangements$Scenario)) rearrangements$Scenario <- 'No events'
+        if (is.null(rearrangements$Key)) rearrangements$Key <- NA
       rearr_mat[[gen1, gen2]] <- rearrangements
       rearrangements <- list("Translocations"=0, "Gen1Dup"=0, "Gen2Dup"=0, "Inversions"=0, "Transpositions"=0, "InsDel"=0)
     }
@@ -708,6 +710,31 @@ EstimRearrScen <- function(SyntenyObject,
     cat('\nDone.\n\nTime difference of', 
         round(difftime(Sys.time(), starttime, units = 'secs'), 2),
         'seconds.\n')
+  class(rearr_mat) <- append('GenRearr', class(rearr_mat))
   return(rearr_mat)
 }
 
+print.GenRearr <- function(x, ...){
+  to_print <- matrix(character(), nrow=nrow(x)+1, ncol=ncol(x)+1)
+  to_print[1,] <- c('', colnames(x))
+  nc <- ncol(x)
+  rnames <- rownames(x)
+  for (i in seq_len(nrow(x))){
+    row <- x[i,]
+    outvec <- character(nc)
+    for ( j in seq_along(outvec) ){
+      entry <- row[[j]]
+      if (is(entry, 'character')) outvec[j] <- entry
+      else if (is(entry, 'integer')) outvec[j] <- paste0(length(entry), ' Chromosomes')
+      else {
+        outvec[j] <- paste0(round(entry$Inversions, 1), 'I,', round(entry$Transpositions,1), 'T')
+      }
+    }
+    outvec <- c(rnames[i], outvec)
+    to_print[i+1,] <- outvec
+  }
+  lines <- format(to_print, justify='centre')
+  for (i in seq_len(nrow(lines))) cat(lines[i,], '\n')
+  
+  return(invisible(x))
+}
