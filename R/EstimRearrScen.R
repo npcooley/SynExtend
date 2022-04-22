@@ -727,7 +727,7 @@ print.GenRearr <- function(x, ...){
       if (is(entry, 'character')) outvec[j] <- entry
       else if (is(entry, 'integer')) outvec[j] <- paste0(length(entry), ' Chromosomes')
       else {
-        outvec[j] <- paste0(entry$Inversions, 'I,', entry$Transpositions, 'T')
+        outvec[j] <- paste0(round(entry$Inversions, 1), 'I,', round(entry$Transpositions,1), 'T')
       }
     }
     outvec <- c(rnames[i], outvec)
