@@ -226,6 +226,16 @@ PAStats <- function(predDf, paps){
   return(list(avg=av, diff=d))
 }
 
+CheckBifurcating <- function(dend){
+  # Checks if a dendrogram is bifurcating
+  helperfunc <- function(node){
+    if (length(node) == 1) return(TRUE)
+    if (length(node) > 2) return(FALSE)
+    return(helperfunc(node[[1]]) & helperfunc(node[[2]]))
+  }
+  return(helperfunc(dend))
+}
+
 DCA_minimize_fxn <- function(params, R, spins, i){
   sigi <- spins[,i]
   sigj <- spins[,-i]
@@ -970,6 +980,7 @@ Behdenna.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
                                 useACCTRAN=TRUE, rawZScores=FALSE, 
                                 precalcProfs=NULL, precalcSubset=NULL, ...){
   stopifnot('No species tree provided.'=(!is.null(MySpeciesTree)))
+  stopifnot("Method 'Behdenna' requires a bifurcating tree"=CheckBifurcating(MySpeciesTree))
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
@@ -1075,7 +1086,7 @@ Ensemble.ProtWeaver <- function(pw,
     submodels <- c(submodels, takesCP)
   }
   
-  if (!is.null(MySpeciesTree)){
+  if (!is.null(MySpeciesTree) && CheckBifurcating(MySpeciesTree)){
     submodels <- c(submodels, 'Behdenna')
   }
 

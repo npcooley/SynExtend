@@ -46,8 +46,9 @@ matrix with some extra S3 methods to make printing cleaner.
     forking via \code{mclapply}.
   }
   \item{MySpeciesTree}{
-    Phylogenetic tree of all genomes in the dataset. Required for method \code{'Behdenna'},
-    and can improve predictions for other methods.
+    Phylogenetic tree of all genomes in the dataset. Required for \code{Method='Behdenna'},
+    and can improve predictions for other methods. \code{'Behdenna'} requires a 
+    rooted, bifurcating tree (other values of \code{Method} can handle arbitrary trees).
   }
   \item{PretrainedModel}{
     A pretrained model for use with ensemble predictions. If unspecified when 
@@ -107,6 +108,13 @@ results slightly nicer. Data can be extracted form the \code{ProtWeb} object wit
 
 \code{GetProtWebData(ProtWebObject, AsDf=c(T,F))}
 
+Different methods require different types of input. The constructor 
+\code{\link{ProtWeaver}} will notify the user which methods are
+runnable with the given data. Note that method \code{Behdenna} requires a species 
+tree, which must be bifurcating. Method \code{Ensemble} automatically selects the 
+methods that can be run with the given input data. 
+
+See \code{\link{ProtWeaver}} for more information on input data types.
 }
 \value{
 Returns a ProtWeb object. See \code{\link[=GetProtWebData.ProtWeb]{GetProtWebData}} for more info.
