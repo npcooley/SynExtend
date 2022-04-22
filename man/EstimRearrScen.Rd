@@ -12,6 +12,7 @@ Take in a \code{\link[=Synteny-class]{Synteny}} object and return predicted rear
 EstimRearrScen(SyntenyObject, NumRuns = -1,
                 Mean = FALSE, MinBlockLength = -1,
                 Verbose = TRUE)
+                
 }
 
 \arguments{
@@ -78,7 +79,8 @@ try to find the minimum amount of events. Users can choose to receive the best f
 solution or the mean number of events from all solutions.
 }
 \value{
-An \emph{NxN} matrix with the same shape as the input Synteny object. 
+An \emph{NxN} matrix of lists with the same shape as the input Synteny object. This is 
+wrapped into a \code{GenRearr} object for pretty printing.
 
 The diagonal corresponds to total sequence length of the corresponding genome. 
 
@@ -96,6 +98,10 @@ rearrangement scenario found. See below for details.
 See below for details.
 }
 
+The \code{print.GenRearr} method prints this data out as a matrix, with the diagonal
+showing the number of chromosomes and the lower triangle displaying \code{xI,yT}, where
+\code{x,y} the number of inversions and transpositions (resp.) between the
+corresponding entries.
 
 The \code{$Scenario} entry describes a sequences of steps to rearrange one genome 
 into another, as found by this algorithm. The goal of the DCJ model is to rearrange
@@ -116,7 +122,7 @@ entries of genome 2, the entry in \code{$Scenario} would be:
 \code{inversion: 3 1 2 4 \{ 2 \}}
 
 Here we inverted the whole block \code{(-2 -1)} into \code{(1 2)}. We could then 
-finish the rearrangement by performing a block interchange to move block 3 between 
+finish the rearrangement by performing a transposition to move block 3 between 
 2 and 4. The entries of \code{$Scenario} in this case would be the following:
 
 \code{Original: 3 -2 -1 4}

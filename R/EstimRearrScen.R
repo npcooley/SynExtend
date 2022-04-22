@@ -298,7 +298,7 @@ EstimRearrScen <- function(SyntenyObject,
                 graph <- new_graph
                 #then we just do a DCJ on the left vertex of this block and its connected gray vertex
                 graph <- DCJ(graph, cut_vertex, graph[cut_vertex, 2])
-                rearrangements[[block_count + invert_count +2]] <- paste("block interchange: ", paste(graph_to_genome(graph), collapse=" "), "{", len_block, "}")
+                rearrangements[[block_count + invert_count +2]] <- paste("transposition: ", paste(graph_to_genome(graph), collapse=" "), "{", len_block, "}")
                 block_count <- block_count + 1
                 done <- FALSE
                 break()   
@@ -710,6 +710,31 @@ EstimRearrScen <- function(SyntenyObject,
     cat('\nDone.\n\nTime difference of', 
         round(difftime(Sys.time(), starttime, units = 'secs'), 2),
         'seconds.\n')
+  class(rearr_mat) <- append('GenRearr', class(rearr_mat))
   return(rearr_mat)
 }
 
+print.GenRearr <- function(x, ...){
+  to_print <- matrix(character(), nrow=nrow(x)+1, ncol=ncol(x)+1)
+  to_print[1,] <- c('', colnames(x))
+  nc <- ncol(x)
+  rnames <- rownames(x)
+  for (i in seq_len(nrow(x))){
+    row <- x[i,]
+    outvec <- character(nc)
+    for ( j in seq_along(outvec) ){
+      entry <- row[[j]]
+      if (is(entry, 'character')) outvec[j] <- entry
+      else if (is(entry, 'integer')) outvec[j] <- paste0(length(entry), ' Chromosomes')
+      else {
+        outvec[j] <- paste0(entry$Inversions, 'I,', entry$Transpositions, 'T')
+      }
+    }
+    outvec <- c(rnames[i], outvec)
+    to_print[i+1,] <- outvec
+  }
+  lines <- format(to_print, justify='centre')
+  for (i in seq_len(nrow(lines))) cat(lines[i,], '\n')
+  
+  return(invisible(x))
+}
