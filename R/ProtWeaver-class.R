@@ -226,16 +226,6 @@ PAStats <- function(predDf, paps){
   return(list(avg=av, diff=d))
 }
 
-# RemoveCophParalogs <- function(Coph, useColoc=FALSE){
-#   if (useColoc){
-#     rownamevec <- gsub('(.*)_.*_[0-9]*', '\\1', rownames(Coph))
-#   } else {
-#     rownamevec <- rownames(Coph)
-#   }
-#   
-#   paralogs <- 
-# }
-
 DCA_minimize_fxn <- function(params, R, spins, i){
   sigi <- spins[,i]
   sigj <- spins[,-i]
