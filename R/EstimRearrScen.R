@@ -697,9 +697,11 @@ EstimRearrScen <- function(SyntenyObject,
         rearrangements$Scenario <- unlist(chrom_results$scenario)
         rearrangements$Key <- chrom_results$block_key
         
+      }
         # These aren't fully fleshed out and will probably be worse to include at this point
         rearrangements$Gen1Dup <- rearrangements$Gen2Dup <- rearrangements$Translocations <- rearrangements$InsDel <- NULL
-      }
+        if (is.null(rearrangements$Scenario)) rearrangements$Scenario <- 'No events'
+        if (is.null(rearrangements$Key)) rearrangements$Key <- NA
       rearr_mat[[gen1, gen2]] <- rearrangements
       rearrangements <- list("Translocations"=0, "Gen1Dup"=0, "Gen2Dup"=0, "Inversions"=0, "Transpositions"=0, "InsDel"=0)
     }
