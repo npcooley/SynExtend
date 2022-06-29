@@ -99,6 +99,7 @@ matrix with some extra S3 methods to make printing cleaner.
   \item \code{'Coloc'}: Co-localization analysis
   \item \code{'MirrorTree'}: MirrorTree
   \item \code{'ContextTree'}: ContextTree
+  \item \code{'ResidueMI'}: Mutual Information of sequence-level residues
 }
 
 (PA = Presence/Absence)
@@ -129,6 +130,9 @@ Behdenna, A., et al., \emph{Testing for Independence between Evolutionary Proces
 Franceschini, A., et al., \emph{SVD-phy: improved prediction of protein functional associations through singular value decomposition of phylogenetic profiles.} Bioinformatics, 2016. \bold{32}(7): p. 1085-1087.
 
 Fukunaga, T. and W. Iwasaki, \emph{Inverse Potts model improves accuracy of phylogenetic profiling.} Bioinformatics, 2022.
+
+Gao, C. Y., et al., \emph{Correlation-compressed direct-coupling analysis}. Physical Review
+E, 2018. \bold{98}(3): 032407.
 
 Lokhov, A.Y., et al., \emph{Optimal structure and parameter learning of Ising models.} Science advances, 2018. \bold{4}(3): p. e1700791.
 

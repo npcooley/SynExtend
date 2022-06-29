@@ -23,6 +23,7 @@ ContextTree <- function(pw, ...) UseMethod('ContextTree')
 ProfileDCA <- function(pw, ...) UseMethod('ProfileDCA')
 Coloc <- function(pw, ...) UseMethod('Coloc')
 Behdenna <- function(pw, ...) UseMethod('Behdenna')
+ResidueMI <- function(pw, ...) UseMethod('ResidueMI')
 Ensemble <- function(pw, ...) UseMethod('Ensemble')
 ########
 
@@ -33,6 +34,7 @@ new_ProtWeaver <- function(validatedInput){
             allOrgs=validatedInput$allgenomes,
             useMT=validatedInput$flags$usemirrortree,
             useColoc=validatedInput$flags$usecoloc,
+            useResidue=validatedInput$flags$useresidue,
             class='ProtWeaver')
 }
 
@@ -42,7 +44,7 @@ ProtWeaver <- function(ListOfData, NoWarn=FALSE){
 }
 
 validate_ProtWeaver <- function(ipt, noWarn=FALSE){
-  bitflags <- list(usecoloc=FALSE, usemirrortree=FALSE)
+  bitflags <- list(usecoloc=FALSE, usemirrortree=FALSE, useresidue=FALSE)
   stopifnot('ProtWeaver expects a list of dendrograms or character vectors as input.'=
               is(ipt, 'list'))
   
@@ -59,14 +61,28 @@ validate_ProtWeaver <- function(ipt, noWarn=FALSE){
   
   # Now we know that the input is either of type 'character' or 'dendrogram'
   if (all(checkchar)){
-    if (!noWarn) warning('Disabling MirrorTree-based algorithms. ',
+    if (!noWarn) message('Disabling Residue and MirrorTree-based algorithms. ',
                   'Input list must include inputs of type "dendrogram" ',
-                  'for MT algorithms. Consult the documentation for more info.')
+                  'for MT algorithms. Consult the documentation for more info.\n')
     bitflags[['usemirrortree']] <- FALSE
     allentries <- unique(unlist(ipt))
   } else {
     bitflags[['usemirrortree']] <- TRUE
     allentries <- unique(unlist(lapply(ipt, labels)))
+  }
+  
+  if (bitflags[['usemirrortree']]){
+    useResidueMI <- TRUE
+    for ( tree in ipt){
+      if (any(unlist(flatdendrapply(tree, \(x) is.null(attr(x, 'state')))))){
+        useResidueMI <- FALSE
+        if (!noWarn) message('Disabling Residue methods. Input dendrograms must',
+                             ' include ancenstral state reconstruction for residue',
+                             ' methods. Consult the documentation for more info.\n')
+        break
+      }
+    }
+    bitflags[['useresidue']] <- useResidueMI
   }
   
   checkforcoloc <- grepl('.+_.+_[0-9]+', allentries)
@@ -76,17 +92,17 @@ validate_ProtWeaver <- function(ipt, noWarn=FALSE){
   }
   else{
     bitflags[['usecoloc']] <- FALSE
-    if (!noWarn) warning('Co-localization disabled. Labels must be in the format ',
+    if (!noWarn) message('Co-localization disabled. Labels must be in the format ',
               '[GENOME]_[INDEX]_[ORDER] to use co-localization ',
-            '(where ORDER is a numeric). Consult the documentation for more info.')
+            '(where ORDER is a numeric). Consult the documentation for more info.\n')
   }
   
   if (is.null(names(ipt))){
-    if (!noWarn) warning('Adding character labels to input data.')
+    if (!noWarn) message('Adding character labels to input data.\n')
     names(ipt) <- as.character(seq_len(length(ipt)))
   }
   if (any(names(ipt) == '')){
-    if (!noWarn) warning('Adding labels to unnamed groups.')
+    if (!noWarn) message('Adding labels to unnamed groups.\n')
     safe <- paste0('Unnamed_Grp_', as.character(seq_len(length(ipt))))
     n <- names(ipt)
     names(ipt)[n==''] <- safe[n=='']
@@ -194,6 +210,27 @@ ProcessSubset <- function(pw, Subset=NULL){
   }
   
   return(list(evalmap=evalmap, uvals=uvals))
+}
+
+flatdendrapply <- function(dend, NODEFUN, LEAFFUN=NODEFUN, INCLUDEROOT=TRUE, ...){
+  val <- lapply(dend, 
+                \(x){
+                  if (is.null(attr(x, 'leaf'))){
+                    v <- list(NODEFUN(x, ...))
+                    for ( child in x ) v <- c(v, Recall(child))
+                    return(v)
+                  } 
+                  else if (!is(LEAFFUN, 'function'))
+                    return(list())
+                  else 
+                    return(list(LEAFFUN(x, ...)))
+                }
+  )
+  retval <- unlist(val, recursive=FALSE)
+  if (!INCLUDEROOT)
+    retval[[1]] <- NULL
+  
+  return(retval)
 }
 
 AdjMatToDf <- function(preds){
@@ -322,31 +359,33 @@ DCA_logrise_run <- function(spins, links, regterm, printProgress=FALSE, NumCores
   bin0 <- which(h$breaks==0)
   countsNorm <- h$counts == 0
   lb <- length(countsNorm)
-  up <- countsNorm[bin0:lb]
-  down <- countsNorm[bin0:1]
-  double_up <- which(up[-length(up)] & up[-1])
-  double_down <- which(down[-length(down)] & down[-1])
-  safeguards <- quantile(vals, c(0.15,0.85))
-  
-  if ( length(double_up) == 0 ){
-    tmp <- which(up)
-    double_up <- ifelse(length(tmp) != 0, which(up)[1], NA)
-  } else {
-    double_up <- double_up[1]
-  }
-  uthresh <- ifelse(is.na(double_up), safeguards[2], min(h$breaks[bin0+double_up+1], safeguards[2]))
-  
-  if ( length(double_down) == 0 ){
-    tmp <- which(down)
-    double_down <- ifelse(length(tmp) != 0, which(down)[1], NA)
-  } else {
-    double_down <- double_down[1]
-  }
-  lthresh <- ifelse(is.na(double_down), safeguards[1], max(h$breaks[bin0-double_down-1], safeguards[1]))
-  
-  d <- diag(links)
-  links[(links < uthresh & links > 0) | (links > lthresh & links < 0)] <- 0
-  diag(links) <- d
+  if (length(bin0) != 0 && lb > bin0){
+    up <- countsNorm[bin0:lb]
+    down <- countsNorm[bin0:1]
+    double_up <- which(up[-length(up)] & up[-1])
+    double_down <- which(down[-length(down)] & down[-1])
+    safeguards <- quantile(vals, c(0.15,0.85))
+    
+    if ( length(double_up) == 0 ){
+      tmp <- which(up)
+      double_up <- ifelse(length(tmp) != 0, which(up)[1], NA)
+    } else {
+      double_up <- double_up[1]
+    }
+    uthresh <- ifelse(is.na(double_up), safeguards[2], min(h$breaks[bin0+double_up+1], safeguards[2]))
+    
+    if ( length(double_down) == 0 ){
+      tmp <- which(down)
+      double_down <- ifelse(length(tmp) != 0, which(down)[1], NA)
+    } else {
+      double_down <- double_down[1]
+    }
+    lthresh <- ifelse(is.na(double_down), safeguards[1], max(h$breaks[bin0-double_down-1], safeguards[1]))
+    
+    d <- diag(links)
+    links[(links < uthresh & links > 0) | (links > lthresh & links < 0)] <- 0
+    diag(links) <- d
+  } 
   
   max_degree <- max(rowSums(links != 0))
   max_val <- max(links) * 2 #conservative estimate on link strength
@@ -372,7 +411,7 @@ DCA_logrise_run <- function(spins, links, regterm, printProgress=FALSE, NumCores
                               R=0, spins=pspins, i=(i-adjustment))$par
                  probs[nonzeros] <- val
                }
-               if (printProgress && charsvec[i]) system('printf =')
+               if (printProgress && charsvec[i]) system2('printf', '=')
                return(probs)
              }, 
              mc.cores=NumCores, mc.preschedule=TRUE))  
@@ -426,6 +465,220 @@ DCA_logRISE <- function(PAProfiles, niter=1, reg_const=1,
   } 
   
   return(truelinks)
+}
+
+MICalc_C <- function(v1, v2, uv, pseudocount=1L){
+  stopifnot("'pseudocount' must be an integer"=is(pseudocount, 'integer'))
+  pseudocount <- min(0, pseudocount)
+  # Psuedocount=0.01 taken as default by Gerardos et al. (2022) in PLoS
+  a <- .Call('calcMIcVec', v1, v2, uv, pseudocount)
+  return(a)
+}
+
+CorrComp_C <- function(fm, fsp, ssp, nv, nr){
+  on.exit(.C("cleanupFxn"))
+  a <- .Call('trimCovar', fm, fsp, ssp, nv, nr)
+  return(a)
+}
+
+ResidueMIDend <- function(dend1, dend2, cutoff=0.9, comppct=0.25){
+  completeSet <- intersect(labels(dend1), labels(dend2))
+  
+  edges1 <- flatdendrapply(dend1, 
+                           \(x) list(vals=as.character(unlist(x)), 
+                                     state=attr(x, 'state')), 
+                           NULL)
+  edges2 <- flatdendrapply(dend2, 
+                           \(x) list(vals=as.character(unlist(x)), 
+                                     state=attr(x, 'state')), 
+                           NULL)
+  
+  
+  jsscore <- matrix(Inf, nrow=length(edges1), ncol=length(edges2))
+  for ( i in seq_along(edges1) ){
+    v1 <- intersect(edges1[[i]]$vals, completeSet)
+    for ( j in seq_along(edges2) ){
+      v2 <- intersect(edges2[[j]]$vals, completeSet)
+      jsscore[i,j] <- 1 - length(intersect(v1, v2)) / length(union(v1, v2))
+    }
+  }
+  
+  nr <- nrow(jsscore)
+  nc <- ncol(jsscore)
+  if (nr > nc){
+    tm <- edges1
+    edges1 <- edges2
+    edges2 <- tm
+    jsscore <- t(jsscore)
+    tm <- nc
+    nc <- nr
+    nr <- tm
+  }
+  #now guaranteed to have the larger dimension be nrow
+  
+  rownames(jsscore) <- colnames(jsscore) <- as.character(seq_len(nr))
+  
+  # I'm just using a greedy matching here, couldn't figure out Hungarian
+  # and this also scales much better
+  pairings <- rep(NA, nc)
+  allvals <- rownames(jsscore)
+  for ( i in seq_len(nc) ){
+    ordered <- allvals[order(jsscore[,i])]
+    pos <- which.min(ordered %in% pairings)
+    if (jsscore[ordered[pos], i] < cutoff)
+      pairings[i] <- ordered[pos]
+  }
+  names(pairings) <- colnames(jsscore) 
+  pairings <- pairings[!is.na(pairings)]
+  
+  seqset1 <- seqset2 <- NULL
+  n <- names(pairings)
+  for ( i in seq_along(pairings) ){
+    a1 <- as.integer(pairings[i])
+    a2 <- as.integer(n[i])
+    if (i == 1){
+      seqset1 <- BStringSet(edges1[[a1]]$state)
+      seqset2 <- BStringSet(edges2[[a2]]$state)
+    } else {
+      seqset1 <- append(seqset1, edges1[[a1]]$state)
+      seqset2 <- append(seqset2, edges2[[a2]]$state)
+    }
+  }
+  names(seqset1) <- names(seqset2) <- seq_len(length(pairings))
+  res <- MISeqLevel(seqset1, seqset2, compressionpct=comppct)
+  return(res)
+}
+
+MISeqLevel <- function(seqSet1, seqSet2, compressionpct=0.25){
+  stopifnot('seqSets must be XStringSets'=is(seqSet1, 'XStringSet') && is(seqSet2, 'XStringSet'))
+  stopifnot('seqSetq sequences have differing lengths. Ensure you are using an aligned sequence set.'=
+              all(width(seqSet1) == width(seqSet1[1])))
+  stopifnot('seqSet2 sequences have differing lengths. Ensure you are using an aligned sequence set.'=
+              all(width(seqSet2) == width(seqSet2[1])))
+  stopifnot('compressionpct must be between 0 and 1'=
+              compressionpct < 1 && compressionpct > 0)
+  stopifnot('seqSets must be named'=!is.null(names(seqSet1)) && !is.null(names(seqSet2)))
+  stopifnot('seqSets must be named'=all(!is.na(c(names(seqSet1), names(seqSet2)))))
+  #stopifnot('Both inputs must be DNAStringSets'=
+  #            is(seqSet1, 'DNAStringSet') && is(seqSet2, 'DNAStringSet'))
+  start2 <- width(seqSet1)[1] + 1
+  cali <- ConcatSeqs(seqSet1, seqSet2)
+  if (length(cali) == 0){
+    #warning('No sequences shared. Check seqSet names!')
+    return(0)
+  }
+  v <- CorrCompressSeqs(cali, start2, mvalpct=compressionpct)
+  if (!is.null(v$warn)){
+    #warning('Sequences identical.')
+    return(1)
+  }
+  compali <- v$xstrset
+  pos <- v$pos
+  newstart2 <- which.max(pos >= start2)
+  miscore <- CalcMIReduced(compali, newstart2)
+  
+  # APC correction
+  nr <- nrow(miscore)
+  nc <- ncol(miscore)
+  APC_corr <- matrix(colMeans(miscore), nr, nc, byrow = TRUE) * 
+    matrix(rowMeans(miscore), nr, nc, byrow = FALSE) / mean(miscore)
+  miscore <- miscore - APC_corr
+  
+  # scoring
+  miscore <- apply(abs(miscore), 2, max)
+  return(mean(miscore))
+}
+
+ConcatSeqs <- function(seqSet1, seqSet2){
+  unames <- intersect(names(seqSet1), names(seqSet2))
+  concatAli <- xscat(seqSet1[unames], seqSet2[unames])
+  names(concatAli) <- unames
+  return(concatAli)
+}
+
+CorrCompressSeqs <- function(myStringSet, start2, pseudocount=2, mvalpct=0.5, 
+                             gapLetters=c('-'),
+                             uncertainty_cutoff=0.158, MAF_cutoff=0.15){
+  freqMat <- consensusMatrix(myStringSet, as.prob=FALSE)
+  freqMat <- freqMat[rowSums(freqMat) != 0,]
+  freqMat <- freqMat + pseudocount
+  
+  freqMat <- t(t(freqMat) / colSums(freqMat))
+  
+  to_keep <- rep(FALSE, ncol(freqMat))
+  nongaploc <- !(rownames(freqMat) %in% gapLetters)
+  for ( i in seq_along(to_keep) ){
+    pos <- freqMat[,i]
+    pos_no_gap <- pos[nongaploc]
+    
+    missing_prob <- sum(pos[gapLetters])
+    vals <- sort(pos_no_gap, decreasing=TRUE)
+    
+    MAF <- ifelse(vals[1] == 0, 0, vals[2] / (vals[1] + vals[2]))
+    
+    to_keep[i] <- missing_prob < uncertainty_cutoff && MAF > MAF_cutoff
+  }
+  trimmedFreqMat <- freqMat[,to_keep]
+  colnames(trimmedFreqMat) <- which(to_keep)
+  fm <- unique(trimmedFreqMat, MARGIN=2)
+  
+  nc <- ncol(fm)
+  num_vals <- ceiling(mvalpct * nc) 
+  
+  isInSecondSeq <- as.integer(colnames(fm)) >= start2
+  s2 <- which.max(isInSecondSeq)
+  firstSeqPos <- seq_len(s2-1)
+  if (length(firstSeqPos) == 0){
+    return(list(warn=TRUE, 1))
+  }
+  secondSeqPos <- seq_len(length(isInSecondSeq) - s2) + s2
+  # keeping the entire covariance matrix in memory is really hard
+  # this is more code but significantly more memory efficient
+  # the cost is slightly more runtime
+  corrs <- CorrComp_C(fm, firstSeqPos, secondSeqPos, num_vals, nrow(fm))
+  corrs <- unique(corrs)
+  if ( length(corrs) < num_vals ){
+    fsp <- firstSeqPos[!(firstSeqPos %in% corrs)]
+    ssp <- secondSeqPos[!(secondSeqPos %in% corrs)]
+    d <- ceiling((num_vals - length(corrs)) / 2)
+    l1 <- min(d, length(fsp))
+    l2 <- min(d, length(ssp))
+    corrs <- c(corrs, sample(fsp, l1), sample(ssp, l2))
+  }
+  upositions <- sort(as.integer(colnames(fm)[unique(corrs)]))
+  subsetXStr <- extractAt(myStringSet, IRanges(upositions, width=1))
+  return(list(xstrset=unstrsplit(subsetXStr), pos=upositions))
+}
+
+CalcMIReduced <- function(trimmedXStringSet, start2,
+                          secondgroupstart=-1){
+  matxss <- as.matrix(trimmedXStringSet)
+  group1 <- seq_len(start2-1)
+  group2 <- seq_len(width(trimmedXStringSet[1]) - start2) + start2
+  
+  u <- unique(c(matxss))
+  converter <- seq_len(length(u)) - 1L
+  names(converter) <- u
+  umat <- matrix(converter[matxss], ncol=ncol(matxss))
+  scores <- matrix(NA, nrow=length(group1), ncol=length(group2))
+  gapnum <- ifelse('-' %in% u, which(u=='-'), -1)
+  numunique <- length(u) - (gapnum!=-1)
+  ctr <- 0
+  for ( i in seq_along(group1) ){
+    p1 <- umat[,group1[i]]
+    subsetloc <- p1 != gapnum
+    for ( j in seq_along(group2) ){
+      p2 <- umat[,group2[j]]
+      
+      fullsub <- subsetloc & (p2 != gapnum)
+      p1p <- p1[fullsub]
+      p2p <- p2[fullsub]
+      MI <- MICalc_C(p1p, p2p, numunique)
+      scores[i,j] <- MI
+      ctr <- ctr + 1
+    }
+  }
+  return(scores)
 }
 
 predictWithBuiltins <- function(preds){
@@ -636,7 +889,7 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
   }
   
   pairscores <- matrix(NA, nrow=pl, ncol=pl)
-  ctr <- 1
+  ctr <- 0
   if (Verbose) pb <- txtProgressBar(max=(pl*(pl-1) / 2), style=3)
   for ( i in seq_len(pl-1) ){
     uval1 <- uvals[i]
@@ -730,7 +983,7 @@ Jaccard.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
     return(mat)
   }
   pairscores <- matrix(NA, nrow=l, ncol=l)
-  ctr <- 1
+  ctr <- 0
   if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
   for ( i in seq_len(l) ){
     uval1 <- uvals[i]
@@ -782,7 +1035,7 @@ Hamming.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
     return(mat)
   }
   pairscores <- matrix(NA, nrow=l, ncol=l)
-  ctr <- 1
+  ctr <- 0
   if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
   for ( i in seq_len(l) ){
     uval1 <- uvals[i]
@@ -830,7 +1083,7 @@ MutualInformation.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
     return(mat)
   }
   pairscores <- matrix(NA, nrow=l, ncol=l)
-  ctr <- 1
+  ctr <- 0
   if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
   for ( i in seq_len(l) ){
     uval1 <- uvals[i]
@@ -1058,6 +1311,57 @@ Behdenna.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   return(pairscores)
 }
 
+ResidueMI.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
+                                 precalcSubset=NULL, ...){
+  useResidue <- attr(pw, 'useResidue')
+  useMT <- attr(pw, 'useMT')
+  
+  stopifnot('ProtWeaver object must be initialized with dendrograms to run Residue methods'=
+              useMT)
+  stopifnot('ProtWeaver dendrograms must have ancestral states to run Residue methods'=
+              useResidue)
+  
+  if (!is.null(precalcSubset))
+    subs <- precalcSubset
+  else
+    subs <- ProcessSubset(pw, Subset)
+  
+  uvals <- subs$uvals
+  evalmap <- subs$evalmap
+  l <- length(uvals)
+  n <- names(pw)
+  if ( l == 1 ){
+    mat <- matrix(1, nrow=1, ncol=1)
+    rownames(mat) <- colnames(mat) <- n
+    return(mat)
+  }
+  
+  pairscores <- matrix(NA_real_, nrow=l, ncol=l)
+  ctr <- 0
+  if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
+  for ( i in seq_len(l) ){
+    uval1 <- uvals[i]
+    tree1 <- pw[[uval1]]
+    for ( j in i:l ){
+      uval2 <- uvals[j]
+      accessor <- as.character(min(uval1, uval2))
+      entry <- max(uval1, uval2)
+      if (i!=j && (is.null(evalmap) || entry %in% evalmap[[accessor]])){
+        tree2 <- pw[[uval2]]
+        pairscores[i,j] <- pairscores[j,i] <- ResidueMIDend(tree1, tree2)
+      }
+      ctr <- ctr + 1
+      if (Verbose) setTxtProgressBar(pb, ctr)
+    }
+  }
+  diag(pairscores) <- 1
+  if (Verbose) cat('\n')
+  n <- n[uvals]
+  rownames(pairscores) <- colnames(pairscores) <- n
+
+  return(pairscores)
+}
+
 Ensemble.ProtWeaver <- function(pw,
                                 Subset=NULL, Verbose=TRUE, MySpeciesTree=NULL,
                                 PretrainedModel=NULL,
@@ -1092,6 +1396,12 @@ Ensemble.ProtWeaver <- function(pw,
 
   if (attr(pw, 'useColoc')){
     submodels <- c(submodels, 'Coloc')
+  }
+  
+  if (attr(pw, 'useResidue')){
+    # Ensemble with this still needs to be trained
+    #submodels <- c(submodels, 'useResidue')
+    submodels <- submodels
   }
   
   if(!is.null(PretrainedModel)) {
