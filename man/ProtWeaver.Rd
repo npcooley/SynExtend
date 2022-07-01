@@ -42,7 +42,9 @@ Case (3) expects gene trees for each gene, with labeled leaves corresponding to 
 
 \emph{See the Examples section for illustrative examples.}
 
-ProtWeaver requires input of scenario (3) to use MirrorTree or ContextTree, and requires input of scenario (2) (or (3) with leaves labeled according to (2)) for co-localization analyses.
+ProtWeaver requires input of scenario (3) to use MirrorTree or ContextTree, and requires input of scenario (2) (or (3) with leaves labeled according to (2)) for co-localization analyses. 
+Residue covariation methods require dendrograms with ancestral state reconstructions 
+present at each node in the form of a `state` attribute.
 
 Note that ALL entries must belong to the same category--a combination of character vectors and dendrograms is not allowed. 
 

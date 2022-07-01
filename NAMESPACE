@@ -1,3 +1,5 @@
+useDynLib(SynExtend)
+
 import(methods)
 import(IRanges)
 import(Biostrings)
