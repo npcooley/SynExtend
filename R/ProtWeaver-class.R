@@ -1207,11 +1207,15 @@ Coloc.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
           spk <- shared[k]
           v1 <- lab1[l1sp==spk]
           v2 <- lab2[l2sp==spk]
-          idx1 <- as.integer(gsub('.*_([0-9]*)$', '\\1', v1))
-          idx2 <- as.integer(gsub('.*_([0-9]*)$', '\\1', v2))
-          vals <- expand.grid(idx1, idx2)
-          diffs <- exp(1 - abs(vals[,1] - vals[,2]))
-          score <- score + sum(diffs) / nrow(vals)
+          idx1 <- as.integer(gsub('.*_([0-9]*)$', '\\1', v1, useBytes=T))
+          idx2 <- as.integer(gsub('.*_([0-9]*)$', '\\1', v2, useBytes=T))
+          # Double loop is SIGNIFICANTLY faster than expand.grid
+          # ...even though it looks so gross :(
+          diffs <- 0
+          for (v1i in idx1)
+            for (v2i in idx2)
+              diffs <- diffs + exp(1 - abs(v1i - v2i))
+          score <- score + sum(diffs) / (length(v1) * length(v2))
         }
         score <- score * mult
         pairscores[i,j] <- pairscores[j,i] <- score
