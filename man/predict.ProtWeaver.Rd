@@ -175,7 +175,6 @@ Weigt, M., et al., \emph{Identification of direct residue contacts in protein-pr
     \item XGBoost for Ensemble predictions
     \item Normalized Phylogenetic Profiles
     \item SVDPhy
-    \item DCA at the residue level (Weigt et al. 2009)
   }
   
   Feel free to contact me regarding other models you would like to see added.
