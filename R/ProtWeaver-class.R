@@ -1205,8 +1205,8 @@ Coloc.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
         mult <- ifelse(length(shared)==0, NA, 1/length(shared))
         for ( k in seq_along(shared) ){
           spk <- shared[k]
-          v1 <- lab1[l1sp==spk]
-          v2 <- lab2[l2sp==spk]
+          v1 <- lab1[match(spk, l1sp)]
+          v2 <- lab2[match(spk, l2sp)]
           idx1 <- as.integer(gsub('.*_([0-9]*)$', '\\1', v1, useBytes=T))
           idx2 <- as.integer(gsub('.*_([0-9]*)$', '\\1', v2, useBytes=T))
           # Double loop is SIGNIFICANTLY faster than expand.grid
