@@ -481,8 +481,16 @@ CorrComp_C <- function(fm, fsp, ssp, nv, nr){
   return(a)
 }
 
-ResidueMIDend <- function(dend1, dend2, cutoff=0.9, comppct=0.25){
-  completeSet <- intersect(labels(dend1), labels(dend2))
+ResidueMIDend <- function(dend1, dend2, cutoff=0.9, comppct=0.25, useColoc, ...){
+  if (useColoc){
+    l2 <- gsub('([0-9]*)_.*', '\\1', labels(dend1))
+    l1 <- gsub('([0-9]*)_.*', '\\1', labels(dend2))
+  } else {
+    l1 <- labels(dend1)
+    l2 <- labels(dend2)
+  }
+  completeSet <- intersect(l1, l2)
+  stopifnot('Error: no labels shared between dendrograms'=length(completeSet) > 0)
   
   edges1 <- flatdendrapply(dend1, 
                            \(x) list(vals=as.character(unlist(x)), 
@@ -505,7 +513,7 @@ ResidueMIDend <- function(dend1, dend2, cutoff=0.9, comppct=0.25){
   
   nr <- nrow(jsscore)
   nc <- ncol(jsscore)
-  if (nr > nc){
+  if (nr < nc){
     tm <- edges1
     edges1 <- edges2
     edges2 <- tm
@@ -516,8 +524,9 @@ ResidueMIDend <- function(dend1, dend2, cutoff=0.9, comppct=0.25){
   }
   #now guaranteed to have the larger dimension be nrow
   
-  rownames(jsscore) <- colnames(jsscore) <- as.character(seq_len(nr))
-  
+  rownames(jsscore) <- as.character(seq_len(nr))
+  colnames(jsscore) <- as.character(seq_len(nc))
+
   # I'm just using a greedy matching here, couldn't figure out Hungarian
   # and this also scales much better
   pairings <- rep(NA, nc)
@@ -544,6 +553,7 @@ ResidueMIDend <- function(dend1, dend2, cutoff=0.9, comppct=0.25){
       seqset2 <- append(seqset2, edges2[[a2]]$state)
     }
   }
+
   names(seqset1) <- names(seqset2) <- seq_len(length(pairings))
   res <- MISeqLevel(seqset1, seqset2, compressionpct=comppct)
   return(res)
@@ -597,7 +607,7 @@ ConcatSeqs <- function(seqSet1, seqSet2){
 }
 
 CorrCompressSeqs <- function(myStringSet, start2, pseudocount=2, mvalpct=0.5, 
-                             gapLetters=c('-'),
+                             gapLetters=c('-', '.'),
                              uncertainty_cutoff=0.158, MAF_cutoff=0.15){
   freqMat <- consensusMatrix(myStringSet, as.prob=FALSE)
   freqMat <- freqMat[rowSums(freqMat) != 0,]
@@ -611,12 +621,16 @@ CorrCompressSeqs <- function(myStringSet, start2, pseudocount=2, mvalpct=0.5,
     pos <- freqMat[,i]
     pos_no_gap <- pos[nongaploc]
     
-    missing_prob <- sum(pos[gapLetters])
+    missing_prob <- sum(pos[gapLetters], na.rm=TRUE)
     vals <- sort(pos_no_gap, decreasing=TRUE)
     
     MAF <- ifelse(vals[1] == 0, 0, vals[2] / (vals[1] + vals[2]))
     
     to_keep[i] <- missing_prob < uncertainty_cutoff && MAF > MAF_cutoff
+  }
+  # Need a guard case here
+  if (!any(to_keep)){
+    to_keep <- !to_keep
   }
   trimmedFreqMat <- freqMat[,to_keep]
   colnames(trimmedFreqMat) <- which(to_keep)
@@ -1319,6 +1333,7 @@ ResidueMI.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
                                  precalcSubset=NULL, ...){
   useResidue <- attr(pw, 'useResidue')
   useMT <- attr(pw, 'useMT')
+  useColoc <- attr(pw, 'useColoc')
   
   stopifnot('ProtWeaver object must be initialized with dendrograms to run Residue methods'=
               useMT)
@@ -1352,7 +1367,8 @@ ResidueMI.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
       entry <- max(uval1, uval2)
       if (i!=j && (is.null(evalmap) || entry %in% evalmap[[accessor]])){
         tree2 <- pw[[uval2]]
-        pairscores[i,j] <- pairscores[j,i] <- ResidueMIDend(tree1, tree2)
+        pairscores[i,j] <- pairscores[j,i] <- ResidueMIDend(tree1, tree2, 
+                                                            useColoc=useColoc, ...)
       }
       ctr <- ctr + 1
       if (Verbose) setTxtProgressBar(pb, ctr)
