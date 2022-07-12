@@ -14,6 +14,7 @@ Depends: R (>= 4.1.0), DECIPHER (>= 2.20.0)
 Imports: methods, Biostrings, S4Vectors, IRanges, utils, stats, parallel, graphics, grDevices
 Suggests: BiocStyle, knitr, igraph, markdown, rmarkdown
 License: GPL-3
+ByteCompile: true
 Encoding: UTF-8
-NeedsCompilation: no
+NeedsCompilation: yes
 VignetteBuilder: knitr
