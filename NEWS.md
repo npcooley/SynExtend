@@ -1,4 +1,4 @@
-# SynExtend 1.7.15
+# SynExtend 1.9.2
 * Adds residue MI method to `ProtWeaver`
 * Various bugfixes for `ProtWeaver`
 
