@@ -540,14 +540,14 @@ ResidueMIDend <- function(dend1, dend2, cutoff=0.9, comppct=0.25, useColoc, ...)
     if (jsscore[ordered[pos], i] < cutoff)
       pairings[i] <- ordered[pos]
   }
-  # need to catch this here, in case we don't find enough elements
+  # need to catch this here, in case we don't find enough elements just pick
+  # random ones
   checksum <- sum(is.na(pairings))
   if (checksum > 0){
     possible <- allvals[!(allvals %in% pairings)]
     pairings[is.na(pairings)] <- sample(possible, checksum)
   }
   names(pairings) <- colnames(jsscore) 
-  pairings <- pairings[!is.na(pairings)]
   
   seqset1 <- seqset2 <- NULL
   n <- names(pairings)
