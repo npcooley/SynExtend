@@ -167,6 +167,8 @@ predict.ProtWeaver <- function(object, Method='Ensemble', Subset=NULL, NumCores=
   if (ReturnRawData)
     return(invisible(preds))
   
+  n <- names(pw)
+  rownames(preds) <- colnames(preds) <- n
   rs <- structure(preds,
                   method=Method,
                   class='ProtWeb')
@@ -507,7 +509,8 @@ ResidueMIDend <- function(dend1, dend2, cutoff=0.9, comppct=0.25, useColoc, ...)
     v1 <- intersect(edges1[[i]]$vals, completeSet)
     for ( j in seq_along(edges2) ){
       v2 <- intersect(edges2[[j]]$vals, completeSet)
-      jsscore[i,j] <- 1 - length(intersect(v1, v2)) / length(union(v1, v2))
+      s <- 1 - length(intersect(v1, v2)) / length(union(v1, v2))
+      jsscore[i,j] <- ifelse(is.nan(s), 1, s)
     }
   }
   
@@ -536,6 +539,12 @@ ResidueMIDend <- function(dend1, dend2, cutoff=0.9, comppct=0.25, useColoc, ...)
     pos <- which.min(ordered %in% pairings)
     if (jsscore[ordered[pos], i] < cutoff)
       pairings[i] <- ordered[pos]
+  }
+  # need to catch this here, in case we don't find enough elements
+  checksum <- sum(is.na(pairings))
+  if (checksum > 0){
+    possible <- allvals[!(allvals %in% pairings)]
+    pairings[is.na(pairings)] <- sample(possible, checksum)
   }
   names(pairings) <- colnames(jsscore) 
   pairings <- pairings[!is.na(pairings)]
