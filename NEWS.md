@@ -1,3 +1,7 @@
+# SynExtend 1.7.15
+* Adds residue MI method to `ProtWeaver`
+* Various bugfixes for `ProtWeaver`
+
 # SynExtend 1.7.14
 * Various improvements for `GenRearrScen`, improves consistency and output formatting
 * Major bugfix for `ProtWeaver` methods using dendrogram objects
