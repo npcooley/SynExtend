@@ -1,7 +1,8 @@
 Package: SynExtend
 Type: Package
 Title: Tools for Working With Synteny Objects
-Version: 1.9.1
+Version: 1.9.2
+
 Authors@R: c(
 	person("Nicholas", "Cooley", email = "npc19@pitt.edu", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-6029-304X")),
 	person("Aidan", "Lakshman", email = "ahl27@pitt.edu", role = c("aut", "ctb"), comment = c(ORCID = "0000-0002-9465-6785")),
@@ -13,6 +14,7 @@ Depends: R (>= 4.1.0), DECIPHER (>= 2.20.0)
 Imports: methods, Biostrings, S4Vectors, IRanges, utils, stats, parallel, graphics, grDevices
 Suggests: BiocStyle, knitr, igraph, markdown, rmarkdown
 License: GPL-3
+ByteCompile: true
 Encoding: UTF-8
-NeedsCompilation: no
+NeedsCompilation: yes
 VignetteBuilder: knitr
