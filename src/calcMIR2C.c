@@ -149,8 +149,7 @@ SEXP trimCovar(SEXP fMAT, SEXP fSP, SEXP sSP, SEXP NV, SEXP NR){
   }
 
 
-  SEXP ans;
-  PROTECT(ans = allocVector(INTSXP, 2*nv));
+  SEXP ans = PROTECT(allocVector(INTSXP, 2*nv));
   int *rans = INTEGER(ans); 
   node *ptr=corrs;
 
