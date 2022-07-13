@@ -513,7 +513,9 @@ ResidueMIDend <- function(dend1, dend2, cutoff=0.9, comppct=0.25, useColoc, ...)
     l2 <- labels(dend2)
   }
   completeSet <- intersect(l1, l2)
-  stopifnot('Error: no labels shared between dendrograms'=length(completeSet) > 0)
+  if (length(completeSet) == 0){
+    return(0)
+  }
   
   edges1 <- flatdendrapply(dend1, 
                            \(x) list(vals=as.character(unlist(x)), 
