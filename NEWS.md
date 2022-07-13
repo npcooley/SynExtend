@@ -1,3 +1,9 @@
+# SynExtend 1.9.4
+* Lots of bugfixes to `ResidueMI.ProtWeaver`
+* `predict.ProtWeaver` now correctly labels rows/columns with gene names, not numbers
+* `predict.ProtWeaver` now correctly handles `Subset` arguments
+* `predict.ProtWeaver(..., Subset=3)` will correctly predict for all pairs involving gene `3` (or for any gene `x`, as long as `Subset` is a length 1 character or integer vector).
+
 # SynExtend 1.9.2
 * Adds residue MI method to `ProtWeaver`
 * Various bugfixes for `ProtWeaver`
