@@ -167,7 +167,8 @@ predict.ProtWeaver <- function(object, Method='Ensemble', Subset=NULL, NumCores=
   if (ReturnRawData)
     return(invisible(preds))
   
-  n <- names(pw)
+  pc <- ProcessSubset(pw, Subset)
+  n <- names(pw)[pc$uvals]
   rownames(preds) <- colnames(preds) <- n
   rs <- structure(preds,
                   method=Method,
@@ -205,9 +206,24 @@ ProcessSubset <- function(pw, Subset=NULL){
     } else {
       if (is(Subset, 'character'))
         Subset <- which(vapply(uvals, function(x) x == n, FUN.VALUE=logical(1)))
-      uvals <- unique(Subset)
-      evalmap <- lapply(uvals, function(x) uvals)
-      names(evalmap) <- as.character(uvals)
+      if (length(Subset)==1){
+        entry <- Subset[1]
+        if (entry > 1){
+          evalmap <- lapply(seq_len(entry-1), \(x) entry)
+        } else {
+          evalmap <- list()
+        }
+        
+        if (entry < length(n)){
+          evalmap[[entry]] <- seq(entry+1, length(n))
+        }
+        names(evalmap) <- as.character(seq(1, entry))
+        uvals <- seq_along(n)
+      } else {
+        uvals <- unique(Subset)
+        evalmap <- lapply(uvals, function(x) uvals)
+        names(evalmap) <- as.character(uvals)
+      }
     }
   }
   
@@ -479,7 +495,12 @@ MICalc_C <- function(v1, v2, uv, pseudocount=1L){
 
 CorrComp_C <- function(fm, fsp, ssp, nv, nr){
   on.exit(.C("cleanupFxn"))
-  a <- .Call('trimCovar', fm, fsp, ssp, nv, nr)
+  stopifnot(nv == as.integer(nv))
+  stopifnot(nr == as.integer(nr))
+  stopifnot(all(fsp == as.integer(fsp)))
+  stopifnot(all(ssp == as.integer(ssp)))
+  
+  a <- .Call('trimCovar', fm, as.integer(fsp), as.integer(ssp), as.integer(nv), as.integer(nr))
   return(a)
 }
 
@@ -492,7 +513,9 @@ ResidueMIDend <- function(dend1, dend2, cutoff=0.9, comppct=0.25, useColoc, ...)
     l2 <- labels(dend2)
   }
   completeSet <- intersect(l1, l2)
-  stopifnot('Error: no labels shared between dendrograms'=length(completeSet) > 0)
+  if (length(completeSet) == 0){
+    return(0)
+  }
   
   edges1 <- flatdendrapply(dend1, 
                            \(x) list(vals=as.character(unlist(x)), 
@@ -586,6 +609,7 @@ MISeqLevel <- function(seqSet1, seqSet2, compressionpct=0.25){
     #warning('No sequences shared. Check seqSet names!')
     return(0)
   }
+  
   v <- CorrCompressSeqs(cali, start2, mvalpct=compressionpct)
   if (!is.null(v$warn)){
     #warning('Sequences identical.')
@@ -599,6 +623,9 @@ MISeqLevel <- function(seqSet1, seqSet2, compressionpct=0.25){
   # APC correction
   nr <- nrow(miscore)
   nc <- ncol(miscore)
+  if (nr == 0 || nc == 0){
+    return(0)
+  }
   APC_corr <- matrix(colMeans(miscore), nr, nc, byrow = TRUE) * 
     matrix(rowMeans(miscore), nr, nc, byrow = FALSE) / mean(miscore)
   miscore <- miscore - APC_corr
@@ -623,6 +650,7 @@ CorrCompressSeqs <- function(myStringSet, start2, pseudocount=2, mvalpct=0.5,
   freqMat <- freqMat + pseudocount
   
   freqMat <- t(t(freqMat) / colSums(freqMat))
+  
   
   to_keep <- rep(FALSE, ncol(freqMat))
   nongaploc <- !(rownames(freqMat) %in% gapLetters)
@@ -654,7 +682,7 @@ CorrCompressSeqs <- function(myStringSet, start2, pseudocount=2, mvalpct=0.5,
   if (length(firstSeqPos) == 0){
     return(list(warn=TRUE, 1))
   }
-  secondSeqPos <- seq_len(length(isInSecondSeq) - s2) + s2
+  secondSeqPos <- seq_len(length(isInSecondSeq) - s2 + 1L) + s2 - 1L
   # keeping the entire covariance matrix in memory is really hard
   # this is more code but significantly more memory efficient
   # the cost is slightly more runtime
@@ -726,7 +754,7 @@ predictWithBuiltins <- function(preds){
   }
   builtins <- get(data('BuiltInEnsembles', envir=environment()))
   if (all(modelsToUse == modelsToUse[1])){
-    return(predict(builtins[[modelsToUse[i]]], preds, type='response'))
+    return(predict(builtins[[modelsToUse[1]]], preds, type='response'))
   } else {
     builtInPredictions <- rep(NA, nrow(preds))
     for (i in seq_along(builtInPredictions)){
@@ -916,13 +944,13 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
   if (Verbose) pb <- txtProgressBar(max=(pl*(pl-1) / 2), style=3)
   for ( i in seq_len(pl-1) ){
     uval1 <- uvals[i]
-    v1 <- CPs[,uval1]
+    v1 <- CPs[,i]
     for ( j in (i+1):pl ){
       uval2 <- uvals[j]
       accessor <- as.character(min(uval1, uval2))
       entry <- max(uval1, uval2)
       if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
-        v2 <- CPs[,uval2]
+        v2 <- CPs[,j]
         val <- cor(v1, v2, use='na.or.complete', method='pearson')
         pairscores[i,j] <- pairscores[j,i] <- ifelse(is.na(val), 0, val)
       }
@@ -961,7 +989,7 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
     }
   }
   diag(pairscores) <- 1
-  rownames(pairscores) <- colnames(pairscores) <- names(pw)
+  rownames(pairscores) <- colnames(pairscores) <- names(pw)[precalcSubset$uvals]
   
   return(abs(pairscores))
 }
