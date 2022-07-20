@@ -632,7 +632,10 @@ MISeqLevel <- function(seqSet1, seqSet2, compressionpct=0.25){
   
   # scoring
   miscore <- apply(abs(miscore), 2, max)
-  return(mean(miscore))
+  retval <- mean(miscore)
+  if (is.nan(retval)) 
+    retval <- 0
+  return(retval)
 }
 
 ConcatSeqs <- function(seqSet1, seqSet2){

@@ -1,3 +1,6 @@
+# SynExtend 1.9.5
+* Moves platform-specific files in `src/` (originally added by mistake)
+
 # SynExtend 1.9.4
 * Lots of bugfixes to `ResidueMI.ProtWeaver`
 * `predict.ProtWeaver` now correctly labels rows/columns with gene names, not numbers
