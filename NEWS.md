@@ -1,3 +1,6 @@
+# SynExtend 1.9.6
+* Fixes an error where warnings were mistakenly output to the user
+
 # SynExtend 1.9.5
 * Moves platform-specific files in `src/` (originally added by mistake)
 
