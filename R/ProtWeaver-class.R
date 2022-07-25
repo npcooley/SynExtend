@@ -948,17 +948,31 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
   for ( i in seq_len(pl-1) ){
     uval1 <- uvals[i]
     v1 <- CPs[,i]
-    for ( j in (i+1):pl ){
-      uval2 <- uvals[j]
-      accessor <- as.character(min(uval1, uval2))
-      entry <- max(uval1, uval2)
-      if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
-        v2 <- CPs[,j]
-        val <- cor(v1, v2, use='na.or.complete', method='pearson')
-        pairscores[i,j] <- pairscores[j,i] <- ifelse(is.na(val), 0, val)
-      }
-      ctr <- ctr + 1
+    sd1 <- sd(v1, na.rm=TRUE)
+    # Should only be NA if there's only one entry
+    if (is.na(sd1) || sd1 == 0){
+      pairscores[i,] <- pairscores[,i] <- 0
+      ctr <- ctr + length((i+1):pl)
       if (Verbose) setTxtProgressBar(pb, ctr)
+    } else {
+      for ( j in (i+1):pl ){
+        uval2 <- uvals[j]
+        accessor <- as.character(min(uval1, uval2))
+        entry <- max(uval1, uval2)
+        if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
+          v2 <- CPs[,j]
+          sd2 <- sd(v2, na.rm=TRUE)
+          if (is.na(sd2) || sd2 == 0)
+            val <- 0
+          else
+            val <- suppressWarnings(cor(v1, v2, 
+                                        use='pairwise.complete.obs', 
+                                        method='pearson'))
+          pairscores[i,j] <- pairscores[j,i] <- ifelse(is.na(val), 0, val)
+        }
+        ctr <- ctr + 1
+        if (Verbose) setTxtProgressBar(pb, ctr)
+      }
     }
   }
   if (Verbose) cat('\n')
