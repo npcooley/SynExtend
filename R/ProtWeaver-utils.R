@@ -2,6 +2,105 @@
 # author: Aidan Lakshman
 # contact: ahl27@pitt.edu
 
+#### S3 Generic Definitions ####
+PAProfiles <- function(pw, ...) UseMethod('PAProfiles')
+CophProfiles <- function(pw, ...) UseMethod('CophProfiles')
+################################
+
+PAProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE, 
+                                  speciesList=NULL, ...){
+  cols <- names(pw)
+  ao <- attr(pw, 'allOrgs')
+  if (!is.null(speciesList)){
+    stopifnot('Species list is missing species!'=all(ao %in% speciesList))
+    allOrgs <- speciesList
+  } else {
+    allOrgs <- ao
+  }
+  useColoc <- attr(pw, 'useColoc')
+  useMT <- attr(pw, 'useMT')
+  if (useMT)
+    pw <- lapply(pw, labels)
+  if (useColoc)
+    pw <- lapply(pw, gsub, pattern='(.+)_.+_[0-9]+', replacement='\\1')
+  
+  skip <- FALSE
+  if ( !is.null(toEval) ){
+    skip <- TRUE
+    locs <- unique(c(toEval))
+  }
+  profiles <- matrix(FALSE, nrow=length(allOrgs), ncol=length(pw))
+  rownames(profiles) <- allOrgs
+  colnames(profiles) <- cols
+  if (Verbose) pb <- txtProgressBar(max=length(pw), style=3)
+  for ( i in seq_len(length(pw)) ){
+    if( !skip || i %in% locs)
+      profiles[pw[[i]],i] <- TRUE
+    if (Verbose) setTxtProgressBar(pb, i)
+  }
+  if (Verbose) cat('\n')
+  if (!is.null(toEval))
+    profiles <- profiles[,locs]
+  return(profiles)
+}
+
+CophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE, 
+                                    speciesList=NULL, ...){
+  ## TODO: Some way to handle paralogs
+  cols <- names(pw)
+  ao <- attr(pw, 'allOrgs')
+  if (!is.null(speciesList)){
+    stopifnot('Species list is missing species!'=all(ao %in% speciesList))
+    allOrgs <- speciesList
+  } else {
+    allOrgs <- ao
+  }
+  useColoc <- attr(pw, 'useColoc')
+  useMT <- attr(pw, 'useMT')
+  
+  stopifnot('ProtWeaver object must be initialized with dendrograms to run MirrorTree methods'=
+              useMT)
+  
+  skip <- FALSE
+  if ( !is.null(toEval) ){
+    skip <- TRUE
+    locs <- unique(c(toEval))
+  }
+  l <- length(allOrgs)
+  num_entries <- (l * (l-1)) / 2
+  outmat <- matrix(0, nrow=num_entries, ncol=length(pw))
+  dummycoph <- matrix(NA, nrow=l, ncol=l)
+  ut <- upper.tri(dummycoph)
+  rownames(dummycoph) <- colnames(dummycoph) <- allOrgs
+  if (Verbose) pb <- txtProgressBar(max=length(pw), style=3)
+  for ( i in seq_along(pw) ){
+    if ( !skip || i %in% locs ){
+      dummycoph[] <- NA
+      cop <- NA
+      # This is occasionally throwing errors that don't affect output for some reason
+      cop <- as.matrix(Cophenetic(pw[[i]]))
+      copOrgNames <- rownames(cop)
+      if (useColoc){
+        copOrgNames <- vapply(copOrgNames, gsub, pattern='(.+)_.+_[0-9]+', 
+                              replacement='\\1', FUN.VALUE=character(1))
+        rownames(cop) <- colnames(cop) <- copOrgNames
+      }
+      dummycoph[copOrgNames, copOrgNames] <- cop
+      outmat[,i] <- dummycoph[ut]
+    }
+    if (Verbose) setTxtProgressBar(pb, i)
+  }
+  if(Verbose) cat('\n')
+  colnames(outmat) <- cols
+  if (!is.null(toEval)){
+    outmat <- outmat[,locs]
+    #ltr <- vapply(seq_len(nrow(outmat)), function(x) all(is.na(outmat[x,])),
+    #              FUN.VALUE=logical(1))
+    #outmat <- outmat[!ltr,]
+  }
+  return(outmat)
+}
+
 ProcessSubset <- function(pw, Subset=NULL){
   pl <- length(pw)
   evalmap <- NULL
