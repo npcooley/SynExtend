@@ -88,13 +88,14 @@ matrix with some extra S3 methods to make printing cleaner.
 }
 
 \details{
-\code{predict.ProtWeaver} wraps several methods to create an easy interface for multiple prediction types. The following values of \code{Method} are currently supported: 
+\code{predict.ProtWeaver} wraps several methods to create an easy interface for multiple prediction types. \code{Method='Ensemble'} is the default value, but the following values of \code{Method} are also supported: 
 
 \itemize{
-  \item \code{'Jaccard'}: Jaccard distance of PA profiles
-  \item \code{'Hamming'}: Hamming distance of PA profiles
-  \item \code{'MutualInformation'}: MI of PA profiles
-  \item \code{'ProfDCA'}: Direct Coupling Analysis of PA profiles
+  \item \code{'Ensemble'}: Prediction combining below predictors.
+  \item \code{'Jaccard'}: Jaccard distance of P/A profiles
+  \item \code{'Hamming'}: Hamming distance of P/A profiles
+  \item \code{'MutualInformation'}: MI of P/A profiles
+  \item \code{'ProfDCA'}: Direct Coupling Analysis of P/A profiles
   \item \code{'Behdenna'}: Analysis of Gain/Loss events following Behdenna et al. (2016) 
   \item \code{'Coloc'}: Co-localization analysis
   \item \code{'MirrorTree'}: MirrorTree
@@ -102,7 +103,15 @@ matrix with some extra S3 methods to make printing cleaner.
   \item \code{'ResidueMI'}: Mutual Information of sequence-level residues
 }
 
-(PA = Presence/Absence)
+Additional information and references for each prediction algorithm can be found on at the 
+following pages:
+
+\itemize{
+\item \code{\link{ProtWeaver-PAPreds}}
+\item \code{\link{ProtWeaver-DMPreds}}
+\item \code{\link{ProtWeaver-ColocPreds}}
+\item \code{\link{ProtWeaver-ResiduePreds}}
+}
 
 This returns a \code{ProtWeb} object, an S3 class that makes formatting and printing of 
 results slightly nicer. Data can be extracted form the \code{ProtWeb} object with:
@@ -116,6 +125,7 @@ tree, which must be bifurcating. Method \code{Ensemble} automatically selects th
 methods that can be run with the given input data. 
 
 See \code{\link{ProtWeaver}} for more information on input data types.
+
 }
 \value{
 Returns a ProtWeb object. See \code{\link[=GetProtWebData.ProtWeb]{GetProtWebData}} for more info.
@@ -124,38 +134,12 @@ Returns a ProtWeb object. See \code{\link[=GetProtWebData.ProtWeb]{GetProtWebDat
 Aidan Lakshman \email{ahl27@pitt.edu}
 }
 
-\references{
-Behdenna, A., et al., \emph{Testing for Independence between Evolutionary Processes.} Systematic Biology, 2016. \bold{65}(5): p. 812-823.
-
-Franceschini, A., et al., \emph{SVD-phy: improved prediction of protein functional associations through singular value decomposition of phylogenetic profiles.} Bioinformatics, 2016. \bold{32}(7): p. 1085-1087.
-
-Fukunaga, T. and W. Iwasaki, \emph{Inverse Potts model improves accuracy of phylogenetic profiling.} Bioinformatics, 2022.
-
-Gao, C. Y., et al., \emph{Correlation-compressed direct-coupling analysis}. Physical Review
-E, 2018. \bold{98}(3): 032407.
-
-Lokhov, A.Y., et al., \emph{Optimal structure and parameter learning of Ising models.} Science advances, 2018. \bold{4}(3): p. e1700791.
-
-Pazos, F. and A. Valencia, \emph{Similarity of phylogenetic trees as indicator of protein–protein interaction.} Protein Engineering, Design and Selection, 2001. \bold{14}(9): p. 609-614.
-
-Pazos, F., et al., \emph{Assessing protein co-evolution in the context of the tree of life assists in the prediction of the interactome.} J Mol Biol, 2005. \bold{352}(4): p. 1002-15.
-
-Sadreyev, I.R., et al., \emph{PhyloGene server for identification and visualization of co-evolving proteins using normalized phylogenetic profiles.} Nucleic Acids Research, 2015. \bold{43}(W1): p. W154-W159.
-
-Sato, T., et al., \emph{The inference of protein-protein interactions by co-evolutionary analysis is improved by excluding the information about the phylogenetic relationships.} Bioinformatics, 2005. \bold{21}(17): p. 3482-9.
-
-Sato, T., et al., \emph{Partial correlation coefficient between distance matrices as a new indicator of protein-protein interactions.} Bioinformatics, 2006. \bold{22}(20): p. 2488-92.
-
-Weigt, M., et al., \emph{Identification of direct residue contacts in protein-protein interaction by message passing.} Proceedings of the National Academy of Sciences, 2009. \bold{106}(1): p. 67-72.
-
-}
-
 \note{
   Note that the pairwise associations are stored in a matrix, meaning that if the
   ProtWeaver object contains 100 entries, the output ProtWeb object contains a
   \code{100x100} matrix. Users should be advised that predicting too many pairs
   can lead to vector memory exhaustion errors. On my machine, ProtWeaver supports 
-  predictions on up to around \eqn{53,000^2} pairs (meaning all possible pairs between
+  predictions on up to around 53,000\eqn{^2} pairs (meaning all possible pairs between
   53,000 proteins/genes). Next release will add more memory efficient storage to
   further increase this limit, though the memory capacity can never be better than
   \eqn{O(P^2)}, with \code{P} the number of proteins/genes.
@@ -184,6 +168,14 @@ Weigt, M., et al., \emph{Identification of direct residue contacts in protein-pr
 \code{\link{ProtWeaver}}
 
 \code{\link[=GetProtWebData.ProtWeb]{GetProtWebData}}
+
+\link[=ProtWeaver-PAPreds]{ProtWeaver Presence/Absence Predictors}
+
+\link[=ProtWeaver-DMPreds]{ProtWeaver Distance Matrix Predictors}
+
+\link[=ProtWeaver-ColocPreds]{ProtWeaver Co-localization Predictors}
+
+\link[=ProtWeaver-ResiduePreds]{ProtWeaver Residue Level Predictors}
 }
 \examples{
 ##############

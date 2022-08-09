@@ -1,3 +1,7 @@
+# SynExtend 1.9.8
+* Major refactor to file structure of `ProtWeaver` to make individual files more manageable
+* Adds new documentation files for individual prediction streams of `predict.ProtWeaver`
+
 # SynExtend 1.9.7
 * `BlockReconciliation` now returns a an object of class `PairSummaries`.
 
