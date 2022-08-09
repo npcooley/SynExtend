@@ -116,6 +116,7 @@ Hamming.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   n <- n[uvals]
   rownames(pairscores) <- colnames(pairscores) <- n
   mp <- max(pairscores, na.rm=TRUE)
+  mp <- ifelse(mp==0, 1, 0)
   pairscores <- (mp - pairscores) / mp #because distance
   return(pairscores)
 }
