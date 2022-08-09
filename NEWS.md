@@ -1,3 +1,6 @@
+# SynExtend 1.9.7
+* `BlockReconciliation` now returns a an object of class `PairSummaries`.
+
 # SynExtend 1.9.6
 * Fixes an error where warnings were mistakenly output to the user
 

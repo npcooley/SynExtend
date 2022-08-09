@@ -503,6 +503,10 @@ BlockReconciliation <- function(Pairs,
   Res <- unlist(Res,
                 recursive = TRUE)
   Res <- Pairs[sort(Res), ]
+  attr(x = Res,
+       which = "GeneCalls") <- attr(x = Pairs,
+                                    which = "GeneCalls")
+  class(Res) <- c("data.frame", "PairSummaries")
   rownames(Res) <- NULL
   return(Res)
 }
