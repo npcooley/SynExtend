@@ -172,10 +172,10 @@ predictions <- predict(pw, mySpeciesTree=exData$Tree)
 
 
 # Print out pairwise associations:
-getData(predictions, asDf=TRUE)
+getProtWebData(predictions, asDf=TRUE)
 
 # Print out the entire adjacency matrix:
-getData(predictions)
+getProtWebData(predictions)
 
 # Plot genes using force-directed embedding:
 plot(predictions)
