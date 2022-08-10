@@ -4,3 +4,7 @@
 *.so
 */*.o
 */*.so
+.Rproj.user
+*.Rproj
+*.Rhistory
+*.Rbuildignore

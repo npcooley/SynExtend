@@ -170,17 +170,28 @@ flatdendrapply <- function(dend, NODEFUN, LEAFFUN=NODEFUN, INCLUDEROOT=TRUE, ...
   return(retval)
 }
 
-AdjMatToDf <- function(preds){
+AdjMatToDf <- function(preds, Verbose=TRUE){
   stopifnot(length(preds) > 0)
-  expred <- preds[[1]]
-  pair_locs <- upper.tri(expred)
-  pairnames <- which(pair_locs, arr.ind=TRUE)
-  pairentry1 <- rownames(expred)[pairnames[,'row']]
-  pairentry2 <- colnames(expred)[pairnames[,'col']]
-  AdjDf <- data.frame(Gene1=pairentry1, Gene2=pairentry2)
   n <- names(preds)
-  for ( i in seq_along(n))
-    AdjDf[,n[i]] <- (preds[[i]])[pair_locs]
+  prednames <- names(preds[[1]])
+  lp <- length(prednames)
+  v1 <- v2 <- character(lp*(lp+1)/2)
+  ctr <- 1
+  # can't use expand.grid because of duplicates but this is still fast
+  for ( i in seq_len(lp) ){
+    for (j in i:lp){
+      v1[ctr] <- prednames[i]
+      v2[ctr] <- prednames[j]
+      ctr <- ctr + 1
+    }
+  }
+  AdjDf <- data.frame(Gene1=v1, Gene2=v2)
+  if (Verbose) pb <- txtProgressBar(max=length(n), style=3)
+  for ( i in seq_len(length(n))){
+    AdjDf[,n[i]] <- unclass(preds[[i]])
+    if (Verbose) setTxtProgressBar(pb, i)
+  }
+  cat('\n')
   
   nc <- ncol(AdjDf)
   rtk <- vapply(seq_len(nrow(AdjDf)), function(x) sum(is.na(AdjDf[x,3:nc])) < (nc/2 - 1),
@@ -263,7 +274,7 @@ DCA_logrise_run <- function(spins, links, regterm, printProgress=FALSE, NumCores
   nnodes <- ncol(spins)
   if (printProgress){
     cat('  Finding topology...\n')
-    charsperline <- 82
+    charsperline <- 73
     charsvec <- diff(floor(seq(0, charsperline, by=charsperline/nnodes))) == 1
   }
   
@@ -289,7 +300,7 @@ DCA_logrise_run <- function(spins, links, regterm, printProgress=FALSE, NumCores
     }
   }
   
-  if (printProgress) cat('Done.\n  Eliminating edges close to zero (may take a moment)...\n')
+  if (printProgress) cat('\n  Done.\n  Eliminating edges close to zero (may take a moment)...\n')
   # Shrink close to zero to zero
   vals <- links[upper.tri(links)]
   h <- hist(vals, breaks=40, plot=FALSE)
@@ -362,7 +373,7 @@ DCA_logrise_run <- function(spins, links, regterm, printProgress=FALSE, NumCores
   
   if (max(abs(links)) != 0)
     links <- links / max(abs(links))
-  if (printProgress) cat('Done.\n')
+  if (printProgress) cat('\n  Done.\n')
   return(links)
 }
 

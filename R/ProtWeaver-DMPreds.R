@@ -88,7 +88,9 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
     if (Verbose) cat('\n')
   }
   
-  pairscores <- matrix(NA, nrow=pl, ncol=pl)
+  #pairscores <- matrix(NA, nrow=pl, ncol=pl)
+  #pairscores <- sim(nelem=pl)
+  pairscores <- rep(NA_real_, pl*(pl-1) / 2)
   ctr <- 0
   if (Verbose) pb <- txtProgressBar(max=(pl*(pl-1) / 2), style=3)
   for ( i in seq_len(pl-1) ){
@@ -97,7 +99,7 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
     sd1 <- sd(v1, na.rm=TRUE)
     # Should only be NA if there's only one entry
     if (is.na(sd1) || sd1 == 0){
-      pairscores[i,] <- pairscores[,i] <- 0
+      pairscores[(ctr+1):(ctr+pl)] <- 0
       ctr <- ctr + length((i+1):pl)
       if (Verbose) setTxtProgressBar(pb, ctr)
     } else {
@@ -114,7 +116,7 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
             val <- suppressWarnings(cor(v1, v2, 
                                         use='pairwise.complete.obs', 
                                         method='pearson'))
-          pairscores[i,j] <- pairscores[j,i] <- ifelse(is.na(val), 0, val)
+          pairscores[ctr+1] <- ifelse(is.na(val), 0, val)
         }
         ctr <- ctr + 1
         if (Verbose) setTxtProgressBar(pb, ctr)
@@ -122,9 +124,11 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
     }
   }
   if (Verbose) cat('\n')
+  pairscores <- as.sim(pairscores, NAMES=names(pw)[uvals], DIAG=FALSE)
   diag(pairscores) <- 1
   if ('partialcorrelation' %in% MTCorrection){
     flag <- TRUE
+    pairscores <- as.matrix(pairscores)
     if (!is.null(Subset)){
       opsm <- pairscores
       pairscores <- pairscores[uvals, uvals]
@@ -150,9 +154,9 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
         pairscores <- opsm
       }
     }
+    pairscores <- as.sim(pairscores)
   }
   diag(pairscores) <- 1
-  rownames(pairscores) <- colnames(pairscores) <- names(pw)[precalcSubset$uvals]
   
   return(abs(pairscores))
 }

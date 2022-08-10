@@ -41,13 +41,14 @@ Jaccard.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
     rownames(mat) <- colnames(mat) <- n
     return(mat)
   }
-  pairscores <- matrix(NA, nrow=l, ncol=l)
+  
+  pairscores <- rep(NA_real_, l*(l-1)/2)
   ctr <- 0
   if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
-  for ( i in seq_len(l) ){
+  for ( i in seq_len(l-1) ){
     uval1 <- uvals[i]
     p1 <- pap[,i]
-    for ( j in i:l ){
+    for ( j in (i+1):l ){
       uval2 <- uvals[j]
       accessor <- as.character(min(uval1, uval2))
       entry <- max(uval1, uval2)
@@ -58,16 +59,17 @@ Jaccard.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
         m00 <- sum(!p1 & !p2)
         dJ <- (m10 + m01) / (m10 + m01 + m00)
         dJ <- ifelse(is.nan(dJ), 0, dJ) 
-        pairscores[i,j] <- pairscores[j,i] <- dJ
+        pairscores[ctr+1] <- dJ
       }
       ctr <- ctr + 1
       if (Verbose) setTxtProgressBar(pb, ctr)
     }
   }
   if (Verbose) cat('\n')
-  diag(pairscores) <- 0
+  
   n <- n[uvals]
-  rownames(pairscores) <- colnames(pairscores) <- n
+  pairscores <- as.sim(pairscores, NAMES=n, DIAG=FALSE)
+  diag(pairscores) <- 0
   pairscores <- 1 - pairscores # because distance
   return(pairscores)
 }
@@ -89,32 +91,34 @@ Hamming.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   l <- length(uvals)
   n <- names(pw)
   if ( l == 1 ){
-    mat <- matrix(1, nrow=1, ncol=1)
+    mat <- sim(1, nelem=1)
     rownames(mat) <- colnames(mat) <- n
     return(mat)
   }
-  pairscores <- matrix(NA, nrow=l, ncol=l)
+
+  pairscores <- rep(NA_real_, l*(l-1)/2)
   ctr <- 0
   if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
-  for ( i in seq_len(l) ){
+  for ( i in seq_len(l-1) ){
     uval1 <- uvals[i]
     p1 <- pap[,i]
-    for ( j in i:l ){
+    for ( j in (i+1):l ){
       uval2 <- uvals[j]
       accessor <- as.character(min(uval1, uval2))
       entry <- max(uval1, uval2)
       if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
         p2 <- pap[,j]
-        pairscores[i,j] <- pairscores[j,i] <- sum(xor(p1,p2)) / ncol(pap)
+        pairscores[ctr+1] <-  sum(xor(p1,p2)) / ncol(pap)
       }
       ctr <- ctr + 1
       if (Verbose) setTxtProgressBar(pb, ctr)
     }
   }
   if (Verbose) cat('\n')
-  diag(pairscores) <- 0
+  
   n <- n[uvals]
-  rownames(pairscores) <- colnames(pairscores) <- n
+  pairscores <- as.sim(pairscores, NAMES=n, DIAG=FALSE)
+  diag(pairscores) <- 0
   mp <- max(pairscores, na.rm=TRUE)
   mp <- ifelse(mp==0, 1, 0)
   pairscores <- (mp - pairscores) / mp #because distance
@@ -142,13 +146,15 @@ MutualInformation.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
     rownames(mat) <- colnames(mat) <- n
     return(mat)
   }
-  pairscores <- matrix(NA, nrow=l, ncol=l)
+  
+  n <- n[uvals]
+  pairscores <- rep(NA_real_, l*(l-1)/2)
   ctr <- 0
   if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
-  for ( i in seq_len(l) ){
+  for ( i in seq_len(l-1) ){
     uval1 <- uvals[i]
     v1 <- pap[,i]
-    for ( j in i:l ){
+    for ( j in (i+1):l ){
       uval2 <- uvals[j]
       accessor <- as.character(min(uval1, uval2))
       entry <- max(uval1, uval2)
@@ -175,23 +181,22 @@ MutualInformation.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
           val <- jpd[k] * log(jpd[k] / (mpdv1[k] * mpdv2[k]), base=2) * mult[k]
           score <- score + ifelse(is.nan(val), 0, val)
         }
-        pairscores[i,j] <- pairscores[j,i] <- score
+        pairscores[ctr+1] <- score
       }
       ctr <- ctr + 1
       if (Verbose) setTxtProgressBar(pb, ctr)
     }
   }
   if (Verbose) cat('\n')
-  n <- n[uvals]
-  rownames(pairscores) <- colnames(pairscores) <- n
   
   # Correction
-  apccorr <- mean(pairscores[upper.tri(pairscores)], na.rm=TRUE)
+  apccorr <- mean(pairscores, na.rm=TRUE)
   pairscores <- pairscores - apccorr
   pairscores <- abs(pairscores)
   # Normalize
   denom <- max(pairscores, na.rm=TRUE)
   pairscores <- pairscores / ifelse(denom==0, 1, denom)
+  pairscores <- as.sim(pairscores, NAMES=n, DIAG=FALSE)
   diag(pairscores) <- 1
   #pairscores <- pairscores #because distance
   return(pairscores)
@@ -220,11 +225,10 @@ ProfileDCA.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, NumCores=1,
   }
   
   pairscores <- DCA_logRISE(pap, Verbose=Verbose, NumCores=NumCores, ...)
-  rownames(pairscores) <- colnames(pairscores) <- n
+  pairscores <- as.sim(pairscores)
   if (useAbs) pairscores <- abs(pairscores)
   if (max(pairscores) != 0)
     pairscores <- pairscores / max(abs(pairscores))
-  
   
   return(pairscores)
 }
@@ -242,7 +246,7 @@ Behdenna.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
     subs <- ProcessSubset(pw, Subset)
   uvals <- subs$uvals
   evalmap <- subs$evalmap
-  n <- names(pw)[uvals]
+  
   if ( is.null(precalcProfs) ){
     if (Verbose) cat('Calculating PA Profiles...\n')
     pap <- PAProfiles(pw, uvals, Verbose=Verbose, speciesList=labels(MySpeciesTree))
@@ -271,16 +275,18 @@ Behdenna.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   bl <- vals$blengths
   
   glmat <- abs(glmat)
-  pairscores <- matrix(NA, nrow=l, ncol=l)
+  #pairscores <- matrix(NA, nrow=l, ncol=l)
+  #pairscores <- sim(nelem=l, NAMES=n)
+  pairscores <- rep(NA_real_, l*(l-1)/2)
   
   ctr <- 0
   if (Verbose) cat('\n  Calculating pairscores:\n')
   if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
-  for ( i in seq_len(l)){
+  for ( i in seq_len(l-1)){
     uval1 <- uvals[i]
     gl1 <- glmat[,i]
     n1 <- sum(gl1)
-    for ( j in i:l){
+    for ( j in (i+1):l){
       uval2 <- uvals[j]
       accessor <- as.character(min(uval1, uval2))
       entry <- max(uval1, uval2)
@@ -294,21 +300,24 @@ Behdenna.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
           exp_var <- n2*t(gl1) %*% M %*% Cmat %*% t(M) %*% gl1
           score <- (score - exp_mean) / sqrt(abs(exp_var))
         }
-        pairscores[i,j] <- pairscores[j,i] <- score
+        pairscores[ctr+1] <- score
       }
       ctr <- ctr + 1
       if (Verbose) setTxtProgressBar(pb, ctr)
     }
   }
   if (Verbose) cat('\n')
-  diag(pairscores) <- 0 #because z-scores
   
   if (!rawZScores){
     pairscores <- abs(pairscores)
     pairscores <- pairscores / ifelse(max(pairscores,na.rm=TRUE) != 0, 
                                       max(pairscores, na.rm=TRUE), 1)
-    diag(pairscores) <- 1
+    
   }
-  rownames(pairscores) <- colnames(pairscores) <- n
+  
+  n <- names(pw)[uvals]
+  pairscores <- as.sim(pairscores, NAMES=n, DIAG=FALSE)
+  diag(pairscores) <- ifelse(rawZScores, 1, 0)
+  
   return(pairscores)
 }

@@ -167,12 +167,12 @@ predict.ProtWeaver <- function(object, Method='Ensemble', Subset=NULL, NumCores=
   
   pc <- ProcessSubset(pw, Subset)
   n <- names(pw)[pc$uvals]
-  rownames(preds) <- colnames(preds) <- n
-  rs <- structure(preds,
-                  method=Method,
-                  class='ProtWeb')
-  
-  return(invisible(rs))
+  names(preds) <- n
+  #rs <- structure(preds,
+  #                method=Method,
+  #                class='ProtWeb')
+  # TODO: add methods, make ProtWeb inherit from sim
+  invisible(preds)
 }
 
 ########
@@ -239,8 +239,9 @@ Ensemble.ProtWeaver <- function(pw,
                               MySpeciesTree=MySpeciesTree, ...)
   }
   
+  cat('Combining results...\n')
+  results <- AdjMatToDf(results, Verbose=Verbose)
   cat('Calculating additional P/A Statistics...\n')
-  results <- AdjMatToDf(results)
   pas <- PAStats(results, PAs) 
   results[,'AvgOcc'] <- pas$avg
   results[,'OccDiff'] <- pas$diff
@@ -255,15 +256,16 @@ Ensemble.ProtWeaver <- function(pw,
   } else {
     predictions <- predict(predictionmodel, results[,-c(1,2)])
   }
-  outmat <- matrix(NA, nrow=length(uvals), ncol=length(uvals))
-
+  outmat <- sim(NA_real_, length(unames), NAMES=unames)
+  if (Verbose) pb <- txtProgressBar(max=length(predictions), style=3)
   for (i in seq_along(predictions)){
     i1 <- which(results[i,1] == unames)
     i2 <- which(results[i,2] == unames)
     pred <- predictions[i]
-    outmat[i1,i2] <- outmat[i2,i1] <- pred
+    outmat[i1, i2] <- pred
+    if (Verbose) setTxtProgressBar(pb, i)
   }
-  rownames(outmat) <- colnames(outmat) <- uvals
+  cat('\n')
   diag(outmat) <- 1
   return(outmat)
 }

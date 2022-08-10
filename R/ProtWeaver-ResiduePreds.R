@@ -36,29 +36,28 @@ ResidueMI.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
     return(mat)
   }
   
-  pairscores <- matrix(NA_real_, nrow=l, ncol=l)
+  pairscores <- rep(NA_real_, l*(l-1)/2)
   ctr <- 0
   if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
-  for ( i in seq_len(l) ){
+  for ( i in seq_len(l-1) ){
     uval1 <- uvals[i]
     tree1 <- pw[[uval1]]
-    for ( j in i:l ){
+    for ( j in (i+1):l ){
       uval2 <- uvals[j]
       accessor <- as.character(min(uval1, uval2))
       entry <- max(uval1, uval2)
       if (i!=j && (is.null(evalmap) || entry %in% evalmap[[accessor]])){
         tree2 <- pw[[uval2]]
-        pairscores[i,j] <- pairscores[j,i] <- ResidueMIDend(tree1, tree2, 
-                                                            useColoc=useColoc, ...)
+        pairscores[ctr+1] <- ResidueMIDend(tree1, tree2, useColoc=useColoc, ...)
       }
       ctr <- ctr + 1
       if (Verbose) setTxtProgressBar(pb, ctr)
     }
   }
+  n <- n[uvals]
+  pairscores <- as.sim(pairscores, NAMES=n, DIAG=FALSE)
   diag(pairscores) <- 1
   if (Verbose) cat('\n')
-  n <- n[uvals]
-  rownames(pairscores) <- colnames(pairscores) <- n
   
   return(pairscores)
 }
