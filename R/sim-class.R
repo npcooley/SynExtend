@@ -57,7 +57,7 @@ as.sim.vector <- function(x, NAMES=NULL, DIAG=TRUE){
             class='sim')
 }
 
-as.sim.matrix <- function(x){
+as.sim.matrix <- function(x, ...){
   nr <- nrow(x)
   nc <- ncol(x)
   stopifnot("Matrix must be square"=nr==nc)

@@ -2,7 +2,7 @@
 \alias{GetProtWebData.ProtWeb}
 \alias{GetProtWebData}
 \title{
-Extract information from a ProtWeb object
+[DEPRECATED] Extract information from a ProtWeb object
 }
 \description{
 ProtWeb objects are outputted from \code{\link{predict.ProtWeaver}}. 
