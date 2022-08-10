@@ -7,6 +7,7 @@
   * `ProtWeb.show` and `ProtWeb.print` now display predictions in a more natural way
   * `GetProtWebData()` deprecated; `ProtWeb` now inherits `as.matrix.sim` and `as.data.frame.sim` 
 * New documentation pages for `sim` class
+* `GetProtWebData` documentation page reworked into `ProtWeb` documentation file.
 
 # SynExtend 1.9.9
 * Fixes minor bug in `Method='Hamming'`
