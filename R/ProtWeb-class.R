@@ -7,8 +7,6 @@
 ##  This is just an S3 class to make output of ProtWeaver predictions 
 ##  easier to manage.
 
-GetProtWebData <- function(x, ...) UseMethod('GetProtWebData')
-
 plot.ProtWeb <- function(x, NumSims=10, Gravity=0.05, Coulomb=0.1, Connection=5,
                          MoveRate=0.25, Cutoff=0.2, 
                          ColorPalette=topo.colors, Verbose=TRUE, ...){
@@ -18,7 +16,7 @@ plot.ProtWeb <- function(x, NumSims=10, Gravity=0.05, Coulomb=0.1, Connection=5,
   # - Gravity (force towards (0,0))
   # - Coulomb force (repels nodes)
   # - Connection force
-  web <- x
+  web <- as.matrix(x)
   starttime <- Sys.time()
   if (Verbose) cat('Finding a descriptive embedding...\n')
   # Change similarity scores to distances
@@ -55,15 +53,14 @@ plot.ProtWeb <- function(x, NumSims=10, Gravity=0.05, Coulomb=0.1, Connection=5,
     if (Verbose) setTxtProgressBar(pb, iter)
   }
   
-  #return(embedding)
   center <- c(mean(embedding[,1]), mean(embedding[,2]))
   colsvec <- vapply(seq_len(nrow(embedding)), 
-                    function(x) sqrt(sum((embedding[x,] - center)**2)),
+                    function(y) sqrt(sum((embedding[y,] - center)**2)),
                     FUN.VALUE=numeric(1))
   colors <- ColorPalette(length(colsvec))
   embedding <- embedding[order(colsvec, decreasing=FALSE),]
   if (Verbose)
-    cat('Done.\n\nTime difference of', 
+    cat('\nDone.\n\nTime difference of', 
         round(difftime(Sys.time(), starttime, units = 'secs'), 2),
         'seconds.\n')
   plot(embedding[,1], embedding[,2], pch=19, cex=0.5, 
@@ -75,9 +72,8 @@ summary.ProtWeb <- function(object, ...){
   cat('a ProtWeb object.\n')
   a <- attributes(object)
   cat('\tMethod used:', a$method, '\n')
-  d <- GetProtWebData(object)
-  numGenes <- ncol(d)
-  numPreds <- sum(upper.tri(d,diag=TRUE) & !is.na(d))
+  numGenes <- length(a$NAMES)
+  numPreds <- sum(!is.na(object))
   cat('\tNumber of genes:', numGenes, '\n')
   cat('\tNumber of predictions:', numPreds, '\n')
   if ('model' %in% names(a)){
@@ -87,25 +83,21 @@ summary.ProtWeb <- function(object, ...){
 }
 
 show.ProtWeb <- function(x, ...){
-  summary(x)
-}
-
-GetProtWebData.ProtWeb <- function(x, AsDf=FALSE, ...){
-  dims <- dim(x)
-  rnames <- rownames(x)
-  cnames <- colnames(x)
-  attributes(x) <- NULL
-  arr <- array(x, dim=dims)
-  rownames(arr) <- rnames
-  colnames(arr) <- cnames
-  if (AsDf){
-    arr <- ProtWebMatToDf(arr)
-  }
-  return(arr)
+  cat('a ProtWeb object.\n')
+  a <- attributes(object)
+  cat('\tMethod used:', a$method, '\n')
+  numGenes <- length(a$NAMES)
+  numPreds <- sum(!is.na(object))
+  cat('\tNumber of genes:', numGenes, '\n')
+  cat('\tNumber of predictions:', numPreds, '\n')
+  cat('\tPredictions:', numPreds, '\n\n')
+  NextMethod()
 }
 
 print.ProtWeb <- function(x, ...){
   summary(x)
+  cat('\nPredictions:\n\n')
+  NextMethod()
 }
 
 ProtWebMatToDf <- function(preds){

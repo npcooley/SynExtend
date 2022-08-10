@@ -168,11 +168,10 @@ predict.ProtWeaver <- function(object, Method='Ensemble', Subset=NULL, NumCores=
   pc <- ProcessSubset(pw, Subset)
   n <- names(pw)[pc$uvals]
   names(preds) <- n
-  #rs <- structure(preds,
-  #                method=Method,
-  #                class='ProtWeb')
-  # TODO: add methods, make ProtWeb inherit from sim
-  invisible(preds)
+  rs <- structure(preds,
+                 method=Method,
+                 class=c('ProtWeb', 'sim'))
+  invisible(rs)
 }
 
 ########
