@@ -114,9 +114,7 @@ following pages:
 }
 
 This returns a \code{ProtWeb} object, an S3 class that makes formatting and printing of 
-results slightly nicer. Data can be extracted form the \code{ProtWeb} object with:
-
-\code{GetProtWebData(ProtWebObject, AsDf=c(T,F))}
+results slightly nicer. See \code{\link{ProtWeb}} for more information.
 
 Different methods require different types of input. The constructor 
 \code{\link{ProtWeaver}} will notify the user which methods are
@@ -128,7 +126,7 @@ See \code{\link{ProtWeaver}} for more information on input data types.
 
 }
 \value{
-Returns a ProtWeb object. See \code{\link[=GetProtWebData.ProtWeb]{GetProtWebData}} for more info.
+Returns a ProtWeb object. See \code{\link{ProtWeb}} for more info.
 }
 \author{
 Aidan Lakshman \email{ahl27@pitt.edu}
@@ -167,7 +165,7 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 \seealso{
 \code{\link{ProtWeaver}}
 
-\code{\link[=GetProtWebData.ProtWeb]{GetProtWebData}}
+\code{\link{ProtWeb}}
 
 \link[=ProtWeaver-PAPreds]{ProtWeaver Presence/Absence Predictors}
 
@@ -189,7 +187,7 @@ pw <- ProtWeaver(exData$Genes[1:50])
 protweb1 <- predict(pw, Subset=1:10, MySpeciesTree=exData$Tree)
 
 # print out results as an adjacency matrix
-GetProtWebData(protweb1)
+protweb1
 
 ###############
 ## Training own ensemble model
@@ -209,6 +207,6 @@ testProtWeaverObject <- ProtWeaver(exData$Genes[51:60])
 protweb2 <- predict(testProtWeaverObject, 
                      PretrainedModel=myModel)
                      
-# Print result as a 3xN matrix of pairwise scores
-GetProtWebData(protweb2, AsDf=TRUE)
+# Print result as a matrix of pairwise scores
+protweb2
 }

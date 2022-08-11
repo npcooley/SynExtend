@@ -44,4 +44,5 @@ static const R_CMethodDef cMethods[] = {
 void R_init_SynExtend(DllInfo *info)
 {
   R_registerRoutines(info, cMethods, callMethods, NULL, NULL);
+  R_useDynamicSymbols(info, TRUE);
 }

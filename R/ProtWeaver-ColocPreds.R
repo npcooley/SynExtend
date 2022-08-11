@@ -66,9 +66,9 @@ Coloc.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   }
   if (Verbose) cat('\n')
   n <- names(pw)[uvals]
-  pairscores <- as.sim(pairscores, NAMES=n, DIAG=FALSE)
+  pairscores <- as.simMat(pairscores, NAMES=n, DIAG=FALSE)
   m <- ifelse(max(pairscores, na.rm=TRUE) != 0, max(pairscores,na.rm=TRUE), 1)
   pairscores <- pairscores / m
-  diag(pairscores) <- 1
+  Diag(pairscores) <- 1
   return(pairscores)
 }

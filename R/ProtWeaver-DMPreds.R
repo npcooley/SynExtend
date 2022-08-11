@@ -89,7 +89,7 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
   }
   
   #pairscores <- matrix(NA, nrow=pl, ncol=pl)
-  #pairscores <- sim(nelem=pl)
+  #pairscores <- simMat(nelem=pl)
   pairscores <- rep(NA_real_, pl*(pl-1) / 2)
   ctr <- 0
   if (Verbose) pb <- txtProgressBar(max=(pl*(pl-1) / 2), style=3)
@@ -124,8 +124,8 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
     }
   }
   if (Verbose) cat('\n')
-  pairscores <- as.sim(pairscores, NAMES=names(pw)[uvals], DIAG=FALSE)
-  diag(pairscores) <- 1
+  pairscores <- as.simMat(pairscores, NAMES=names(pw)[uvals], DIAG=FALSE)
+  Diag(pairscores) <- 1
   if ('partialcorrelation' %in% MTCorrection){
     flag <- TRUE
     pairscores <- as.matrix(pairscores)
@@ -154,9 +154,9 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
         pairscores <- opsm
       }
     }
-    pairscores <- as.sim(pairscores)
+    pairscores <- as.simMat(pairscores)
   }
-  diag(pairscores) <- 1
+  Diag(pairscores) <- 1
   
   return(abs(pairscores))
 }

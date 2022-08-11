@@ -1,32 +1,36 @@
-sim <- function(x=NA_real_, nelem, NAMES=NULL, DIAG=FALSE){
+##### -- Similarity Matrix Class --------------------
+# author: Aidan Lakshman
+# contact: ahl27@pitt.edu
+
+simMat <- function(VALUE=NA_real_, nelem, NAMES=NULL, DIAG=FALSE){
   if (missing(nelem)){
-    return(as.sim(x, NAMES=NAMES, DIAG=DIAG))
+    return(as.simMat(VALUE, NAMES=NAMES, DIAG=DIAG))
   }
 
   if (DIAG)
     num_vals <- nelem*(nelem+1) / 2
   else
     num_vals <- nelem*(nelem-1) / 2
-  if (num_vals %% length(x) != 0)
-    warning("number of elements provided (", length(x), 
+  if (num_vals %% length(VALUE) != 0)
+    warning("number of elements provided (", length(VALUE), 
             ") is not a multiple of requested length (", num_vals, ")")
-  v <- rep(x, length.out=num_vals)
-  return(as.sim(v, NAMES=NAMES, DIAG=DIAG))
+  v <- rep(VALUE, length.out=num_vals)
+  return(as.simMat(v, NAMES=NAMES, DIAG=DIAG))
 }
 
-as.sim <- function(x, ...) UseMethod('as.sim')
+as.simMat <- function(x, ...) UseMethod('as.simMat')
 
-as.sim.default <- function(x, ...){
+as.simMat.default <- function(x, ...){
   if (is(x, 'matrix')){
-    return(as.sim.matrix(x, ...))
+    return(as.simMat.matrix(x, ...))
   } else if (is(x, 'vector')){
-    return(as.sim.vector(x, ...))
+    return(as.simMat.vector(x, ...))
   } else {
     stop("Input must be of type 'matrix' or type 'vector'.")
   }
 }
 
-as.sim.vector <- function(x, NAMES=NULL, DIAG=TRUE){
+as.simMat.vector <- function(x, NAMES=NULL, DIAG=TRUE, ...){
   # We can just solve quadratic formula if input a vector
   # n^2 - n - 2*length(x) = 0
   # a=1, b=-1, c=-2*length(x)
@@ -54,10 +58,10 @@ as.sim.vector <- function(x, NAMES=NULL, DIAG=TRUE){
   structure(x, 
             nrow=val,
             NAMES=NAMES,
-            class='sim')
+            class='simMat')
 }
 
-as.sim.matrix <- function(x, ...){
+as.simMat.matrix <- function(x, ...){
   nr <- nrow(x)
   nc <- ncol(x)
   stopifnot("Matrix must be square"=nr==nc)
@@ -66,31 +70,31 @@ as.sim.matrix <- function(x, ...){
   }
   
   if (is.null(rownames(x)) || is.null(colnames(x))){
-    NAMES <- as.character(1:nr)
+    NAMES <- as.character(seq_len(nr))
   } else if(!setequal(rownames(x),colnames(x))){
     warning("Matrix has different row and column names, using default index.")
-    NAMES <- as.character(1:nr)
+    NAMES <- as.character(seq_len(nr))
   } else {
     NAMES <- rownames(x)
   }
   v <- t(x)[lower.tri(x, diag=TRUE)]
-  return(as.sim.vector(v, NAMES=NAMES, DIAG=TRUE))
+  return(as.simMat.vector(v, NAMES=NAMES, DIAG=TRUE))
 }
 
-show.sim <- function(s, n=10, ...){
-  nr <- attr(s, 'nrow')
+show.simMat <- function(object, n=10){
+  nr <- attr(object, 'nrow')
   CUTOFF <- FALSE
   if (n < 3) n <- 3
   if (nr > n){
     CUTOFF <- TRUE
     
   }
-  ns <- attr(s, 'NAMES')
-  s <- unclass(s)
+  ns <- attr(object, 'NAMES')
+  object <- unclass(object)
   format_vals <- function(x) paste0(format(x, justify='right', width=6L), collapse='')
   nstr <- ns
   if (CUTOFF){
-    nstr <- c(ns[1:(n-1)], '', ns[nr]) 
+    nstr <- c(ns[seq_len(n-1)], '', ns[nr]) 
   }
   outstr <- c(format_vals(c(' ', nstr)), '\n')
   ctr <- 1L
@@ -98,19 +102,19 @@ show.sim <- function(s, n=10, ...){
     if (!CUTOFF || i < (n-1) || i == nr){
       linestr <- c(ns[i], rep(' ', i-1L))
       for ( j in seq_len(nr-i+1L) ){
-        linestr <- c(linestr, sprintf('%.2f', s[ctr]))
+        linestr <- c(linestr, sprintf('%.2f', object[ctr]))
         ctr <- ctr + 1L
       }
       
       if (CUTOFF){
-        linestr <- c(linestr[1:n], '…', linestr[nr+1]) 
+        linestr <- c(linestr[seq_len(n)], '\u22EF', linestr[nr+1]) 
       }
       if (CUTOFF && i == nr){
         linestr[n+1] <- ''
-        linestr[n+2] <- sprintf('%.2f', s[length(s)])
+        linestr[n+2] <- sprintf('%.2f', object[length(object)])
       }
     } else if (CUTOFF && i == (n)){
-      linestr <- c('⋮', rep('⋮', n-1), '', '⋮')
+      linestr <- c('\u22EE', rep('\u22EE', n-1), '', '\u22EE')
     } else {
       next
     }
@@ -122,22 +126,22 @@ show.sim <- function(s, n=10, ...){
   invisible(cat(outstr))
 }
 
-print.sim <- function(x, ...) show.sim(x, ...)
+print.simMat <- function(x, n=10, ...) show.simMat(x, n=10, ...)
 
-as.matrix.sim <- function(s){
-  nr <- attr(s, 'nrow')
-  ns <- attr(s, 'NAMES')
+as.matrix.simMat <- function(x, ...){
+  nr <- attr(x, 'nrow')
+  ns <- attr(x, 'NAMES')
   outmat <- diag(1, nrow=nr)
   colnames(outmat) <- rownames(outmat) <- ns
   
   # have to do it this way due to column-wise ordering
-  outmat[lower.tri(outmat, diag=TRUE)] <- s
+  outmat[lower.tri(outmat, diag=TRUE)] <- x
   outmat <- t(outmat)
-  outmat[lower.tri(outmat, diag=TRUE)] <- s
+  outmat[lower.tri(outmat, diag=TRUE)] <- x
   return(t(outmat))
 }
 
-`[.sim` <- function(x, i, j){
+`[.simMat` <- function(x, i, j){
   nr <- attr(x, 'nrow')
   ns <- attr(x, 'NAMES')
   svals <- c(0, cumsum(nr:1)) + 1
@@ -147,11 +151,21 @@ as.matrix.sim <- function(s){
   COLOUT <- FALSE
   
   if (hasi){
+    stopifnot("indices must be character or numeric"=
+                is(i, 'character') || is(i, 'numeric'))
+    if(is(i, 'numeric') && any(i%%1 != 0))
+      stop('indices must be whole numbers')
     if (is(i, 'character')){
       i <- sapply(i, \(ii) which(ii==ns)[1])
     }
     if (any(is.na(i))){
       stop('Incorrect indices provided')
+    }
+    if (is(i, 'numeric') && all(i < 0)) {
+      i <- (1:nr)[i]
+    }
+    if (any(i > 0) && any(i < 0)){
+      stop('Mixing of positive and negative indices is not supported.')
     }
     if (any(i > nr | i < 1)){
       stop('Indices out of bounds')
@@ -159,11 +173,21 @@ as.matrix.sim <- function(s){
   }
   
   if (hasj){
+    stopifnot("indices must be character or numeric"=
+                is(j, 'character') || is(j, 'numeric'))
+    if(is(j, 'numeric') && any(j%%1 != 0))
+      stop('indices must be whole numbers')
     if (is(j, 'character')){
       j <- sapply(j, \(ji) which(j==ns)[1])
     }
     if (any(is.na(j))){
       stop('Incorrect indices provided')
+    }
+    if (is(j, 'numeric') && all(j < 0)) {
+      j <- (1:nr)[j]
+    }
+    if (any(j > 0) && any(j < 0)){
+      stop('Mixing of positive and negative indices is not supported.')
     }
     if (any(j > nr | j < 1)){
       stop('Indices out of bounds')
@@ -183,7 +207,7 @@ as.matrix.sim <- function(s){
       outvec <- numeric(nr)
       outvec[idx:nr] <- x[svals[idx]:(svals[idx+1]-1)]
       if (idx != 1)
-        outvec[1:(idx-1)] <- x[svals[1:(idx-1)] + (idx-1):1]
+        outvec[seq_len(idx-1)] <- x[svals[seq_len(idx-1)] + (idx-1):1]
       outmat[idxi,] <- outvec
     }
     rownames(outmat) <- ns[i]
@@ -213,7 +237,7 @@ as.matrix.sim <- function(s){
   return(outvec)
 }
 
-`[<-.sim` <- function(x, i, j, value){
+`[<-.simMat` <- function(x, i, j, value){
   nr <- attr(x, 'nrow')
   ns <- attr(x, 'NAMES')
   svals <- c(0, cumsum(nr:1)) + 1
@@ -222,11 +246,21 @@ as.matrix.sim <- function(s){
   hasj <- !missing(j)
   
   if (hasi){
+    stopifnot("indices must be character or numeric"=
+                is(i, 'character') || is(i, 'numeric'))
+    if(is(i, 'numeric') && any(i%%1 != 0))
+      stop('indices must be whole numbers')
     if (is(i, 'character')){
       i <- sapply(i, \(ii) which(ii==ns)[1])
     }
     if (any(is.na(i))){
       stop('Incorrect indices provided')
+    }
+    if (is(i, 'numeric') && all(i < 0)) {
+      i <- (1:nr)[i]
+    }
+    if (any(i > 0) && any(i < 0)){
+      stop('Mixing of positive and negative indices is not supported.')
     }
     if (any(i > nr | i < 1)){
       stop('Indices out of bounds')
@@ -234,13 +268,23 @@ as.matrix.sim <- function(s){
   }
   
   if (hasj){
+    stopifnot("indices must be character or numeric"=
+                is(j, 'character') || is(j, 'numeric'))
+    if(is(j, 'numeric') && any(j%%1 != 0))
+      stop('indices must be whole numbers')
     if (is(j, 'character')){
       j <- sapply(j, \(ji) which(j==ns)[1])
     }
     if (any(is.na(j))){
       stop('Incorrect indices provided')
     }
-    if (any(j > nr | j < 1)){
+    if (is(j, 'numeric') && all(j < 0)) {
+      j <- (1:nr)[j]
+    }
+    if (any(j > 0) && any(j < 0)){
+      stop('Mixing of positive and negative indices is not supported.')
+    }
+    if (any(j > nr | j == 0)){
       stop('Indices out of bounds')
     }
   }
@@ -260,7 +304,7 @@ as.matrix.sim <- function(s){
       warning("number of items to replace is not a multiple of replacement length")
     } 
     value <- rep(value, length.out=length(x))
-    return(as.sim(value, NAMES=ns))
+    return(as.simMat(value, NAMES=ns))
   }
   li <- length(i)
   if (hasi && !hasj){
@@ -281,9 +325,9 @@ as.matrix.sim <- function(s){
       offset <- nr * (idxi-1)
       x[svals[idx]:(svals[idx+1]-1)] <- value[(idx:nr) + offset]
       if (idx != 1)
-        x[svals[1:(idx-1)] + (idx-1):1] <- value[(1:(idx-1)) + offset]
+        x[svals[seq_len(idx-1)] + (idx-1):1] <- value[(seq_len(idx-1)) + offset]
     }
-    class(x) <- 'sim'
+    class(x) <- 'simMat'
     return(x)
   }
   
@@ -302,28 +346,24 @@ as.matrix.sim <- function(s){
   }
   
   x[idxvec] <- value
-  class(x) <- 'sim'
+  class(x) <- 'simMat'
   return(x)
-  #return(as.sim(v, NAMES=ns, DIAG=TRUE))
+  #return(as.simMat(v, NAMES=ns, DIAG=TRUE))
   
 }
 
-diag <- function(x, ...) UseMethod('diag')
+Diag <- function(x, ...) UseMethod('Diag')
 
-diag.default <- base::diag
-
-diag.sim <- function(x, nrow, ncol, names=TRUE){
+Diag.simMat <- function(x, ...){
   nr <- attr(x, 'nrow')
   svals <- c(0, cumsum(nr:2)) + 1
   v <- unclass(x)
   return(v[svals])
 }
 
-`diag<-` <- function(x, value, ...) UseMethod('diag<-')
+`Diag<-` <- function(x, value) UseMethod('Diag<-')
 
-`diag<-.default` <- base::`diag<-`
-
-`diag<-.sim` <- function(x, value, ...){
+`Diag<-.simMat` <- function(x, value){
   nr <- attr(x, 'nrow')
   if (nr %% length(value) != 0){
     warning("number of items to replace is not a multiple of replacement length")
@@ -332,22 +372,22 @@ diag.sim <- function(x, nrow, ncol, names=TRUE){
   svals <- c(0, cumsum(nr:2)) + 1
   class(x) <- 'vector'
   x[svals] <- value
-  class(x) <- 'sim'
+  class(x) <- 'simMat'
   return(x)
 }
 
-names.sim <- function(x) {
+names.simMat <- function(x) {
   return(attr(x, 'NAMES'))
 }
 
-`names<-.sim` <- function(x, value){
+`names<-.simMat` <- function(x, value){
   ns <- attr(x, 'NAMES')
   stopifnot('Incorrect number of names provided.'=length(value) == length(ns))
   attr(x, 'NAMES') <- value
   return(x)
 }
 
-as.data.frame.sim <- function(x) {
+as.data.frame.simMat <- function(x, ...) {
   l <- length(x)
   nr <- attr(x, 'nrow')
   i1 <- i2 <- rep(NA_integer_, l)

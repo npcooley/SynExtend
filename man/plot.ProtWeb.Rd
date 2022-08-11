@@ -19,7 +19,7 @@ of connections in the adjacency matrix.
 }
 \arguments{
   \item{x}{
-    A ProtWeb object. See \code{\link{predict.ProtWeaver}}
+    A ProtWeb object. See \code{\link{ProtWeb}}
   }
   \item{NumSims}{
     Number of iterations to run the model for.
@@ -78,7 +78,7 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 \seealso{
 \code{\link{predict.ProtWeaver}}
 
-\code{\link{GetProtWebData.ProtWeb}}
+\code{\link{ProtWeb}}
 }
 \examples{
 exData <- get(data("ExampleStreptomycesData"))

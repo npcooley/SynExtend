@@ -82,7 +82,7 @@ summary.ProtWeb <- function(object, ...){
   }
 }
 
-show.ProtWeb <- function(x, ...){
+show.ProtWeb <- function(object){
   cat('a ProtWeb object.\n')
   a <- attributes(object)
   cat('\tMethod used:', a$method, '\n')
@@ -97,6 +97,17 @@ show.ProtWeb <- function(x, ...){
 print.ProtWeb <- function(x, ...){
   summary(x)
   cat('\nPredictions:\n\n')
+  NextMethod()
+}
+
+
+as.data.frame.ProtWeb <- function(x, ...) {
+  # Fall through to 'simMat' function
+  NextMethod()
+}
+
+as.matrix.ProtWeb <- function(x, ...) {
+  # Fall through to 'simMat' function
   NextMethod()
 }
 

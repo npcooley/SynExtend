@@ -170,7 +170,7 @@ predict.ProtWeaver <- function(object, Method='Ensemble', Subset=NULL, NumCores=
   names(preds) <- n
   rs <- structure(preds,
                  method=Method,
-                 class=c('ProtWeb', 'sim'))
+                 class=c('ProtWeb', 'simMat'))
   invisible(rs)
 }
 
@@ -255,7 +255,7 @@ Ensemble.ProtWeaver <- function(pw,
   } else {
     predictions <- predict(predictionmodel, results[,-c(1,2)])
   }
-  outmat <- sim(NA_real_, length(unames), NAMES=unames)
+  outmat <- simMat(NA_real_, length(unames), NAMES=unames)
   if (Verbose) pb <- txtProgressBar(max=length(predictions), style=3)
   for (i in seq_along(predictions)){
     i1 <- which(results[i,1] == unames)
@@ -265,7 +265,7 @@ Ensemble.ProtWeaver <- function(pw,
     if (Verbose) setTxtProgressBar(pb, i)
   }
   cat('\n')
-  diag(outmat) <- 1
+  Diag(outmat) <- 1
   return(outmat)
 }
 

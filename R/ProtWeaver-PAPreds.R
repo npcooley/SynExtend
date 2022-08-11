@@ -68,8 +68,8 @@ Jaccard.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   if (Verbose) cat('\n')
   
   n <- n[uvals]
-  pairscores <- as.sim(pairscores, NAMES=n, DIAG=FALSE)
-  diag(pairscores) <- 0
+  pairscores <- as.simMat(pairscores, NAMES=n, DIAG=FALSE)
+  Diag(pairscores) <- 0
   pairscores <- 1 - pairscores # because distance
   return(pairscores)
 }
@@ -91,12 +91,13 @@ Hamming.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   l <- length(uvals)
   n <- names(pw)
   if ( l == 1 ){
-    mat <- sim(1, nelem=1)
+    mat <- simMat(1, nelem=1)
     rownames(mat) <- colnames(mat) <- n
     return(mat)
   }
 
   pairscores <- rep(NA_real_, l*(l-1)/2)
+  nc <- ncol(pap)
   ctr <- 0
   if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
   for ( i in seq_len(l-1) ){
@@ -108,7 +109,7 @@ Hamming.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
       entry <- max(uval1, uval2)
       if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
         p2 <- pap[,j]
-        pairscores[ctr+1] <-  sum(xor(p1,p2)) / ncol(pap)
+        pairscores[ctr+1] <-  sum(xor(p1,p2)) / nc
       }
       ctr <- ctr + 1
       if (Verbose) setTxtProgressBar(pb, ctr)
@@ -117,10 +118,10 @@ Hamming.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   if (Verbose) cat('\n')
   
   n <- n[uvals]
-  pairscores <- as.sim(pairscores, NAMES=n, DIAG=FALSE)
-  diag(pairscores) <- 0
+  pairscores <- as.simMat(pairscores, NAMES=n, DIAG=FALSE)
+  Diag(pairscores) <- 0
   mp <- max(pairscores, na.rm=TRUE)
-  mp <- ifelse(mp==0, 1, 0)
+  mp <- ifelse(mp==0, 1, mp)
   pairscores <- (mp - pairscores) / mp #because distance
   return(pairscores)
 }
@@ -196,8 +197,8 @@ MutualInformation.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   # Normalize
   denom <- max(pairscores, na.rm=TRUE)
   pairscores <- pairscores / ifelse(denom==0, 1, denom)
-  pairscores <- as.sim(pairscores, NAMES=n, DIAG=FALSE)
-  diag(pairscores) <- 1
+  pairscores <- as.simMat(pairscores, NAMES=n, DIAG=FALSE)
+  Diag(pairscores) <- 1
   #pairscores <- pairscores #because distance
   return(pairscores)
 }
@@ -225,7 +226,8 @@ ProfileDCA.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, NumCores=1,
   }
   
   pairscores <- DCA_logRISE(pap, Verbose=Verbose, NumCores=NumCores, ...)
-  pairscores <- as.sim(pairscores)
+  rownames(pairscores) <- colnames(pairscores) <- n
+  pairscores <- as.simMat(pairscores)
   if (useAbs) pairscores <- abs(pairscores)
   if (max(pairscores) != 0)
     pairscores <- pairscores / max(abs(pairscores))
@@ -276,7 +278,7 @@ Behdenna.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   
   glmat <- abs(glmat)
   #pairscores <- matrix(NA, nrow=l, ncol=l)
-  #pairscores <- sim(nelem=l, NAMES=n)
+  #pairscores <- simMat(nelem=l, NAMES=n)
   pairscores <- rep(NA_real_, l*(l-1)/2)
   
   ctr <- 0
@@ -316,8 +318,8 @@ Behdenna.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   }
   
   n <- names(pw)[uvals]
-  pairscores <- as.sim(pairscores, NAMES=n, DIAG=FALSE)
-  diag(pairscores) <- ifelse(rawZScores, 1, 0)
+  pairscores <- as.simMat(pairscores, NAMES=n, DIAG=FALSE)
+  Diag(pairscores) <- ifelse(rawZScores, 1, 0)
   
   return(pairscores)
 }

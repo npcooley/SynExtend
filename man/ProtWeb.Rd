@@ -7,12 +7,9 @@ ProtWeb: Predictions from ProtWeaver
 \description{
 ProtWeb objects are outputted from \code{\link{predict.ProtWeaver}}. 
 
-This class wraps the \code{\link{sim}} object with some other diagnostic
+This class wraps the \code{\link{simMat}} object with some other diagnostic
 information intended to help interpret the output of \code{\link{ProtWeaver}}
 predictions..
-}
-\usage{
-\method{GetProtWebData}{ProtWeb}(x, AsDf=FALSE, ...)
 }
 
 \details{
@@ -21,7 +18,7 @@ to make formatting and printing of results slightly nicer. This currently
 only implements a \code{plot} function, but future functionality is in the works.
 }
 \value{
-An object of class \code{"ProtWeb"}, which inherits from \code{"sim"}.
+An object of class \code{"ProtWeb"}, which inherits from \code{"simMat"}.
 }
 \author{
 Aidan Lakshman \email{ahl27@pitt.edu}
@@ -30,7 +27,9 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 \seealso{
 \code{\link{predict.ProtWeaver}}
 
-\code{\link{sim}}
+\code{\link{simMat}}
+
+\code{\link{plot.ProtWeb}}
 }
 \examples{
 ##############

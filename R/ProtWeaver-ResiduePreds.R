@@ -55,8 +55,8 @@ ResidueMI.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
     }
   }
   n <- n[uvals]
-  pairscores <- as.sim(pairscores, NAMES=n, DIAG=FALSE)
-  diag(pairscores) <- 1
+  pairscores <- as.simMat(pairscores, NAMES=n, DIAG=FALSE)
+  Diag(pairscores) <- 1
   if (Verbose) cat('\n')
   
   return(pairscores)

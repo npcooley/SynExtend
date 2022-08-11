@@ -1,12 +1,12 @@
 # SynExtend 1.9.10
-* New `sim` class for `dist`-like similarity matrices that can be manipulated like base matrices
+* New `simMat` class for `dist`-like similarity matrices that can be manipulated like base matrices
 * Major update to `ProtWeaver` internals
-  * All internal calls use `sim` objects whenever possible to decrease memory footprint
+  * All internal calls use `simMat` objects whenever possible to decrease memory footprint
   * Note `ContextTree` and `ProfDCA` require matrices internally
-* `ProtWeb` objects now inherit from `sim`
+* `ProtWeb` objects now inherit from `simMat`
   * `ProtWeb.show` and `ProtWeb.print` now display predictions in a more natural way
-  * `GetProtWebData()` deprecated; `ProtWeb` now inherits `as.matrix.sim` and `as.data.frame.sim` 
-* New documentation pages for `sim` class
+  * `GetProtWebData()` deprecated; `ProtWeb` now inherits `as.matrix.simMat` and `as.data.frame.simMat` 
+* New documentation pages for `simMat` class
 * `GetProtWebData` documentation page reworked into `ProtWeb` documentation file.
 
 # SynExtend 1.9.9
