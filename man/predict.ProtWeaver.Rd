@@ -133,16 +133,7 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 }
 
 \note{
-  Note that the pairwise associations are stored in a matrix, meaning that if the
-  ProtWeaver object contains 100 entries, the output ProtWeb object contains a
-  \code{100x100} matrix. Users should be advised that predicting too many pairs
-  can lead to vector memory exhaustion errors. On my machine, ProtWeaver supports 
-  predictions on up to around 53,000\eqn{^2} pairs (meaning all possible pairs between
-  53,000 proteins/genes). Next release will add more memory efficient storage to
-  further increase this limit, though the memory capacity can never be better than
-  \eqn{O(P^2)}, with \code{P} the number of proteins/genes.
-  
-  \code{NumCores} only uses 1 less core than is detected, or 1 core if \code{detectCores()}
+  \code{NumCores} uses 1 less core than is detected, or 1 core if \code{detectCores()}
   cannot detect the number of available cores. This is because of a recurring issue
   on my machine where the R session takes all available cores and is then locked
   out of forking processes, with the only solution to restart the entire R session.
