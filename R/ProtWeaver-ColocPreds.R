@@ -25,15 +25,14 @@ Coloc.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
     labvecs <- pw[uvals]
   }
   l <- length(labvecs)
-  n <- names(pw)[uvals]
-  pairscores <- matrix(NA, nrow=l, ncol=l)
+  pairscores <- rep(NA_real_, l*(l-1)/2)
   ctr <- 0
   if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
-  for ( i in seq_len(l)){
+  for ( i in seq_len(l-1)){
     uval1 <- uvals[i]
     lab1 <- labvecs[[i]]
     l1sp <- gsub('(.*)_.*$', '\\1', lab1) # species + chromosome number
-    for ( j in i:l){
+    for ( j in (i+1):l){
       uval2 <- uvals[j]
       accessor <- as.character(min(uval1, uval2))
       entry <- max(uval1, uval2)
@@ -59,16 +58,17 @@ Coloc.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
           score <- score + sum(diffs) / (length(v1) * length(v2))
         }
         score <- score * mult
-        pairscores[i,j] <- pairscores[j,i] <- score
+        pairscores[ctr+1] <- score
       }
       ctr <- ctr + 1
       if (Verbose) setTxtProgressBar(pb, ctr)
     }
   }
   if (Verbose) cat('\n')
+  n <- names(pw)[uvals]
+  pairscores <- as.simMat(pairscores, NAMES=n, DIAG=FALSE)
   m <- ifelse(max(pairscores, na.rm=TRUE) != 0, max(pairscores,na.rm=TRUE), 1)
   pairscores <- pairscores / m
-  diag(pairscores) <- 1
-  rownames(pairscores) <- colnames(pairscores) <- n
+  Diag(pairscores) <- 1
   return(pairscores)
 }

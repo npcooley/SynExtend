@@ -114,9 +114,7 @@ following pages:
 }
 
 This returns a \code{ProtWeb} object, an S3 class that makes formatting and printing of 
-results slightly nicer. Data can be extracted form the \code{ProtWeb} object with:
-
-\code{GetProtWebData(ProtWebObject, AsDf=c(T,F))}
+results slightly nicer. See \code{\link{ProtWeb}} for more information.
 
 Different methods require different types of input. The constructor 
 \code{\link{ProtWeaver}} will notify the user which methods are
@@ -128,23 +126,14 @@ See \code{\link{ProtWeaver}} for more information on input data types.
 
 }
 \value{
-Returns a ProtWeb object. See \code{\link[=GetProtWebData.ProtWeb]{GetProtWebData}} for more info.
+Returns a ProtWeb object. See \code{\link{ProtWeb}} for more info.
 }
 \author{
 Aidan Lakshman \email{ahl27@pitt.edu}
 }
 
 \note{
-  Note that the pairwise associations are stored in a matrix, meaning that if the
-  ProtWeaver object contains 100 entries, the output ProtWeb object contains a
-  \code{100x100} matrix. Users should be advised that predicting too many pairs
-  can lead to vector memory exhaustion errors. On my machine, ProtWeaver supports 
-  predictions on up to around 53,000\eqn{^2} pairs (meaning all possible pairs between
-  53,000 proteins/genes). Next release will add more memory efficient storage to
-  further increase this limit, though the memory capacity can never be better than
-  \eqn{O(P^2)}, with \code{P} the number of proteins/genes.
-  
-  \code{NumCores} only uses 1 less core than is detected, or 1 core if \code{detectCores()}
+  \code{NumCores} uses 1 less core than is detected, or 1 core if \code{detectCores()}
   cannot detect the number of available cores. This is because of a recurring issue
   on my machine where the R session takes all available cores and is then locked
   out of forking processes, with the only solution to restart the entire R session.
@@ -167,7 +156,7 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 \seealso{
 \code{\link{ProtWeaver}}
 
-\code{\link[=GetProtWebData.ProtWeb]{GetProtWebData}}
+\code{\link{ProtWeb}}
 
 \link[=ProtWeaver-PAPreds]{ProtWeaver Presence/Absence Predictors}
 
@@ -189,7 +178,7 @@ pw <- ProtWeaver(exData$Genes[1:50])
 protweb1 <- predict(pw, Subset=1:10, MySpeciesTree=exData$Tree)
 
 # print out results as an adjacency matrix
-GetProtWebData(protweb1)
+protweb1
 
 ###############
 ## Training own ensemble model
@@ -209,6 +198,6 @@ testProtWeaverObject <- ProtWeaver(exData$Genes[51:60])
 protweb2 <- predict(testProtWeaverObject, 
                      PretrainedModel=myModel)
                      
-# Print result as a 3xN matrix of pairwise scores
-GetProtWebData(protweb2, AsDf=TRUE)
+# Print result as a matrix of pairwise scores
+protweb2
 }
