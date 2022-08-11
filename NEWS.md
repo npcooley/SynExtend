@@ -8,6 +8,7 @@
   * `GetProtWebData()` deprecated; `ProtWeb` now inherits `as.matrix.simMat` and `as.data.frame.simMat` 
 * New documentation pages for `simMat` class
 * `GetProtWebData` documentation page reworked into `ProtWeb` documentation file.
+* Fixes new bug in `Method='Hamming'` introduced in SynExtend 1.9.9
 
 # SynExtend 1.9.9
 * Fixes minor bug in `Method='Hamming'`
