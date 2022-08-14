@@ -1,3 +1,7 @@
+# SynExtend 1.9.11
+* `simMat` class now supports empty indexing (`s[]`)
+* `simMat` class now supports logical accession (`s[c(T,F,T),]`)
+
 # SynExtend 1.9.10
 * New `simMat` class for `dist`-like similarity matrices that can be manipulated like base matrices
 * Major update to `ProtWeaver` internals
