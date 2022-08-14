@@ -156,8 +156,9 @@ as.matrix.simMat <- function(x, ...){
     stopifnot("indices must be character or numeric"=
                 is(i, 'character') || is(i, 'numeric') || is(i, 'logical'))
     if(is(i, 'logical')){
-      if(length(i) %% nr != 0) 
+      if(nr %% length(i) != 0) 
         warning("T/F positions specified not multiple of number of rows.")
+      stopifnot("No rows specified!"=any(i))
       i <- rep(i, length.out=nr)
       i <- which(i, useNames = FALSE)
     }
@@ -184,8 +185,9 @@ as.matrix.simMat <- function(x, ...){
     stopifnot("indices must be character or numeric"=
                 is(j, 'character') || is(j, 'numeric') || is(j, 'logical'))
     if(is(j, 'logical')){
-      if(length(j) %% nr != 0) 
+      if(nr %% length(j) != 0) 
         warning("T/F positions specified not multiple of number of rows.")
+      stopifnot("No columns specified!"=any(j))
       j <- rep(j, length.out=nr)
       j <- which(j, useNames = FALSE)
     }
