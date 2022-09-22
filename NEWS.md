@@ -1,3 +1,6 @@
+# SynExtend 1.9.11
+* Added the function `SelectByK` that allows for quick removal of false positive predicted pairs based on a relatively simple k-means approach. Function is currently designed for use on the single genome-to-genome pairwise comparison, and not on an all-vs-all many genomes scale, though it may provide acceptable results on that scale.
+
 # SynExtend 1.9.10
 * New `simMat` class for `dist`-like similarity matrices that can be manipulated like base matrices
 * Major update to `ProtWeaver` internals
