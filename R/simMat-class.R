@@ -145,14 +145,23 @@ as.matrix.simMat <- function(x, ...){
   nr <- attr(x, 'nrow')
   ns <- attr(x, 'NAMES')
   svals <- c(0, cumsum(nr:1)) + 1
-  class(x) <- 'vector'
   hasi <- !missing(i)
   hasj <- !missing(j)
   COLOUT <- FALSE
+  if (!hasi && !hasj)
+    return(x)
   
+  class(x) <- 'vector'
   if (hasi){
     stopifnot("indices must be character or numeric"=
-                is(i, 'character') || is(i, 'numeric'))
+                is(i, 'character') || is(i, 'numeric') || is(i, 'logical'))
+    if(is(i, 'logical')){
+      if(nr %% length(i) != 0) 
+        warning("T/F positions specified not multiple of number of rows.")
+      stopifnot("No rows specified!"=any(i))
+      i <- rep(i, length.out=nr)
+      i <- which(i, useNames = FALSE)
+    }
     if(is(i, 'numeric') && any(i%%1 != 0))
       stop('indices must be whole numbers')
     if (is(i, 'character')){
@@ -174,7 +183,14 @@ as.matrix.simMat <- function(x, ...){
   
   if (hasj){
     stopifnot("indices must be character or numeric"=
-                is(j, 'character') || is(j, 'numeric'))
+                is(j, 'character') || is(j, 'numeric') || is(j, 'logical'))
+    if(is(j, 'logical')){
+      if(nr %% length(j) != 0) 
+        warning("T/F positions specified not multiple of number of rows.")
+      stopifnot("No columns specified!"=any(j))
+      j <- rep(j, length.out=nr)
+      j <- which(j, useNames = FALSE)
+    }
     if(is(j, 'numeric') && any(j%%1 != 0))
       stop('indices must be whole numbers')
     if (is(j, 'character')){
