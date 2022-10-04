@@ -7,6 +7,7 @@
 # this data was generated on 2022 04 21
 # Self note:
 # UPDATE DATALIST MANUALLY
+# data was regenerated on 2022 09 22
 
 suppressMessages(library(SynExtend))
 
@@ -108,7 +109,7 @@ save(Endosymbionts_LinkedFeatures,
 
 Endosymbionts_Pairs01 <- PairSummaries(SyntenyLinks = Endosymbionts_LinkedFeatures,
                                          PIDs = TRUE,
-                                         Score = FALSE,
+                                         Score = TRUE,
                                          DBPATH = VignetteDB,
                                          Verbose = TRUE)
 
@@ -119,9 +120,9 @@ save(Endosymbionts_Pairs01,
 ###### -- BlockExpansion ------------------------------------------------------
 
 Endosymbionts_Pairs02 <- BlockExpansion(Pairs = Endosymbionts_Pairs01,
-                                          NewPairsOnly = FALSE,
-                                          DBPATH = VignetteDB,
-                                          Verbose = TRUE)
+                                        NewPairsOnly = FALSE,
+                                        DBPATH = VignetteDB,
+                                        Verbose = TRUE)
 
 save(Endosymbionts_Pairs02,
      file = "~/Packages/SynExtend/data/Endosymbionts_Pairs02.RData",
@@ -130,8 +131,8 @@ save(Endosymbionts_Pairs02,
 ###### -- BlockReconciliation -------------------------------------------------
 
 Endosymbionts_Pairs03 <- BlockReconciliation(Pairs = Endosymbionts_Pairs02,
-                                               ConservativeRejection = FALSE,
-                                               Verbose = TRUE)
+                                             ConservativeRejection = FALSE,
+                                             Verbose = TRUE)
 save(Endosymbionts_Pairs03,
      file = "~/Packages/SynExtend/data/Endosymbionts_Pairs03.RData",
      compress = "xz")
@@ -139,7 +140,7 @@ save(Endosymbionts_Pairs03,
 ###### -- DisjointSet ---------------------------------------------------------
 
 Endosymbionts_Sets <- DisjointSet(Pairs = Endosymbionts_Pairs03,
-                                    Verbose = TRUE)
+                                  Verbose = TRUE)
 
 save(Endosymbionts_Sets,
      file = "~/Packages/SynExtend/data/Endosymbionts_Sets.RData",
