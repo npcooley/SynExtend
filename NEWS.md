@@ -1,3 +1,6 @@
+# SynExtend 1.9.13
+* `SelectByK` function argument `ClusterSelect` switched to `ClusterScalar`. Cluster number selection now performed by fitting sum of total within cluster sum of squares to a right hyperbola and taking the ceiling of the half-max. Scalar allows a user to pick different tolerances to select more, or less clusters. Plotting behavior updated.
+
 # SynExtend 1.9.12
 * `simMat` class now supports empty indexing (`s[]`)
 * `simMat` class now supports logical accession (`s[c(T,F,T),]`)

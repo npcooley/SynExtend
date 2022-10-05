@@ -6,11 +6,10 @@ import(Biostrings)
 import(DECIPHER)
 import(S4Vectors)
 
-importFrom("utils", "setTxtProgressBar", "txtProgressBar", "data", 
-           "object.size", "getS3method","read.table")
-importFrom("stats", "predict", "runif", "setNames", "rnorm", "optim", "kmeans")
+importFrom("utils", "setTxtProgressBar", "txtProgressBar", "data", "object.size", "getS3method", "read.table")
+importFrom("stats", "predict", "runif", "setNames", "rnorm", "optim", "kmeans", "density", "nls")
 importFrom("parallel", "mclapply", "detectCores")
-importFrom("graphics", "hist", "points")
+importFrom("graphics", "hist", "points", "abline", "axis", "layout", "lines", "par")
 importFrom("grDevices", "topo.colors")
 
 export(NucleotideOverlap)
