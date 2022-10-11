@@ -233,8 +233,12 @@ DCA_minimize_fxn <- function(params, R, spins, i){
   Si <- mean(exp( -1 * (firstterm + secondterm)))
   
   regularizer <- R * sum(abs(Jij))
-  
-  return(log(Si + regularizer))
+  retval <- log(Si + regularizer)
+  print(retval)
+  if (is.infinite(retval)){
+    retval <- -1 * .Machine$double.xmax
+  }
+  return(retval)
 }
 
 DCA_gradient_minimize_fxn <- function(params, R, spins, i){
