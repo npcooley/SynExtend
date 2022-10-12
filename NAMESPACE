@@ -25,6 +25,8 @@ export(BlockExpansion)
 export(BlockReconciliation)
 export(BlastSeqs)
 export(SelectByK)
+export(flatdendrapply)
+export(SuperTree)
 
 S3method(`[`, "LinkedPairs")
 S3method(print, "LinkedPairs")

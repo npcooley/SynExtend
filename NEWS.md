@@ -1,3 +1,8 @@
+# SynExtend 1.9.14
+* Adds new function `flatdendrapply` for more options to apply functions to dendrograms. Function is used in `SuperTree`.
+* Adds new function `SuperTree` to construct a species tree from a set of gene trees.
+* Adds new dataset `SuperTreeEx` for `SuperTree` and `flatdendrapply` examples.
+
 # SynExtend 1.9.13
 * `SelectByK` function argument `ClusterSelect` switched to `ClusterScalar`. Cluster number selection now performed by fitting sum of total within cluster sum of squares to a right hyperbola and taking the ceiling of the half-max. Scalar allows a user to pick different tolerances to select more, or less clusters. Plotting behavior updated.
 
