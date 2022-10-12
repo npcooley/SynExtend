@@ -9,3 +9,5 @@
 *.Rhistory
 *.Rbuildignore
 .RData
+*.BiocCheck
+*.BiocCheck/*

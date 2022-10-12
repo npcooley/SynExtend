@@ -149,11 +149,20 @@ ProcessSubset <- function(pw, Subset=NULL){
   return(list(evalmap=evalmap, uvals=uvals))
 }
 
-flatdendrapply <- function(dend, NODEFUN, LEAFFUN=NODEFUN, INCLUDEROOT=TRUE, ...){
+flatdendrapply <- function(dend, NODEFUN=NULL, LEAFFUN=NODEFUN, 
+                           INCLUDEROOT=TRUE, ...){
+  stopifnot("flatdendrapply only works on objects of class 'dendrogram'"=
+              is(dend, 'dendrogram'))
+  if (!is(NODEFUN, 'function') && !is(LEAFFUN, 'function'))
+    stop("At least one of NODEFUN and LEAFFUN must be a function!")
+  
   val <- lapply(dend, 
                 \(x){
                   if (is.null(attr(x, 'leaf'))){
-                    v <- list(NODEFUN(x, ...))
+                    if (!is(NODEFUN, 'function'))
+                      v <- list()
+                    else
+                      v <- list(NODEFUN(x, ...))
                     for ( child in x ) v <- c(v, Recall(child))
                     return(v)
                   } 
@@ -166,6 +175,12 @@ flatdendrapply <- function(dend, NODEFUN, LEAFFUN=NODEFUN, INCLUDEROOT=TRUE, ...
   retval <- unlist(val, recursive=FALSE)
   if (!INCLUDEROOT)
     retval[[1]] <- NULL
+  
+  lens <- vapply(retval, length, FUN.VALUE=0L)
+  atom <- vapply(retval, is.atomic, FUN.VALUE=TRUE)
+  
+  if(all(lens[1] == 1L) && all(atom))
+    retval <- unlist(retval)
   
   return(retval)
 }
@@ -234,7 +249,6 @@ DCA_minimize_fxn <- function(params, R, spins, i){
   
   regularizer <- R * sum(abs(Jij))
   retval <- log(Si + regularizer)
-  print(retval)
   if (is.infinite(retval)){
     retval <- -1 * .Machine$double.xmax
   }

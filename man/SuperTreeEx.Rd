@@ -5,7 +5,7 @@
 Example Dendrograms
 }
 \description{
-A set of 20 dendrograms for using in \code{\link{flatdendrapply}} and 
+A set of 20 dendrograms for use in 
 \code{\link{SuperTree}} examples.
 }
 \usage{data("SuperTreeEx")}

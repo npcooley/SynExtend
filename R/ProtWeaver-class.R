@@ -46,6 +46,7 @@ validate_ProtWeaver <- function(ipt, noWarn=FALSE){
   stopifnot('ProtWeaver expects a list of dendrograms or character vectors as input.'=
               is(ipt, 'list'))
   
+  ipt <- ipt[!vapply(ipt, is.null, TRUE)]
   stopifnot('Input has no groups!'=length(ipt)>0)
   checkdend <- vapply(ipt, is, class2='dendrogram', FUN.VALUE = TRUE)
   checkchar <- vapply(ipt, is, class2='character', FUN.VALUE = TRUE)
