@@ -1,3 +1,7 @@
+# SynExtend 1.9.16
+* Removes `flatdendrapply`, function was already included in SynExtend
+* minor bugfixes to `ProtWeaver`
+
 # SynExtend 1.9.15
 * Edits to `SelectByK`, function can work as intended, but is still too conservative at false positive removal.
 
