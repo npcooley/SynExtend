@@ -1,3 +1,6 @@
+# SynExtend 1.9.15
+* Edits to `SelectByK`, function can work as intended, but is still too conservative at false positive removal.
+
 # SynExtend 1.9.14
 * Adds new function `flatdendrapply` for more options to apply functions to dendrograms. Function is used in `SuperTree`.
 * Adds new function `SuperTree` to construct a species tree from a set of gene trees.

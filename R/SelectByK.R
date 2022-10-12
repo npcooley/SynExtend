@@ -37,11 +37,32 @@ SelectByK <- function(Pairs,
   
   # normalize score,
   # convert absolute matches to relative
+  # dat1 <- data.frame("RelativeMatch" = Pairs$ExactMatch * 2L / (Pairs$p1FeatureLength + Pairs$p2FeatureLength),
+  #                    "Consensus" = Pairs$Consensus,
+  #                    "PID" = Pairs$PID,
+  #                    "SCORE" = Pairs$SCORE / max(Pairs$SCORE),
+  #                    "TetDist" = Pairs$TetDist)
+  
+  # treating score differently
+  # this doesn't seem to really change anything though
+  s1 <- Pairs$SCORE
+  s2 <- min(s1[s1 > 0])
+  if (s2 > 1) {
+    s2 <- 0.1
+  }
+  if (any(s1 < 0)) {
+    s1[s1 < 0] <- s2
+  }
+  s1 <- log(s1)
+  s2 <- max(s1)
+  s1 <- s1 / s2
   dat1 <- data.frame("RelativeMatch" = Pairs$ExactMatch * 2L / (Pairs$p1FeatureLength + Pairs$p2FeatureLength),
                      "Consensus" = Pairs$Consensus,
                      "PID" = Pairs$PID,
-                     "SCORE" = Pairs$SCORE / max(Pairs$SCORE),
-                     "TetDist" = Pairs$TetDist)
+                     "SCORE" = s1,
+                     # "SCORE" = Pairs$SCORE,
+                     "TetDist" = Pairs$TetDist,
+                     "SeqDiff" = abs(Pairs$p1FeatureLength - Pairs$p2FeatureLength))
   
   # cluster out to user specified total clusters
   NClust <- 2:MaxClusters
@@ -165,8 +186,8 @@ SelectByK <- function(Pairs,
     plot(x = 0,
          y = 0,
          type = "n",
-         xlab = "Frequency",
-         ylab = "PID",
+         ylab = "Frequency",
+         xlab = "PID",
          xlim = c(0, 1),
          ylim = c(0, 1),
          main = "Cluster CDFs")
