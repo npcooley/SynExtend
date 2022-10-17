@@ -106,6 +106,9 @@ ProcessSubset <- function(pw, Subset=NULL){
   evalmap <- NULL
   uvals <- seq_len(pl)
   if (!is.null(Subset)){
+    if (is(Subset, 'data.frame')){
+      Subset <- as.matrix(Subset)
+    }
     n <- names(pw)
     stopifnot("'Subset' must be either character, numeric, or matrix"=
                 (is(Subset, 'character') || is(Subset, 'numeric') || is(Subset, 'matrix')))
@@ -113,7 +116,13 @@ ProcessSubset <- function(pw, Subset=NULL){
       if( ncol(Subset) != 2)
         stop('If Subset is a matrix, it must have 2 columns')
       if( is(Subset[1], 'character') ){
-        Subset <- matrix(vapply(c(Subset), function(x) which(x==n), 0), ncol=2)
+        Subset <- matrix(vapply(c(Subset), function(x) {
+          val <- which(x==n)
+          val <- ifelse(length(val) == 0, -1, val[1])
+          }, 0), ncol=2)
+        excise <- (Subset[,1] < 0) | (Subset[,2] < 0)
+        if (sum(excise) > 0) 
+          Subset <- Subset[!excise,]
       }
       for ( i in seq_len(nrow(Subset))){
         pos <- Subset[i,]
@@ -714,5 +723,16 @@ predictWithBuiltins <- function(preds){
     }
     return(builtInPredictions)
   }
+}
+
+findSpeciesTree <- function(pw, Verbose=TRUE, NameFun=NULL){
+  stopifnot("ProtWeaver object must contain dendrograms"=attr(pw, "useMT"))
+  if (attr(pw, "useColoc") && is.null(NameFun)){
+    NameFun <- function(x) gsub('(.+)_.+_[0-9]+', '\\1', x)
+  }
+  
+  SpecTree <- SuperTree(unclass(pw), NAMEFUN=NameFun, Verbose=Verbose)
+  
+  return(SpecTree)
 }
 ########
