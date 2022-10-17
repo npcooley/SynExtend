@@ -20,6 +20,7 @@ constructed from presence/absence patterns.
 \itemize{
   \item \code{'Jaccard'}
   \item \code{'Hamming'}
+  \item \code{'HammingGL'}
   \item \code{'MutualInformation'}
   \item \code{'ProfDCA'}
   \item \code{'Behdenna'}

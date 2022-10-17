@@ -114,6 +114,22 @@ SEXP calcScoreJaccard(SEXP ov1, SEXP ov2, SEXP NN){
   return retval;
 }
 
+SEXP calcScoreHamming(SEXP ov1, SEXP ov2, SEXP NN){
+  int v1len = INTEGER(NN)[0];
+  int *v1 = INTEGER(ov1);
+  int *v2 = INTEGER(ov2);
+
+  double outval = 0.0;
+  for (int i=0; i<v1len; i++)
+    outval += v1[i] > v2[i] ? v1[i] - v2[i] : v2[i] - v1[i];
+  outval = 1 - (outval / v1len);
+
+  SEXP retval = PROTECT(allocVector(REALSXP, 1));
+  REAL(retval)[0] = outval;
+  UNPROTECT(1);
+  return retval;
+}
+
 /****** Gain / Loss Functions ******/
 int findNodeScores(treeNode *curNode, int *v1, int *v2, double *scores, int ctr){
   scores[ctr] = 0.0;

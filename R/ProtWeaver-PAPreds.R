@@ -13,6 +13,7 @@
 #### S3 Generic Definitions ####
 Jaccard <- function(pw, ...) UseMethod('Jaccard')
 Hamming <- function(pw, ...) UseMethod('Hamming')
+HammingGL <- function(pw, ...) UseMethod('HammingGL')
 MutualInformation <- function(pw, ...) UseMethod('MutualInformation')
 ProfileDCA <- function(pw, ...) UseMethod('ProfileDCA')
 Behdenna <- function(pw, ...) UseMethod('Behdenna')
@@ -42,7 +43,8 @@ Jaccard.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
     rownames(mat) <- colnames(mat) <- n
     return(mat)
   }
-  
+  nr <- nrow(pap)
+  pap[] <- as.integer(pap) 
   pairscores <- rep(NA_real_, l*(l-1)/2)
   ctr <- 0
   if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
@@ -55,12 +57,7 @@ Jaccard.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
       entry <- max(uval1, uval2)
       if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
         p2 <- pap[,j]
-        m10 <- sum(p1 & !p2)
-        m01 <- sum(!p1 & p2)
-        m00 <- sum(!p1 & !p2)
-        dJ <- (m10 + m01) / (m10 + m01 + m00)
-        dJ <- ifelse(is.nan(dJ), 0, dJ) 
-        pairscores[ctr+1] <- dJ
+        pairscores[ctr+1] <- .Call("calcScoreJaccard", p1, p2, nr)
       }
       ctr <- ctr + 1
       if (Verbose) setTxtProgressBar(pb, ctr)
@@ -70,12 +67,10 @@ Jaccard.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   
   n <- n[uvals]
   pairscores <- as.simMat(pairscores, NAMES=n, DIAG=FALSE)
-  Diag(pairscores) <- 0
-  pairscores <- 1 - pairscores # because distance
   return(pairscores)
 }
 
-Hamming.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
+Hamming.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
                                precalcProfs=NULL, precalcSubset=NULL, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
@@ -96,9 +91,10 @@ Hamming.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
     rownames(mat) <- colnames(mat) <- n
     return(mat)
   }
-
+  nr <- nrow(pap)
   pairscores <- rep(NA_real_, l*(l-1)/2)
-  nc <- ncol(pap)
+  #nc <- ncol(pap)
+  pap[] <- as.integer(pap)
   ctr <- 0
   if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
   for ( i in seq_len(l-1) ){
@@ -110,7 +106,87 @@ Hamming.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
       entry <- max(uval1, uval2)
       if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
         p2 <- pap[,j]
-        pairscores[ctr+1] <-  sum(xor(p1,p2)) / nc
+        #pairscores[ctr+1] <-  sum(xor(p1,p2)) / nc
+        pairscores[ctr+1] <-  .Call("calcScoreHamming", p1, p2, nr)
+      }
+      ctr <- ctr + 1
+      if (Verbose) setTxtProgressBar(pb, ctr)
+    }
+  }
+  if (Verbose) cat('\n')
+
+  n <- n[uvals]
+  pairscores <- as.simMat(pairscores, NAMES=n, DIAG=FALSE)
+  Diag(pairscores) <- 0
+  mp <- max(pairscores, na.rm=TRUE)
+  mp <- ifelse(mp==0, 1, mp)
+  pairscores <- (mp - pairscores) / mp #because distance
+  return(pairscores)
+}
+
+HammingGL.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
+                                MySpeciesTree=NULL,
+                               precalcProfs=NULL, precalcSubset=NULL, ...){
+  if (!is.null(precalcSubset))
+    subs <- precalcSubset
+  else
+    subs <- ProcessSubset(pw, Subset)
+  uvals <- subs$uvals
+  evalmap <- subs$evalmap
+  if (is.null(MySpeciesTree)){
+    stopifnot("Method 'GainLoss' requires a species tree"=attr(pw, 'useMT'))
+    if (Verbose) cat('Calculating Species Tree...\n')
+    MySpeciesTree <- findSpeciesTree(pw, Verbose)
+  }
+  
+  if ( is.null(precalcProfs) ){
+    if (Verbose) cat('Calculating PA Profiles...\n')
+    pap <- PAProfiles(pw, uvals, Verbose=Verbose, speciesList=labels(MySpeciesTree), ...)
+  } else {
+    pap <- precalcProfs
+  }
+  l <- length(uvals)
+  n <- names(pw)
+  
+  if ( l == 1 ){
+    mat <- simMat(1, nelem=1)
+    rownames(mat) <- colnames(mat) <- n
+    return(mat)
+  }
+  # Initialize Dendrogram in C
+  y <- .Call("initCDend", MySpeciesTree)
+  on.exit(rm(y))
+  numnodes <- .Call("getTreeNodesCount", y)
+  rn <- rownames(pap)
+  glvs <- matrix(NA_integer_, nrow=numnodes, ncol=l)
+  
+  # Calculate Gain/Loss Vectors
+  if (Verbose) cat('  Calculating gain/loss vectors:\n')
+  if (Verbose) pb <- txtProgressBar(max=ncol(pap), style=3)
+  for (i in seq_len(l)){
+    v <- rn[pap[,i]]
+    if (length(v) == 0){
+      glv <- rep(0L, numnodes)
+    } else {
+      glv <- .Call("calcGainLoss", y, v, TRUE)
+    }
+    glvs[,i] <- glv
+    if (Verbose) setTxtProgressBar(pb, i)
+  }
+  if (Verbose) cat('\n')
+  pairscores <- rep(NA_real_, l*(l-1)/2)
+  ctr <- 0
+  if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
+  for ( i in seq_len(l-1) ){
+    uval1 <- uvals[i]
+    v1 <- glvs[,i]
+    for ( j in (i+1):l ){
+      uval2 <- uvals[j]
+      accessor <- as.character(min(uval1, uval2))
+      entry <- max(uval1, uval2)
+      if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
+        v2 <- glvs[,j]
+        pairscores[ctr+1] <- .Call('calcScoreHamming', v1, v2, numnodes)
       }
       ctr <- ctr + 1
       if (Verbose) setTxtProgressBar(pb, ctr)
@@ -120,12 +196,9 @@ Hamming.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   
   n <- n[uvals]
   pairscores <- as.simMat(pairscores, NAMES=n, DIAG=FALSE)
-  Diag(pairscores) <- 0
-  mp <- max(pairscores, na.rm=TRUE)
-  mp <- ifelse(mp==0, 1, mp)
-  pairscores <- (mp - pairscores) / mp #because distance
   return(pairscores)
 }
+
 
 MutualInformation.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
                                          precalcProfs=NULL, precalcSubset=NULL, ...){

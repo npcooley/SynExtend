@@ -2,6 +2,8 @@
 * Adds new prediction algorithm `GainLoss`
 * Adds new internal C implementation of dendrograms, significantly faster than R dendrograms
 * `ProtWeaver` methods `Behdenna` and `GainLoss` can now infer a species tree when possible
+* Updates `Jaccard` and `Hamming` methods to use C implementations for distance calculation
+* Adds `HammingGL` method to calculate Hamming distance of gain/loss events
 * Minor bugfixes to `ProtWeaver` methods relating to subsetting
 * Updates to various `man` pages
 
