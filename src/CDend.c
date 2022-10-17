@@ -67,7 +67,6 @@ SEXP calcGainLoss(SEXP tnPtr, SEXP occVec, SEXP convertToGL){
   // commenting this out to save runtime
   // ALWAYS ASSUME TREE VALS HAVE NOT BEEN RESET BEFORE RUNNING OPERATIONS
   // resetTree(head, 2);
-  free(presMap);
   UNPROTECT(1);
   return retvec;
 }
