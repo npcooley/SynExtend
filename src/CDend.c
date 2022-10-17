@@ -63,6 +63,7 @@ SEXP calcGainLoss(SEXP tnPtr, SEXP occVec, SEXP convertToGL){
   // commenting this out to save runtime
   // ALWAYS ASSUME TREE VALS HAVE NOT BEEN RESET BEFORE RUNNING OPERATIONS
   // resetTree(head, 2);
+  free(presMap);
   UNPROTECT(1);
   return retvec;
 }
@@ -79,14 +80,13 @@ SEXP calcScoreGL(SEXP tnPtr, SEXP glv1, SEXP glv2, SEXP NN){
 
   
   double r = 0.0;
-  int sign = 0;
   for ( int i=0; i < numNodes; i++){
     if (nodeScores[i] != 0){
-      sign = nodeScores[i] > 0 ? 1 : -1;
-      r += sign * exp(-1 * (fabs(nodeScores[i]) - 1));
+      r += 1 / sqrt(fabs(nodeScores[i]));
     }
   }
 
+  free(nodeScores);
   globalTreeNode = NULL;
   SEXP retval = PROTECT(allocVector(REALSXP, 1));
   REAL(retval)[0] = r; 

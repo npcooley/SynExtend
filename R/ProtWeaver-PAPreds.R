@@ -391,7 +391,10 @@ GainLoss.ProtWeaver <- function(pw, Subset=NULL,
       if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
         v2 <- glvs[,j]
         res <- .Call("calcScoreGL", y, v1, v2, numnodes)
-        pairscores[ctr+1] <- res
+        #normer <- mean(sum(abs(v1)), sum(abs(v2)))
+        normer <- sum(abs(v1), abs(v2))
+        normer <- ifelse(normer==0, 1, normer)
+        pairscores[ctr+1] <- 2*res / normer
       }
       ctr <- ctr + 1
       if (Verbose) setTxtProgressBar(pb, ctr)
