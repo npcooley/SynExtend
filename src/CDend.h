@@ -38,7 +38,7 @@ int populateVector(treeNode* node, int *container, int idx);
 static inline int getNumNodes(treeNode* node);
 static inline void checkPtrExists(SEXP tnPtr);
 static void FreeTree(SEXP tnPtr);
-static void printHelper(treeNode* node, int depth);
+//static void printHelper(treeNode* node, int depth);
 static void CleanupTree(treeNode* head);
 
 SEXP TREEHT, TREEMEM, TREELAB, TREELF;

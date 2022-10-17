@@ -13,12 +13,16 @@ SEXP initCDend(SEXP dend){
   return retval;
 }
 
+/* Prints the tree
+Unneeded, but keeping in for future reference
+(since I know I'll forget how to do this later)
 SEXP printTree(SEXP tnPtr){
   checkPtrExists(tnPtr);
   treeNode *head = (treeNode *) R_ExternalPtrAddr(tnPtr);
   printHelper(head, 0);
   return R_NilValue;
 }
+*/
 
 SEXP getTreeNodesCount(SEXP tnPtr){
   checkPtrExists(tnPtr);
@@ -308,6 +312,7 @@ static inline int getNumNodes(treeNode* node){
   return numNodes;
 }
 
+/* See comment on printTree
 // helper function to print tree (in order)
 static void printHelper(treeNode* node, int depth){
   if (!node) return;
@@ -326,6 +331,7 @@ static void printHelper(treeNode* node, int depth){
 
   return;
 }
+*/
 
 static void FreeTree(SEXP tnPtr){
   if (!R_ExternalPtrAddr(tnPtr)) return;
