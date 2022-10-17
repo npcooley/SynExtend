@@ -1,3 +1,10 @@
+# SynExtend 1.9.17
+* Adds new prediction algorithm `GainLoss`
+* Adds new internal C implementation of dendrograms, significantly faster than R dendrograms
+* `ProtWeaver` methods `Behdenna` and `GainLoss` can now infer a species tree when possible
+* Minor bugfixes to `ProtWeaver` methods relating to subsetting
+* Updates to various `man` pages
+
 # SynExtend 1.9.16
 * Removes `flatdendrapply`, function was already included in SynExtend
 * minor bugfixes to `ProtWeaver`

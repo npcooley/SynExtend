@@ -30,6 +30,11 @@
 static const R_CallMethodDef callMethods[] = { // method call, pointer, num args
   {"calcMIcVec", (DL_FUNC) &calcMIcVec, 4},
   {"trimCovar", (DL_FUNC) &trimCovar, 5},
+  {"initCDend", (DL_FUNC) &initCDend, 1},
+  {"hashString", (DL_FUNC) &hashString, 1},
+  {"calcGainLoss", (DL_FUNC) &calcGainLoss, 3},
+  {"calcScoreGL", (DL_FUNC) &calcScoreGL, 4}, 
+  {"calcScoreJaccard", (DL_FUNC) &calcScoreJaccard, 3},
   {NULL, NULL, 0}
 };
 

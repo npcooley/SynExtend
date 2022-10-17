@@ -23,7 +23,7 @@ SuperTree <- function(myDendList, NAMEFUN=NULL, Verbose=TRUE, Processors=1){
   # Get list of species
   allspecies <- character(0)
   if (Verbose){ 
-    cat("Compiling species...\n")
+    cat("  Compiling species...\n")
     pb = txtProgressBar(max=length(myDendList), style=3)
     start <- Sys.time()
   }
@@ -46,7 +46,7 @@ SuperTree <- function(myDendList, NAMEFUN=NULL, Verbose=TRUE, Processors=1){
   rownames(dmat) <- colnames(dmat) <- allspecies
   rownames(countmat) <- colnames(countmat) <- allspecies
   if (Verbose){ 
-    cat("\nDone.\n\nCalculating distance matrices...\n")
+    cat("\n  Done.\n\n  Calculating distance matrices...\n")
     pb <- txtProgressBar(max = ctr, style=3)
   }
   ctr <- 0
@@ -83,13 +83,13 @@ SuperTree <- function(myDendList, NAMEFUN=NULL, Verbose=TRUE, Processors=1){
   dmat <- dmat / countmat
   
   # Build species tree with NJ
-  if (Verbose) cat("\nBuilding species tree...")
+  if (Verbose) cat("\n  Building species tree...")
   newTree <- TreeLine(myDistMatrix=dmat, method="NJ", 
                       verbose=FALSE, processors = Processors)
   
   if (Verbose){
     dt <- difftime(start, Sys.time())
-    cat("Done.\nTime difference of", round(abs(dt), 2), attr(dt, "units"), sep=' ')
+    cat("Done.\n  Time difference of", round(abs(dt), 2), attr(dt, "units"), '\n', sep=' ')
   }
   return(newTree)
 }

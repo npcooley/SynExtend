@@ -16,6 +16,7 @@ Hamming <- function(pw, ...) UseMethod('Hamming')
 MutualInformation <- function(pw, ...) UseMethod('MutualInformation')
 ProfileDCA <- function(pw, ...) UseMethod('ProfileDCA')
 Behdenna <- function(pw, ...) UseMethod('Behdenna')
+GainLoss <- function(pw, ...) UseMethod('GainLoss')
 ################################
 
 Jaccard.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
@@ -240,14 +241,18 @@ Behdenna.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
                                 MySpeciesTree=NULL, useSubtree=FALSE, 
                                 useACCTRAN=TRUE, rawZScores=FALSE, 
                                 precalcProfs=NULL, precalcSubset=NULL, ...){
-  stopifnot('No species tree provided.'=(!is.null(MySpeciesTree)))
-  stopifnot("Method 'Behdenna' requires a bifurcating tree"=CheckBifurcating(MySpeciesTree))
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
     subs <- ProcessSubset(pw, Subset)
   uvals <- subs$uvals
   evalmap <- subs$evalmap
+  
+  if (is.null(MySpeciesTree)){
+      stopifnot("Method 'Behdenna' requires a species tree"=attr(pw, 'useMT'))
+      if (Verbose) cat('Calculating Species Tree...\n')
+      MySpeciesTree <- findSpeciesTree(pw, Verbose)
+  }
   
   if ( is.null(precalcProfs) ){
     if (Verbose) cat('Calculating PA Profiles...\n')
@@ -320,6 +325,82 @@ Behdenna.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   n <- names(pw)[uvals]
   pairscores <- as.simMat(pairscores, NAMES=n, DIAG=FALSE)
   Diag(pairscores) <- ifelse(rawZScores, 1, 0)
+  
+  return(pairscores)
+}
+
+GainLoss.ProtWeaver <- function(pw, Subset=NULL, 
+                     Verbose=TRUE, MySpeciesTree=NULL, 
+                     precalcProfs=NULL, precalcSubset=NULL, ...){
+  if (!is.null(precalcSubset))
+    subs <- precalcSubset
+  else
+    subs <- ProcessSubset(pw, Subset)
+  uvals <- subs$uvals
+  evalmap <- subs$evalmap
+
+  if (is.null(MySpeciesTree)){
+    stopifnot("Method 'GainLoss' requires a species tree"=attr(pw, 'useMT'))
+    if (Verbose) cat('Calculating Species Tree...\n')
+    MySpeciesTree <- findSpeciesTree(pw, Verbose)
+  }
+  
+  if ( is.null(precalcProfs) ){
+    if (Verbose) cat('Calculating PA Profiles...\n')
+    pap <- PAProfiles(pw, uvals, Verbose=Verbose, speciesList=labels(MySpeciesTree), ...)
+  } else {
+    pap <- precalcProfs
+  }
+  l <- length(uvals)
+  stopifnot(nrow(pap) > 1)
+  
+  
+  # Initialize Dendrogram in C
+  y <- .Call("initCDend", MySpeciesTree)
+  on.exit(rm(y))
+  numnodes <- .Call("getTreeNodesCount", y)
+  rn <- rownames(pap)
+  glvs <- matrix(NA_integer_, nrow=numnodes, ncol=l)
+  
+  # Calculate Gain/Loss Vectors
+  if (Verbose) cat('  Calculating gain/loss vectors:\n')
+  if (Verbose) pb <- txtProgressBar(max=ncol(pap), style=3)
+  for (i in seq_len(l)){
+    v <- rn[pap[,i]]
+    if (length(v) == 0){
+      glv <- rep(0L, numnodes)
+    } else {
+      glv <- .Call("calcGainLoss", y, v, TRUE)
+    }
+    glvs[,i] <- glv
+    if (Verbose) setTxtProgressBar(pb, i)
+  }
+  
+  # Calculate pairscores between values
+  if (Verbose) cat("\n  Calculating pairscores...\n")
+  if (Verbose) pb <- txtProgressBar(max=(l*(l-1))/2, style=3)
+  pairscores <- rep(NA_real_, l*(l-1)/2)
+  ctr <- 0
+  for (i in seq_len(l-1)){
+    uval1 <- uvals[i]
+    v1 <- glvs[,i]
+    for (j in (i+1):l){
+      uval2 <- uvals[j]
+      accessor <- as.character(min(uval1, uval2))
+      entry <- max(uval1, uval2)
+      if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
+        v2 <- glvs[,j]
+        res <- .Call("calcScoreGL", y, v1, v2, numnodes)
+        pairscores[ctr+1] <- res
+      }
+      ctr <- ctr + 1
+      if (Verbose) setTxtProgressBar(pb, ctr)
+    }
+  }
+  cat('\n')
+  # Convert to simMat and return
+  n <- names(pw)[uvals]
+  pairscores <- as.simMat(pairscores, names=n, DIAG=FALSE)
   
   return(pairscores)
 }

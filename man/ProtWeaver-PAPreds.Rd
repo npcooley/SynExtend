@@ -5,6 +5,7 @@
 \alias{MutualInformation.ProtWeaver}
 \alias{ProfDCA.ProtWeaver}
 \alias{Behdenna.ProtWeaver}
+\alias{GainLoss.ProtWeaver}
 \docType{data}
 \title{
 Presence/Absence Predictions for ProtWeaver
@@ -15,13 +16,14 @@ methods and algorithms. Presence/Absence (PA) methods examine conservation
 of gain/loss events within orthology groups using phylogenetic profiles
 constructed from presence/absence patterns.
 
-\code{predict.ProtWeaver} currently supports five PA methods:
+\code{predict.ProtWeaver} currently supports six PA methods:
 \itemize{
   \item \code{'Jaccard'}
   \item \code{'Hamming'}
   \item \code{'MutualInformation'}
   \item \code{'ProfDCA'}
   \item \code{'Behdenna'}
+  \item \code{'GainLoss'}
 }
 }
 
@@ -30,7 +32,7 @@ Most PA methods are compatible with a \code{ProtWeaver} object initialized
 with any input type. See \code{\link{ProtWeaver}} for more information on input data types.
 
 All of these methods use PA profiles, which are binary presence/absence
-vectors such that 1 implies the corresponding genome has that particular 
+vectors such that 1 implies the corresponding genome has that particular
 gene, and 0 implies the genome does not have that particular gene.
 
 Methods \code{Hamming} and \code{Jaccard} use Hamming and Jaccard distance
@@ -49,7 +51,11 @@ Lokhov et al. (2018) for increased speed and exact solutions.
 \code{Behdenna} implements the method detailed in Behdenna et al. (2016) to
 find statistically significant interactions using co-occurence of gain/loss 
 events mapped to ancestral states on a species tree. This method requires
-a species tree as input.
+a species tree as input. If the \code{ProtWeaver} object is initialized with \code{dendrogram} objects, \code{\link{SuperTree}} will be used to infer a species tree.
+
+\code{GainLoss} uses a similar method to \code{Behdenna}. This method maps presence/absence patterns onto gain/loss events on a tree, and then looks for distance between gain/loss events. Unlike \code{Behdenna}, this method takes into account the types of events (ex. gain/gain and loss/loss are treated differently than gain/loss). This method requires
+a species tree as input. If the \code{ProtWeaver} object is initialized with \code{dendrogram} objects, \code{\link{SuperTree}} will be used to infer a species tree.
+
 }
 
 \author{

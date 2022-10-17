@@ -67,7 +67,7 @@ data("SuperTreeEx", package="SynExtend")
 
 # Notice that the labels of the tree are in #_#_# format
 # See the man page for SuperTreeEx for more info
-labs <- flatdendrapply(exData[[1]], LEAFFUN=attr, which="label")
+labs <- labels(exData[[1]])
 labs
 
 # The first number corresponds to the species,
