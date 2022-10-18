@@ -107,7 +107,7 @@ Hamming.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
       if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
         p2 <- pap[,j]
         #pairscores[ctr+1] <-  sum(xor(p1,p2)) / nc
-        pairscores[ctr+1] <-  .Call("calcScoreHamming", p1, p2, nr)
+        pairscores[ctr+1] <-  .Call("calcScoreHamming", p1, p2, nr, 1)
       }
       ctr <- ctr + 1
       if (Verbose) setTxtProgressBar(pb, ctr)
@@ -117,10 +117,6 @@ Hamming.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
 
   n <- n[uvals]
   pairscores <- as.simMat(pairscores, NAMES=n, DIAG=FALSE)
-  Diag(pairscores) <- 0
-  mp <- max(pairscores, na.rm=TRUE)
-  mp <- ifelse(mp==0, 1, mp)
-  pairscores <- (mp - pairscores) / mp #because distance
   return(pairscores)
 }
 
@@ -186,7 +182,7 @@ HammingGL.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
       entry <- max(uval1, uval2)
       if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
         v2 <- glvs[,j]
-        pairscores[ctr+1] <- .Call('calcScoreHamming', v1, v2, numnodes)
+        pairscores[ctr+1] <- .Call('calcScoreHamming', v1, v2, numnodes, 2)
       }
       ctr <- ctr + 1
       if (Verbose) setTxtProgressBar(pb, ctr)
@@ -195,6 +191,7 @@ HammingGL.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   if (Verbose) cat('\n')
   
   n <- n[uvals]
+  #pairscores <- 1 - pairscores
   pairscores <- as.simMat(pairscores, NAMES=n, DIAG=FALSE)
   return(pairscores)
 }

@@ -85,7 +85,9 @@ SEXP calcScoreGL(SEXP tnPtr, SEXP glv1, SEXP glv2, SEXP NN){
   double r = 0.0;
   for ( int i=0; i < numNodes; i++){
     if (nodeScores[i] != 0){
-      r += 1 / sqrt(fabs(nodeScores[i]));
+      //r += 1 / sqrt(fabs(nodeScores[i]));
+      //r += (nodeScores[i] < 1 ? -1 : 1) / exp(fabs(nodeScores[i])-1);
+       r += (nodeScores[i] < 1 ? -1 : 1) / sqrt(fabs(nodeScores[i]));
     }
   }
 
@@ -114,14 +116,18 @@ SEXP calcScoreJaccard(SEXP ov1, SEXP ov2, SEXP NN){
   return retval;
 }
 
-SEXP calcScoreHamming(SEXP ov1, SEXP ov2, SEXP NN){
+SEXP calcScoreHamming(SEXP ov1, SEXP ov2, SEXP NN, SEXP norm){
   int v1len = INTEGER(NN)[0];
+  double normer = REAL(norm)[0];
   int *v1 = INTEGER(ov1);
   int *v2 = INTEGER(ov2);
 
   double outval = 0.0;
-  for (int i=0; i<v1len; i++)
-    outval += v1[i] > v2[i] ? v1[i] - v2[i] : v2[i] - v1[i];
+  double addamt;
+  for (int i=0; i<v1len; i++){
+    addamt = abs(v1[i] - v2[i]);
+    outval += addamt / normer;
+  }
   outval = 1 - (outval / v1len);
 
   SEXP retval = PROTECT(allocVector(REALSXP, 1));
@@ -133,11 +139,19 @@ SEXP calcScoreHamming(SEXP ov1, SEXP ov2, SEXP NN){
 /****** Gain / Loss Functions ******/
 int findNodeScores(treeNode *curNode, int *v1, int *v2, double *scores, int ctr){
   scores[ctr] = 0.0;
+  double l1, l2, h;
   if (v1[ctr] != 0){
     globalTreeNode = NULL;
     findNextNode(curNode, v1[ctr], v2, ctr);
-    if (globalTreeNode)
-      scores[ctr] = (!globalIsSame * -2 + 1) * (fabs(curNode->height - globalTreeNode->height) + 1);
+    if (globalTreeNode){
+      h = curNode->left ? curNode->left->height : 0.0;
+      l1 = (curNode->height + h) / 2;
+      h = globalTreeNode->left ? globalTreeNode->left->height : 0.0;
+      l2 = (globalTreeNode->height + h) / 2;
+      h = l1 == l2 ? l1 : fabs(l1 - l2);
+      //scores[ctr] = (!globalIsSame * -2 + 1) * (fabs(curNode->height - globalTreeNode->height) + 1);
+      scores[ctr] = (!globalIsSame * -2 + 1) * (++h);
+    }
   }
   ctr++;
   if (curNode->left) ctr = findNodeScores(curNode->left, v1, v2, scores, ctr);
