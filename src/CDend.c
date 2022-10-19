@@ -85,8 +85,6 @@ SEXP calcScoreGL(SEXP tnPtr, SEXP glv1, SEXP glv2, SEXP NN){
   double r = 0.0;
   for ( int i=0; i < numNodes; i++){
     if (nodeScores[i] != 0){
-      //r += 1 / sqrt(fabs(nodeScores[i]));
-      //r += (nodeScores[i] < 1 ? -1 : 1) / exp(fabs(nodeScores[i])-1);
        r += (nodeScores[i] < 1 ? -1 : 1) / sqrt(fabs(nodeScores[i]));
     }
   }
