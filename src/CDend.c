@@ -7,6 +7,7 @@ SEXP initCDend(SEXP dend){
   TREELAB = install("label");
   TREELF = install("leaf");
   treeNode *head = convertRDend(dend);
+  labelTreePostorder(head, 0);
   SEXP retval = PROTECT(R_MakeExternalPtr(head, R_NilValue, R_NilValue));
   R_RegisterCFinalizerEx(retval, (R_CFinalizer_t) FreeTree, TRUE);
   UNPROTECT(1);
@@ -16,19 +17,20 @@ SEXP initCDend(SEXP dend){
 /* Prints the tree
 Unneeded, but keeping in for future reference
 (since I know I'll forget how to do this later)
+*/
 SEXP printTree(SEXP tnPtr){
   checkPtrExists(tnPtr);
   treeNode *head = (treeNode *) R_ExternalPtrAddr(tnPtr);
   printHelper(head, 0);
   return R_NilValue;
 }
-*/
+//*/
 
 SEXP getTreeNodesCount(SEXP tnPtr){
   checkPtrExists(tnPtr);
   treeNode *head = (treeNode *) R_ExternalPtrAddr(tnPtr);
   SEXP retval = PROTECT(allocVector(INTSXP, 1));
-  INTEGER(retval)[0] = getNumNodes(head);
+  INTEGER(retval)[0] = head->value+1;
   UNPROTECT(1);
   return retval;
 }
@@ -50,47 +52,48 @@ SEXP calcGainLoss(SEXP tnPtr, SEXP occVec, SEXP convertToGL){
     presMap[i] = hashLabel(STRING_ELT(occVec, i));
   }
 
-  resetTree(head, 2);
-  fitchUp(head, presMap, ovLen);
+  //resetTree(head, 2);
+  int lenOut = head->value + 1;
+  int *PAvec = malloc(sizeof(int) * lenOut);
+  fitchUp(head, presMap, ovLen, PAvec);
   free(presMap);
 
-  fitchDown(head, 0);
-  fitchRecon(head, 0);
+  fitchDown(head, 0, PAvec);
+  fitchRecon(PAvec,  lenOut, 0);
   if (shouldConvert)
-    convertGL(head, head->value==1);
+    convertGL(head, PAvec[head->value]==1, PAvec);
 
-  int numNodes = getNumNodes(head);
-  SEXP retvec = PROTECT(allocVector(INTSXP, numNodes));
+  SEXP retvec = PROTECT(allocVector(INTSXP, lenOut));
   int *rvPtr = INTEGER(retvec);
-  populateVector(head, rvPtr, 0);
+  for (int i = 0; i<lenOut; i++)
+    rvPtr[i] = PAvec[i];
+  //populateVector(head, rvPtr, 0);
+  free(PAvec);
 
-  // commenting this out to save runtime
-  // ALWAYS ASSUME TREE VALS HAVE NOT BEEN RESET BEFORE RUNNING OPERATIONS
-  // resetTree(head, 2);
   UNPROTECT(1);
   return retvec;
 }
 
-SEXP calcScoreGL(SEXP tnPtr, SEXP glv1, SEXP glv2, SEXP NN){
+SEXP calcScoreGL(SEXP tnPtr, SEXP glv1, SEXP glv2){
   checkPtrExists(tnPtr);
-  if (LENGTH(glv1) != LENGTH(glv2)) error("Gain/Loss vectors are different lengths!");
+  //if (LENGTH(glv1) != LENGTH(glv2)) error("Gain/Loss vectors are different lengths!");
   treeNode *head = (treeNode *) R_ExternalPtrAddr(tnPtr);
   int *v1 = INTEGER(glv1);
   int *v2 = INTEGER(glv2);
-  int numNodes = INTEGER(NN)[0];
+  int numNodes = head->value + 1;
   double *nodeScores = malloc(sizeof(double) * numNodes);
-  findNodeScores(head, v1, v2, nodeScores, 0);
+  findNodeScores(head, v1, v2, nodeScores, head, true);
 
-  
-  double r = 0.0;
+  // There is some numerical instability here
+  long double r = 0.0;
   for ( int i=0; i < numNodes; i++){
     if (nodeScores[i] != 0){
-       r += (nodeScores[i] < 1 ? -1 : 1) / sqrt(fabs(nodeScores[i]));
+       //r += (nodeScores[i] < 0 ? -1 : 1) / exp(fabs(nodeScores[i])-1);
+      r += (nodeScores[i] < 0 ? -8.0 : 8.0) / (8.0*exp(fabsl(nodeScores[i])-1.0));
     }
   }
 
   free(nodeScores);
-  globalTreeNode = NULL;
   SEXP retval = PROTECT(allocVector(REALSXP, 1));
   REAL(retval)[0] = r; 
   UNPROTECT(1);
@@ -135,42 +138,109 @@ SEXP calcScoreHamming(SEXP ov1, SEXP ov2, SEXP NN, SEXP norm){
 }
 
 /****** Gain / Loss Functions ******/
-int findNodeScores(treeNode *curNode, int *v1, int *v2, double *scores, int ctr){
-  scores[ctr] = 0.0;
-  double l1, l2, h;
-  if (v1[ctr] != 0){
-    globalTreeNode = NULL;
-    findNextNode(curNode, v1[ctr], v2, ctr);
-    if (globalTreeNode){
-      h = curNode->left ? curNode->left->height : 0.0;
-      l1 = (curNode->height + h) / 2;
-      h = globalTreeNode->left ? globalTreeNode->left->height : 0.0;
-      l2 = (globalTreeNode->height + h) / 2;
-      h = l1 == l2 ? l1 : fabs(l1 - l2);
-      //scores[ctr] = (!globalIsSame * -2 + 1) * (fabs(curNode->height - globalTreeNode->height) + 1);
-      scores[ctr] = (!globalIsSame * -2 + 1) * (++h);
+void findNodeScores(treeNode *curNode, int *v1, int *v2, double *scores, treeNode* head, bool isHead){
+  int v = curNode->value;
+  scores[v] = 0.0;
+  if (v1[v] != 0){
+    treeNode *ssNode=NULL, *osNode=NULL;
+    bool sameVal, useOS=false;
+    double h;
+
+    ssNode = findNextNode(curNode, v2);
+    
+    if (ssNode){
+      double mpOS, mpSS, mpCN, oshd;
+
+      // midpoint of found node
+      mpCN = curNode->left ? curNode->left->height : 0;
+      mpCN = (curNode->height + mpCN) / 2;
+
+      // midpoint of sameside node
+      mpSS = ssNode->left ? ssNode->left->height : 0;
+      mpSS = (ssNode->height + mpSS) / 2;
+
+
+      // check otherside
+      if (!isHead){
+        treeNode *otherSideStart = v <= head->left->value ? head->right : head->left;
+        osNode = checkOthersideNode(otherSideStart, v2);
+      }
+
+      // midpoint of otherside node
+      if (osNode){
+        mpOS = osNode->left ? osNode->left->height : 0;
+        mpOS = (osNode->height + mpOS) / 2;
+        oshd = (2*head->height - mpOS - mpCN);
+      }
+      
+      if (osNode && ssNode)
+        useOS = oshd < (mpCN - mpSS);
+
+      // just for simplicity
+      ssNode = useOS ? osNode : ssNode;
+
+      sameVal = v1[v] == v2[ssNode->value];
+      if (useOS)
+        h = 2*head->height - mpOS - mpCN;
+      else{
+        if (mpSS == mpCN){
+          h = curNode->left ? curNode->left->height : 0.0;
+          h = (curNode->height - h) / 3;
+        } else {
+          h = fabs(mpCN - mpSS);
+        }
+      } 
+
+      h++;
+      scores[v] = (sameVal ? 1 : -1) * h;
     }
   }
-  ctr++;
-  if (curNode->left) ctr = findNodeScores(curNode->left, v1, v2, scores, ctr);
-  if (curNode->right) ctr = findNodeScores(curNode->right, v1, v2, scores, ctr);
 
-  return ctr;
+  if (curNode->left) findNodeScores(curNode->left, v1, v2, scores, head, false);
+  if (curNode->right) findNodeScores(curNode->right, v1, v2, scores, head, false);
+
+  return;
 }
 
-int findNextNode(treeNode *curNode, int val, int *v, int ctr){
-  if (v[ctr] != 0){
-    if (!globalTreeNode || curNode->height < globalTreeNode->height){
-      globalTreeNode = curNode;
-      globalIsSame = v[ctr] == val;
-    }
-  }  
-  ctr++;
+treeNode* checkOthersideNode(treeNode *curNode, int *v){
+  if (!curNode || v[curNode->value] != 0)
+      return curNode; 
 
-  if (curNode->left) ctr = findNextNode(curNode->left, val, v, ctr);
-  if (curNode->right) ctr = findNextNode(curNode->right, val, v, ctr);
+  treeNode* leftnode = NULL;
+  if (curNode->left)
+    leftnode = checkOthersideNode(curNode->left, v);
 
-  return ctr;
+  treeNode* rightnode = NULL;
+  if (curNode->right)
+    rightnode = checkOthersideNode(curNode->right, v);
+
+  if (rightnode && leftnode){
+    double rmp = rightnode->left ? (rightnode->height + rightnode->left->height) : rightnode->height;
+    double lmp = leftnode->left ? (leftnode->height + leftnode->left->height) : rightnode->height;
+    return rmp < lmp ? rightnode : leftnode;
+  }
+  return rightnode ? rightnode : leftnode;
+}
+
+treeNode* findNextNode(treeNode *curNode, int *v){
+  if (!curNode || v[curNode->value] != 0)
+    return curNode;
+
+
+  treeNode* leftnode = NULL;
+  if (curNode->left)
+    leftnode = findNextNode(curNode->left, v);
+
+  treeNode* rightnode = NULL;
+  if (curNode->right)
+    rightnode = findNextNode(curNode->right, v);
+
+  if (rightnode && leftnode){
+    double rmp = rightnode->left ? (rightnode->height + rightnode->left->height) : rightnode->height;
+    double lmp = leftnode->left ? (leftnode->height + leftnode->left->height) : rightnode->height;
+    return rmp < lmp ? rightnode : leftnode;
+  }
+  return rightnode ? rightnode : leftnode;
 }
 
 
@@ -183,7 +253,8 @@ void resetTree(treeNode* node, int val){
 }
 
 // Up Phase, starts with leaves and propagates up
-void fitchUp(treeNode* node, unsigned int* hashMap, int hashMapLen){
+void fitchUp(treeNode* node, unsigned int* hashMap, int hashMapLen, int *PAvec){
+  int nv = node->value;
   if (node->label != 0){
     // leaf node
     bool found = false;
@@ -194,41 +265,41 @@ void fitchUp(treeNode* node, unsigned int* hashMap, int hashMapLen){
       }
     }
 
-    node->value = found ? 1 : 0;
+    PAvec[nv] = found ? 1 : 0;
     return;
   }
 
   // non-leaf node
   int lv=2, rv=2;
   if (node->left){
-    fitchUp(node->left, hashMap, hashMapLen);
-    lv = node->left->value;
+    fitchUp(node->left, hashMap, hashMapLen, PAvec);
+    lv = PAvec[node->left->value];
   }
 
   if (node->right){
-    fitchUp(node->right, hashMap, hashMapLen);
-    rv = node->right->value;
+    fitchUp(node->right, hashMap, hashMapLen, PAvec);
+    rv = PAvec[node->right->value];
   }
 
   // assign value based on children
   if (rv == 2 || lv == 2){
-    node->value = rv==2 ? lv : rv;
+    PAvec[nv] = rv==2 ? lv : rv;
   } else {
-    node->value = rv==lv ? rv : 2;
+    PAvec[nv] = rv==lv ? rv : 2;
   }
 
   return;
 }
 
 // Down phase, takes consensus between parent and children
-void fitchDown(treeNode* node, int parentVal){
+void fitchDown(treeNode* node, int parentVal, int *PAvec){
   if (node->label != 0) return;
-  if (node->value == 2){
+  if (PAvec[node->value] == 2){
     int counts[3] = {0, 0, 0};
     counts[parentVal]++;
 
-    int lv = node->left ? node->left->value : 2;
-    int rv = node->right ? node->right->value : 2;
+    int lv = node->left ? PAvec[node->left->value] : 2;
+    int rv = node->right ? PAvec[node->right->value] : 2;
     counts[lv]++;
     counts[rv]++;
 
@@ -236,32 +307,33 @@ void fitchDown(treeNode* node, int parentVal){
     if (counts[2] != 3 && counts[0] != counts[1])
       endval = counts[1] > counts[0] ? 1 : 0;
 
-    node->value = endval;
+    PAvec[node->value] = endval;
   }
+  int val = PAvec[node->value];
+  if (node->left) fitchDown(node->left, val, PAvec);
+  if (node->right) fitchDown(node->right, val, PAvec);
 
-  if (node->left) fitchDown(node->left, node->value);
-  if (node->right) fitchDown(node->right, node->value);
-}
-
-// Reconciliation, any nodes we couldn't set we just set to defaultVal
-void fitchRecon(treeNode* node, int defaultVal){
-  if (node->value == 2) node->value = defaultVal;
-  if (node->left) fitchRecon(node->left, defaultVal);
-  if (node->right) fitchRecon(node->right, defaultVal);
   return;
 }
 
-void convertGL(treeNode* node, bool curVal){
-  if ((node->value==1) ^ curVal){
+// Reconciliation, any nodes we couldn't set we just set to defaultVal
+void fitchRecon(int* PAvec, int len, int defaultVal){
+  for (int i=0; i<len; i++)
+    if (PAvec[i] == 2) PAvec[i] = defaultVal;
+  return;
+}
+
+void convertGL(treeNode* node, bool curVal, int *PAvec){
+  if ((PAvec[node->value]==1) ^ curVal){
     // if curVal was true and we've changed, it's a loss (else gain)
-    node->value = curVal ? -1 : 1;
+    PAvec[node->value] = curVal ? -1 : 1;
     curVal = !curVal;
   } else {
-    node->value = 0;
+    PAvec[node->value] = 0;
   }
 
-  if (node->left) convertGL(node->left, curVal);
-  if (node->right) convertGL(node->right, curVal);
+  if (node->left) convertGL(node->left, curVal, PAvec);
+  if (node->right) convertGL(node->right, curVal, PAvec);
   return;
 }
 
@@ -332,14 +404,24 @@ unsigned int hashLabel(SEXP label){
 
 /****** Miscellaneous ******/
 
-static inline int getNumNodes(treeNode* node){
-  int numNodes = 1;
-  if (node->left) numNodes += getNumNodes(node->left);
-  if (node->right) numNodes += getNumNodes(node->right);
+static inline int getNumNodes(treeNode* node, int n){
+  int numNodes = n;
+  if (node->left) numNodes = getNumNodes(node->left, numNodes);
+  if (node->right) numNodes = getNumNodes(node->right, numNodes);
+  numNodes++;
+  node->value = numNodes;
   return numNodes;
 }
 
-/* See comment on printTree
+static inline int labelTreePostorder(treeNode* node, int n){
+  int numNodes = n;
+  if (node->left) numNodes = getNumNodes(node->left, numNodes);
+  if (node->right) numNodes = getNumNodes(node->right, numNodes);
+  node->value = numNodes++;
+  return numNodes;
+}
+
+///* See comment on printTree
 // helper function to print tree (in order)
 static void printHelper(treeNode* node, int depth){
   if (!node) return;
@@ -358,7 +440,7 @@ static void printHelper(treeNode* node, int depth){
 
   return;
 }
-*/
+//*/
 
 static void FreeTree(SEXP tnPtr){
   if (!R_ExternalPtrAddr(tnPtr)) return;

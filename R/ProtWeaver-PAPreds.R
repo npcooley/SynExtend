@@ -431,7 +431,7 @@ GainLoss.ProtWeaver <- function(pw, Subset=NULL,
   numnodes <- .Call("getTreeNodesCount", y)
   rn <- rownames(pap)
   glvs <- matrix(NA_integer_, nrow=numnodes, ncol=l)
-  
+  allnonzero <- logical(l)
   # Calculate Gain/Loss Vectors
   if (Verbose) cat('  Calculating gain/loss vectors:\n')
   if (Verbose) pb <- txtProgressBar(max=ncol(pap), style=3)
@@ -439,6 +439,7 @@ GainLoss.ProtWeaver <- function(pw, Subset=NULL,
     v <- rn[pap[,i]]
     if (length(v) == 0){
       glv <- rep(0L, numnodes)
+      allnonzero[i] <- TRUE
     } else {
       glv <- .Call("calcGainLoss", y, v, TRUE)
     }
@@ -454,17 +455,22 @@ GainLoss.ProtWeaver <- function(pw, Subset=NULL,
   for (i in seq_len(l-1)){
     uval1 <- uvals[i]
     v1 <- glvs[,i]
+    anyNonA <- any(v1 != 0)
     for (j in (i+1):l){
       uval2 <- uvals[j]
       accessor <- as.character(min(uval1, uval2))
       entry <- max(uval1, uval2)
       if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
         v2 <- glvs[,j]
-        res <- .Call("calcScoreGL", y, v1, v2, numnodes)
-        #normer <- mean(sum(abs(v1)), sum(abs(v2)))
-        normer <- sum(abs(v1), abs(v2))
-        normer <- ifelse(normer==0, 1, normer)
-        pairscores[ctr+1] <- 2*res / normer
+        if (allnonzero[i] || allnonzero[j]){
+          pairscores[ctr+1] <- 0
+        } else {
+          res <- .Call("calcScoreGL", y, v1, v2)
+          #normer <- mean(sum(abs(v1)), sum(abs(v2)))
+          normer <- sum(abs(v1), abs(v2))
+          normer <- ifelse(normer==0, 1, normer)
+          pairscores[ctr+1] <- 2*res / normer
+        }
       }
       ctr <- ctr + 1
       if (Verbose) setTxtProgressBar(pb, ctr)
