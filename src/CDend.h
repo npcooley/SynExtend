@@ -24,8 +24,7 @@ treeNode *convertRDend(SEXP dend);
 const char *convertRChar(SEXP chars);
 unsigned int hashLabel(SEXP label);
 void findNodeScores(treeNode* curNode, int* v1, int* v2, double* scores, treeNode* head, bool isHead);
-treeNode* findNextNode(treeNode* curNode, int* v);
-treeNode* checkOthersideNode(treeNode *curNode, int *v);
+treeNode* findNextNode(treeNode *curNode, int *v, int *selfv, bool isCur);
 
 /* Fitch Parsimony */
 void resetTree(treeNode* node, int val);

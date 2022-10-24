@@ -146,7 +146,7 @@ void findNodeScores(treeNode *curNode, int *v1, int *v2, double *scores, treeNod
     bool sameVal, useOS=false;
     double h;
 
-    ssNode = findNextNode(curNode, v2);
+    ssNode = findNextNode(curNode, v2, v1, true);
     
     if (ssNode){
       double mpOS, mpSS, mpCN, oshd;
@@ -163,7 +163,7 @@ void findNodeScores(treeNode *curNode, int *v1, int *v2, double *scores, treeNod
       // check otherside
       if (!isHead){
         treeNode *otherSideStart = v <= head->left->value ? head->right : head->left;
-        osNode = checkOthersideNode(otherSideStart, v2);
+        osNode = findNextNode(otherSideStart, v2, v1, false);
       }
 
       // midpoint of otherside node
@@ -202,38 +202,21 @@ void findNodeScores(treeNode *curNode, int *v1, int *v2, double *scores, treeNod
   return;
 }
 
-treeNode* checkOthersideNode(treeNode *curNode, int *v){
-  if (!curNode || v[curNode->value] != 0)
-      return curNode; 
-
-  treeNode* leftnode = NULL;
-  if (curNode->left)
-    leftnode = checkOthersideNode(curNode->left, v);
-
-  treeNode* rightnode = NULL;
-  if (curNode->right)
-    rightnode = checkOthersideNode(curNode->right, v);
-
-  if (rightnode && leftnode){
-    double rmp = rightnode->left ? (rightnode->height + rightnode->left->height) : rightnode->height;
-    double lmp = leftnode->left ? (leftnode->height + leftnode->left->height) : rightnode->height;
-    return rmp < lmp ? rightnode : leftnode;
+treeNode* findNextNode(treeNode *curNode, int *v, int *selfv, bool isCur){
+  if (!curNode || (!isCur && selfv[curNode->value] != 0)){
+    return NULL;
   }
-  return rightnode ? rightnode : leftnode;
-}
-
-treeNode* findNextNode(treeNode *curNode, int *v){
-  if (!curNode || v[curNode->value] != 0)
+  if (v[curNode->value] != 0)
     return curNode;
 
 
   treeNode* leftnode = NULL;
   if (curNode->left)
-    leftnode = findNextNode(curNode->left, v);
+    leftnode = findNextNode(curNode->left, v, selfv, false);
 
   treeNode* rightnode = NULL;
   if (curNode->right)
-    rightnode = findNextNode(curNode->right, v);
+    rightnode = findNextNode(curNode->right, v, selfv, false);
 
   if (rightnode && leftnode){
     double rmp = rightnode->left ? (rightnode->height + rightnode->left->height) : rightnode->height;

@@ -455,7 +455,6 @@ GainLoss.ProtWeaver <- function(pw, Subset=NULL,
   for (i in seq_len(l-1)){
     uval1 <- uvals[i]
     v1 <- glvs[,i]
-    anyNonA <- any(v1 != 0)
     for (j in (i+1):l){
       uval2 <- uvals[j]
       accessor <- as.character(min(uval1, uval2))
