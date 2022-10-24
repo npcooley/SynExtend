@@ -26,6 +26,10 @@ unsigned int hashLabel(SEXP label);
 void findNodeScores(treeNode* curNode, int* v1, int* v2, double* scores, treeNode* head, bool isHead);
 treeNode* findNextNode(treeNode *curNode, int *v, int *selfv, bool isCur);
 
+/* D value on Trees */
+void calcSisterClades(treeNode *node, unsigned int *pmap, int pmaplen, double *scoreArr);
+double scoreSisterClades(treeNode *node, double *scores);
+
 /* Fitch Parsimony */
 void resetTree(treeNode* node, int val);
 void fitchUp(treeNode* node, unsigned int* hashMap, int hashMapLen, int* PAvec);
@@ -37,7 +41,7 @@ int populateVector(treeNode* node, int* container, int idx);
 /* internal functions */
 static inline int getNumNodes(treeNode* node, int n);
 static inline int labelTreePostorder(treeNode* node, int n);
-static inline void checkPtrExists(SEXP tnPtr);
+static inline treeNode* checkPtrExists(SEXP tnPtr);
 static void FreeTree(SEXP tnPtr);
 static void printHelper(treeNode* node, int depth);
 static void CleanupTree(treeNode* head);

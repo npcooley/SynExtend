@@ -37,6 +37,7 @@ static const R_CallMethodDef callMethods[] = { // method call, pointer, num args
   {"calcScoreJaccard", (DL_FUNC) &calcScoreJaccard, 3},
   {"calcScoreHamming", (DL_FUNC) &calcScoreHamming, 4},
   {"printTree", (DL_FUNC) &printTree, 1},
+  {"calcDValue", (DL_FUNC) &calcDValue, 2},
   {NULL, NULL, 0}
 };
 

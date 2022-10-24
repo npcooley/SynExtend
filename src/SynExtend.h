@@ -16,3 +16,4 @@ SEXP calcGainLoss(SEXP tnPtr, SEXP occVec, SEXP convertToGL);
 SEXP calcScoreGL(SEXP tnPtr, SEXP glv1, SEXP glv2);
 SEXP calcScoreJaccard(SEXP ov1, SEXP ov2, SEXP NN);
 SEXP calcScoreHamming(SEXP ov1, SEXP ov2, SEXP NN, SEXP norm);
+SEXP calcDValue(SEXP tnPtr, SEXP ov1);

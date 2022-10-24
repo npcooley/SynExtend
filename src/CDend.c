@@ -7,7 +7,8 @@ SEXP initCDend(SEXP dend){
   TREELAB = install("label");
   TREELF = install("leaf");
   treeNode *head = convertRDend(dend);
-  labelTreePostorder(head, 0);
+  // I don't know why we have to add 1 here but otherwise it's always off
+  head->value = labelTreePostorder(head, 0) + 1;
   SEXP retval = PROTECT(R_MakeExternalPtr(head, R_NilValue, R_NilValue));
   R_RegisterCFinalizerEx(retval, (R_CFinalizer_t) FreeTree, TRUE);
   UNPROTECT(1);
@@ -19,16 +20,14 @@ Unneeded, but keeping in for future reference
 (since I know I'll forget how to do this later)
 */
 SEXP printTree(SEXP tnPtr){
-  checkPtrExists(tnPtr);
-  treeNode *head = (treeNode *) R_ExternalPtrAddr(tnPtr);
+  treeNode *head = checkPtrExists(tnPtr);
   printHelper(head, 0);
   return R_NilValue;
 }
 //*/
 
 SEXP getTreeNodesCount(SEXP tnPtr){
-  checkPtrExists(tnPtr);
-  treeNode *head = (treeNode *) R_ExternalPtrAddr(tnPtr);
+  treeNode *head = checkPtrExists(tnPtr);
   SEXP retval = PROTECT(allocVector(INTSXP, 1));
   INTEGER(retval)[0] = head->value+1;
   UNPROTECT(1);
@@ -37,14 +36,13 @@ SEXP getTreeNodesCount(SEXP tnPtr){
 
 SEXP hashString(SEXP label){
   SEXP ret = PROTECT(allocVector(INTSXP, 1));
-  INTEGER(ret)[0] = hashLabel(STRING_ELT(label, 1));
+  INTEGER(ret)[0] = hashLabel(STRING_ELT(label, 0));
   UNPROTECT(1);
   return ret;
 }
 
 SEXP calcGainLoss(SEXP tnPtr, SEXP occVec, SEXP convertToGL){
-  checkPtrExists(tnPtr);
-  treeNode *head = (treeNode *) R_ExternalPtrAddr(tnPtr);
+  treeNode *head = checkPtrExists(tnPtr);
   bool shouldConvert = LOGICAL(convertToGL)[0];
   int ovLen = LENGTH(occVec);
   unsigned int *presMap = malloc(sizeof(unsigned int) * ovLen);
@@ -75,9 +73,8 @@ SEXP calcGainLoss(SEXP tnPtr, SEXP occVec, SEXP convertToGL){
 }
 
 SEXP calcScoreGL(SEXP tnPtr, SEXP glv1, SEXP glv2){
-  checkPtrExists(tnPtr);
+  treeNode *head = checkPtrExists(tnPtr);
   //if (LENGTH(glv1) != LENGTH(glv2)) error("Gain/Loss vectors are different lengths!");
-  treeNode *head = (treeNode *) R_ExternalPtrAddr(tnPtr);
   int *v1 = INTEGER(glv1);
   int *v2 = INTEGER(glv2);
   int numNodes = head->value + 1;
@@ -136,6 +133,86 @@ SEXP calcScoreHamming(SEXP ov1, SEXP ov2, SEXP NN, SEXP norm){
   UNPROTECT(1);
   return retval;
 }
+
+SEXP calcDValue(SEXP tnPtr, SEXP occVec){
+  treeNode *head = checkPtrExists(tnPtr);
+
+  int ovLen = LENGTH(occVec);
+  unsigned int *presMap = malloc(sizeof(unsigned int) * ovLen);
+  for (int i=0; i<ovLen; i++){
+    presMap[i] = hashLabel(STRING_ELT(occVec, i));
+  }
+
+  double *scores = Calloc(head->value+1, double);
+  calcSisterClades(head, presMap, ovLen, scores);
+  
+  double score = scoreSisterClades(head, scores);
+
+  // cleanup
+  SEXP retval = PROTECT(allocVector(REALSXP, 1));
+  REAL(retval)[0] = score;
+  Free(scores);
+  UNPROTECT(1);
+
+  return retval;
+}
+
+/******  D value calculation  ******/
+void calcSisterClades(treeNode *node, unsigned int *pmap, int pmaplen, double *scoreArr){
+  int nv = node->value;
+  if (node->label != 0){
+    // leaf node
+    bool found = false;
+    for (int i = 0; i<pmaplen; i++){
+      if (node->label == pmap[i]){
+        found = true;
+        break;
+      }
+    }
+
+    scoreArr[nv] = found ? 1.0 : 0.0;
+    return;
+  }
+
+  // if we get here, it's not a leaf node
+  double ch = node->height;
+
+  double lscore = 0.0;
+  if (node->left){
+    calcSisterClades(node->left, pmap, pmaplen, scoreArr);
+    lscore = scoreArr[node->left->value] * (ch - node->left->height);
+  }
+
+  double rscore = 0.0;
+  if (node->right){
+    calcSisterClades(node->right, pmap, pmaplen, scoreArr);
+    rscore = scoreArr[node->right->value] * (ch - node->right->height);
+  }
+
+  double curscore = (lscore + rscore) / 2.0;
+  scoreArr[nv] = curscore;
+
+  return;
+}
+
+double scoreSisterClades(treeNode *node, double *scores){
+  double retval = 0.0;
+
+  if (node->label != 0)
+    return retval;
+
+  // add children
+  retval += scoreSisterClades(node->left, scores);
+  retval += scoreSisterClades(node->right, scores);
+  
+  double curscore = scores[node->value];
+  // add current node
+  retval += fabsl(curscore - scores[node->left->value]);
+  retval += fabsl(curscore - scores[node->right->value]);
+
+  return retval;
+}
+
 
 /****** Gain / Loss Functions ******/
 void findNodeScores(treeNode *curNode, int *v1, int *v2, double *scores, treeNode* head, bool isHead){
@@ -397,11 +474,13 @@ static inline int getNumNodes(treeNode* node, int n){
 }
 
 static inline int labelTreePostorder(treeNode* node, int n){
-  int numNodes = n;
+  // unsure why this has to be -1 as well, there's an off by one error otherwise
+  int numNodes = n-1;
   if (node->left) numNodes = getNumNodes(node->left, numNodes);
   if (node->right) numNodes = getNumNodes(node->right, numNodes);
-  node->value = numNodes++;
-  return numNodes;
+  node->value = numNodes;
+
+  return numNodes++;
 }
 
 ///* See comment on printTree
@@ -433,10 +512,10 @@ static void FreeTree(SEXP tnPtr){
   return;
 }
 
-static inline void checkPtrExists(SEXP tnPtr){
+static inline treeNode* checkPtrExists(SEXP tnPtr){
   if (!R_ExternalPtrAddr(tnPtr))
     error("External pointer no longer exists!");
-  return;
+  return (treeNode *) R_ExternalPtrAddr(tnPtr);
 }
 
 // helper function to free memory
