@@ -7,7 +7,8 @@ import(DECIPHER)
 import(S4Vectors)
 
 importFrom("utils", "setTxtProgressBar", "txtProgressBar", "data", "object.size", "getS3method", "read.table")
-importFrom("stats", "predict", "runif", "setNames", "rnorm", "optim", "kmeans", "density", "nls")
+importFrom("stats", "predict", "runif", "setNames", "rnorm", "optim", "kmeans", "density", "nls",
+"dendrapply")
 importFrom("parallel", "mclapply", "detectCores")
 importFrom("graphics", "hist", "points", "abline", "axis", "layout", "lines", "par")
 importFrom("grDevices", "topo.colors")
@@ -26,6 +27,7 @@ export(BlockReconciliation)
 export(BlastSeqs)
 export(SelectByK)
 export(SuperTree)
+export(DPhyloStatistic)
 
 S3method(`[`, "LinkedPairs")
 S3method(print, "LinkedPairs")

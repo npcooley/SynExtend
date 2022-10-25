@@ -1,19 +1,24 @@
 // R_init_DECIPHER.c
-
 void R_init_SynExtend(DllInfo *info);
 
-// calcMIR2C.c
+/**** calcMIR2C.c ****/
 void cleanupFxn();
 SEXP calcMIcVec(SEXP V1, SEXP V2, SEXP UV, SEXP PSEUDOCOUNT);
 SEXP trimCovar(SEXP fMAT, SEXP fSP, SEXP sSP, SEXP NV, SEXP NR);
 
-
-// CDend.c
+/**** CDend.c ****/
+// utility functions
 SEXP initCDend(SEXP dend);
 SEXP hashString(SEXP label);
 SEXP printTree(SEXP tnPtr);
+
+// scoring functions for ProtWeaver
 SEXP calcGainLoss(SEXP tnPtr, SEXP occVec, SEXP convertToGL);
 SEXP calcScoreGL(SEXP tnPtr, SEXP glv1, SEXP glv2);
 SEXP calcScoreJaccard(SEXP ov1, SEXP ov2, SEXP NN);
 SEXP calcScoreHamming(SEXP ov1, SEXP ov2, SEXP NN, SEXP norm);
-SEXP calcDValue(SEXP tnPtr, SEXP ov1);
+
+// D value calculation
+SEXP calcDValue(SEXP tnPtr, SEXP occVec);
+SEXP calcDRandValue(SEXP tnPtr, SEXP allLabels, SEXP numP, SEXP iterNum);
+SEXP calcDBrownValue(SEXP tnPtr, SEXP allLabels, SEXP iterNum, SEXP SD, SEXP START, SEXP THRESH);

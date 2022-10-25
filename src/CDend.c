@@ -145,7 +145,7 @@ SEXP calcDValue(SEXP tnPtr, SEXP occVec){
 
   double *scores = Calloc(head->value+1, double);
   calcSisterClades(head, presMap, ovLen, scores);
-  
+
   double score = scoreSisterClades(head, scores);
 
   // cleanup
@@ -157,7 +157,114 @@ SEXP calcDValue(SEXP tnPtr, SEXP occVec){
   return retval;
 }
 
-/******  D value calculation  ******/
+SEXP calcDRandValue(SEXP tnPtr, SEXP allLabels, SEXP numP, SEXP iterNum){
+  // read in S expressions
+  treeNode *head = checkPtrExists(tnPtr);
+
+  int numPos = INTEGER(numP)[0];
+  int numLabels = LENGTH(allLabels);
+  int numIter = INTEGER(iterNum)[0];
+
+  // get a vector of all the labels hashed
+  unsigned int *allHashed = malloc(sizeof(unsigned int) * numLabels);
+  for (int i=0; i<numLabels; i++){
+    allHashed[i] = hashLabel(STRING_ELT(allLabels, i));
+  }
+
+  // seed random number generator
+  GetRNGstate();
+
+  int numScores = head->value+1;
+  double *scores = Calloc(numScores, double);
+  double randSum = 0.0;
+  for (int i=0; i<numIter; i++){
+    // reset vector
+    memset(scores, 0, sizeof(double)*numScores);
+
+    // get a random sample of choices for P/A vector
+    shuffle(uint, allHashed, numLabels);
+    calcSisterClades(head, allHashed, numPos, scores);
+    randSum += scoreSisterClades(head, scores);
+  }
+  randSum /= numIter;
+
+  // cleanup
+  SEXP retval = PROTECT(allocVector(REALSXP, 1));
+  REAL(retval)[0] = randSum;
+  Free(scores);
+  free(allHashed);
+  PutRNGstate();
+  UNPROTECT(1);
+  return retval;
+}
+
+SEXP calcDBrownValue(SEXP tnPtr, SEXP allLabels, SEXP iterNum, SEXP SD, SEXP START, SEXP THRESH){
+  // read in SEXPs
+  treeNode *head = checkPtrExists(tnPtr);
+
+  int numLabels = LENGTH(allLabels);
+  int numIter = INTEGER(iterNum)[0];
+  double sd = REAL(SD)[0];
+  double startval = REAL(START)[0];
+  double threshold = REAL(THRESH)[0];
+
+  // get a vector of all the labels hashed
+  unsigned int *allHashed = malloc(sizeof(unsigned int) * numLabels);
+  for (int i=0; i<numLabels; i++){
+    allHashed[i] = hashLabel(STRING_ELT(allLabels, i));
+  }
+
+  int *hashMapping = malloc(sizeof(int) * numLabels);
+  findMapping(head, hashMapping, allHashed, numLabels);
+
+  // seed random number generator
+  GetRNGstate();
+
+  int numScores = head->value+1;
+  double *scores = Calloc(numScores, double);
+  unsigned int *labs = Calloc(numLabels, unsigned int);
+  double randSum = 0.0;
+  int ctr;
+  for (int i=0; i<numIter; i++){
+    // reset vector
+    memset(scores, 0, sizeof(double)*numScores);
+    ctr = 0;
+
+    // propagate brownian evolution
+    propBrownianEvo(head, scores, startval, sd);
+
+    // convert evoscores to a P/A vector
+    for (int j=0; j<numScores; j++){
+      if (scores[j] > threshold){
+        for (int k=0; k<numLabels; k++){
+          if (hashMapping[k] == j){
+            labs[ctr] = allHashed[hashMapping[k]];
+            ctr++;
+            break;
+          }
+        }
+      }
+    }
+
+    memset(scores, 0, sizeof(double)*numScores);
+    calcSisterClades(head, labs, ctr, scores);
+    randSum += scoreSisterClades(head, scores);
+  }
+
+  randSum /= numIter;
+
+  // cleanup
+  SEXP retval = PROTECT(allocVector(REALSXP, 1));
+  REAL(retval)[0] = randSum;
+  Free(scores);
+  Free(labs);
+  free(allHashed);
+  PutRNGstate();
+  UNPROTECT(1);
+  return retval;
+}
+
+/******  D value internal calculations  ******/
 void calcSisterClades(treeNode *node, unsigned int *pmap, int pmaplen, double *scoreArr){
   int nv = node->value;
   if (node->label != 0){
@@ -176,17 +283,19 @@ void calcSisterClades(treeNode *node, unsigned int *pmap, int pmaplen, double *s
 
   // if we get here, it's not a leaf node
   double ch = node->height;
-
+  double d;
   double lscore = 0.0;
   if (node->left){
     calcSisterClades(node->left, pmap, pmaplen, scoreArr);
-    lscore = scoreArr[node->left->value] * (ch - node->left->height);
+    d = ch - node->left->height;
+    lscore = d == 0 ? d : scoreArr[node->left->value] / d;
   }
 
   double rscore = 0.0;
   if (node->right){
     calcSisterClades(node->right, pmap, pmaplen, scoreArr);
-    rscore = scoreArr[node->right->value] * (ch - node->right->height);
+    d = ch - node->right->height;
+    rscore = d == 0 ? d : scoreArr[node->right->value] / d;
   }
 
   double curscore = (lscore + rscore) / 2.0;
@@ -211,6 +320,38 @@ double scoreSisterClades(treeNode *node, double *scores){
   retval += fabsl(curscore - scores[node->right->value]);
 
   return retval;
+}
+
+void propBrownianEvo(treeNode *node, double *scores, double curval, double sd){
+  scores[node->value] = curval;
+  double h = node->height;
+  double offset, mult;
+  if (node->left){
+    mult = fabs(h - node->left->height);
+    offset = rnorm(0, sd*mult);
+    propBrownianEvo(node->left, scores, curval+offset, sd);
+  }
+
+  if (node->right){
+    mult = fabs(h - node->left->height);
+    offset = rnorm(0, sd*mult);
+    propBrownianEvo(node->right, scores, curval+offset, sd);
+  }
+}
+
+void findMapping(treeNode *node, int *mapping, unsigned int *hashvals, int lenHash){
+  if (node->label != 0){
+    unsigned int lab = node->label;
+    for (int i=0; i<lenHash; i++){
+      if (hashvals[i] == lab){
+        mapping[i] = node->value;
+        return;
+      }
+    }
+  }
+
+  if (node->left) findMapping(node->left, mapping, hashvals, lenHash);
+  if (node->right) findMapping(node->right, mapping, hashvals, lenHash);
 }
 
 
