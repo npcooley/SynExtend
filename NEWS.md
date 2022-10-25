@@ -1,3 +1,6 @@
+# SynExtend 1.9.18
+* Various internal improvements to presence/absence profile methods
+
 # SynExtend 1.9.17
 * Adds new prediction algorithm `GainLoss`
 * Adds new internal C implementation of dendrograms, significantly faster than R dendrograms

@@ -48,7 +48,7 @@ matrix with some extra S3 methods to make printing cleaner.
   \item{MySpeciesTree}{
     Phylogenetic tree of all genomes in the dataset. Required for \code{Method='Behdenna'},
     and can improve predictions for other methods. \code{'Behdenna'} requires a 
-    rooted, bifurcating tree (other values of \code{Method} can handle arbitrary trees).
+    rooted, bifurcating tree (other values of \code{Method} can handle arbitrary trees). Note that \code{ProtWeaver} can automatically infer a species tree if initialized with \code{dendrogram} objects.
   }
   \item{PretrainedModel}{
     A pretrained model for use with ensemble predictions. If unspecified when 
@@ -97,20 +97,25 @@ matrix with some extra S3 methods to make printing cleaner.
   \item \code{'MutualInformation'}: MI of P/A profiles
   \item \code{'ProfDCA'}: Direct Coupling Analysis of P/A profiles
   \item \code{'Behdenna'}: Analysis of Gain/Loss events following Behdenna et al. (2016) 
+  \item \code{'HammingGL'}: Hamming distance of ancestral states
+  \item \code{'GainLoss'}: Score-based method based on distance between inferred ancestral evolutionary events
   \item \code{'Coloc'}: Co-localization analysis
   \item \code{'MirrorTree'}: MirrorTree
   \item \code{'ContextTree'}: ContextTree
   \item \code{'ResidueMI'}: Mutual Information of sequence-level residues
 }
 
-Additional information and references for each prediction algorithm can be found on at the 
+Additional information and references for each prediction algorithm can be found at the 
 following pages:
 
 \itemize{
-\item \code{\link{ProtWeaver-PAPreds}}
-\item \code{\link{ProtWeaver-DMPreds}}
-\item \code{\link{ProtWeaver-ColocPreds}}
-\item \code{\link{ProtWeaver-ResiduePreds}}
+\item \link[=ProtWeaver-PAPreds]{ProtWeaver Presence/Absence Methods}
+
+\item \link[=ProtWeaver-DMPreds]{ProtWeaver Distance Matrix Methods}
+
+\item \link[=ProtWeaver-ColocPreds]{ProtWeaver Co-localization Methods}
+
+\item \link[=ProtWeaver-ResiduePreds]{ProtWeaver Residue Level Methods}
 }
 
 This returns a \code{ProtWeb} object, an S3 class that makes formatting and printing of 
@@ -118,8 +123,7 @@ results slightly nicer. See \code{\link{ProtWeb}} for more information.
 
 Different methods require different types of input. The constructor 
 \code{\link{ProtWeaver}} will notify the user which methods are
-runnable with the given data. Note that method \code{Behdenna} requires a species 
-tree, which must be bifurcating. Method \code{Ensemble} automatically selects the 
+runnable with the given data. Method \code{Ensemble} automatically selects the 
 methods that can be run with the given input data. 
 
 See \code{\link{ProtWeaver}} for more information on input data types.

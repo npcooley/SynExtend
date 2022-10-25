@@ -23,24 +23,27 @@ treeNode *convertRDend(SEXP dend);
 /* helpers for external functions */
 const char *convertRChar(SEXP chars);
 unsigned int hashLabel(SEXP label);
-int findNodeScores(treeNode *curNode, int *v1, int *v2, double *scores, int ctr);
-int findNextNode(treeNode *curNode, int val, int *v, int ctr);
+void findNodeScores(treeNode* curNode, int* v1, int* v2, double* scores, treeNode* head, bool isHead);
+treeNode* findNextNode(treeNode *curNode, int *v, int *selfv, bool isCur);
+
+/* D value on Trees */
+void calcSisterClades(treeNode *node, unsigned int *pmap, int pmaplen, double *scoreArr);
+double scoreSisterClades(treeNode *node, double *scores);
 
 /* Fitch Parsimony */
 void resetTree(treeNode* node, int val);
-void fitchUp(treeNode* node, unsigned int* hashMap, int hashMapLen);
-void fitchDown(treeNode* node, int parentVal);
-void fitchRecon(treeNode* node, int defaultVal);
-void convertGL(treeNode* node, bool curVal);
-int populateVector(treeNode* node, int *container, int idx);
+void fitchUp(treeNode* node, unsigned int* hashMap, int hashMapLen, int* PAvec);
+void fitchDown(treeNode* node, int parentVal, int* PAvec);
+void fitchRecon(int* PAvec, int len, int defaultVal);
+void convertGL(treeNode* node, bool curVal, int* PAvec);
+int populateVector(treeNode* node, int* container, int idx);
 
 /* internal functions */
-static inline int getNumNodes(treeNode* node);
-static inline void checkPtrExists(SEXP tnPtr);
+static inline int getNumNodes(treeNode* node, int n);
+static inline int labelTreePostorder(treeNode* node, int n);
+static inline treeNode* checkPtrExists(SEXP tnPtr);
 static void FreeTree(SEXP tnPtr);
-//static void printHelper(treeNode* node, int depth);
+static void printHelper(treeNode* node, int depth);
 static void CleanupTree(treeNode* head);
 
 SEXP TREEHT, TREEMEM, TREELAB, TREELF;
-treeNode *globalTreeNode;
-bool globalIsSame;

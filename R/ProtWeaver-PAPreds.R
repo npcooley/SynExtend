@@ -107,7 +107,7 @@ Hamming.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
       if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
         p2 <- pap[,j]
         #pairscores[ctr+1] <-  sum(xor(p1,p2)) / nc
-        pairscores[ctr+1] <-  .Call("calcScoreHamming", p1, p2, nr)
+        pairscores[ctr+1] <-  .Call("calcScoreHamming", p1, p2, nr, 1)
       }
       ctr <- ctr + 1
       if (Verbose) setTxtProgressBar(pb, ctr)
@@ -117,10 +117,6 @@ Hamming.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
 
   n <- n[uvals]
   pairscores <- as.simMat(pairscores, NAMES=n, DIAG=FALSE)
-  Diag(pairscores) <- 0
-  mp <- max(pairscores, na.rm=TRUE)
-  mp <- ifelse(mp==0, 1, mp)
-  pairscores <- (mp - pairscores) / mp #because distance
   return(pairscores)
 }
 
@@ -186,7 +182,7 @@ HammingGL.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
       entry <- max(uval1, uval2)
       if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
         v2 <- glvs[,j]
-        pairscores[ctr+1] <- .Call('calcScoreHamming', v1, v2, numnodes)
+        pairscores[ctr+1] <- .Call('calcScoreHamming', v1, v2, numnodes, 2)
       }
       ctr <- ctr + 1
       if (Verbose) setTxtProgressBar(pb, ctr)
@@ -195,6 +191,7 @@ HammingGL.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   if (Verbose) cat('\n')
   
   n <- n[uvals]
+  #pairscores <- 1 - pairscores
   pairscores <- as.simMat(pairscores, NAMES=n, DIAG=FALSE)
   return(pairscores)
 }
@@ -434,7 +431,7 @@ GainLoss.ProtWeaver <- function(pw, Subset=NULL,
   numnodes <- .Call("getTreeNodesCount", y)
   rn <- rownames(pap)
   glvs <- matrix(NA_integer_, nrow=numnodes, ncol=l)
-  
+  allnonzero <- logical(l)
   # Calculate Gain/Loss Vectors
   if (Verbose) cat('  Calculating gain/loss vectors:\n')
   if (Verbose) pb <- txtProgressBar(max=ncol(pap), style=3)
@@ -442,6 +439,7 @@ GainLoss.ProtWeaver <- function(pw, Subset=NULL,
     v <- rn[pap[,i]]
     if (length(v) == 0){
       glv <- rep(0L, numnodes)
+      allnonzero[i] <- TRUE
     } else {
       glv <- .Call("calcGainLoss", y, v, TRUE)
     }
@@ -463,11 +461,15 @@ GainLoss.ProtWeaver <- function(pw, Subset=NULL,
       entry <- max(uval1, uval2)
       if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
         v2 <- glvs[,j]
-        res <- .Call("calcScoreGL", y, v1, v2, numnodes)
-        #normer <- mean(sum(abs(v1)), sum(abs(v2)))
-        normer <- sum(abs(v1), abs(v2))
-        normer <- ifelse(normer==0, 1, normer)
-        pairscores[ctr+1] <- 2*res / normer
+        if (allnonzero[i] || allnonzero[j]){
+          pairscores[ctr+1] <- 0
+        } else {
+          res <- .Call("calcScoreGL", y, v1, v2)
+          #normer <- mean(sum(abs(v1)), sum(abs(v2)))
+          normer <- sum(abs(v1), abs(v2))
+          normer <- ifelse(normer==0, 1, normer)
+          pairscores[ctr+1] <- 2*res / normer
+        }
       }
       ctr <- ctr + 1
       if (Verbose) setTxtProgressBar(pb, ctr)

@@ -54,7 +54,7 @@ find statistically significant interactions using co-occurence of gain/loss
 events mapped to ancestral states on a species tree. This method requires
 a species tree as input. If the \code{ProtWeaver} object is initialized with \code{dendrogram} objects, \code{\link{SuperTree}} will be used to infer a species tree.
 
-\code{GainLoss} uses a similar method to \code{Behdenna}. This method maps presence/absence patterns onto gain/loss events on a tree, and then looks for distance between gain/loss events. Unlike \code{Behdenna}, this method takes into account the types of events (ex. gain/gain and loss/loss are treated differently than gain/loss). This method requires
+\code{GainLoss} uses a similar method to \code{Behdenna}. This method uses Fitch Parsimony to infer where events were gained or lost on a species tree, and then looks for distance between these gain/loss events. Unlike \code{Behdenna}, this method takes into account the types of events (ex. gain/gain and loss/loss are treated differently than gain/loss). This method requires
 a species tree as input. If the \code{ProtWeaver} object is initialized with \code{dendrogram} objects, \code{\link{SuperTree}} will be used to infer a species tree.
 
 }
@@ -66,9 +66,13 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 \references{
 Behdenna, A., et al., \emph{Testing for Independence between Evolutionary Processes.} Systematic Biology, 2016. \bold{65}(5): p. 812-823.
 
+Date, S.V. and E.M. Marcotte, \emph{Discovery of uncharacterized cellular systems by genome-wide analysis of functional linkages.} Nature Biotechnology, 2003. \bold{21}(9): p. 1055-1062.
+
 Fukunaga, T. and W. Iwasaki, \emph{Inverse Potts model improves accuracy of phylogenetic profiling.} Bioinformatics, 2022.
 
 Lokhov, A.Y., et al., \emph{Optimal structure and parameter learning of Ising models.} Science advances, 2018. \bold{4}(3): p. e1700791.
+
+Pellegrini, M., et al., \emph{Assigning protein function by comparative genome analysis: Protein phylogenetic profiles.} Proceedings of the National Academy of Sciences, 1999. \bold{96}(8) p. 4285-4288
 
 Weigt, M., et al., \emph{Identification of direct residue contacts in protein-protein interaction by message passing.} Proceedings of the National Academy of Sciences, 2009. \bold{106}(1): p. 67-72.
 }
