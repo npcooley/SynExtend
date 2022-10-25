@@ -1,3 +1,9 @@
+# SynExtend 1.9.19
+* Adds new `DPhyloStatistic` function to calculate the D-statistic for a binary state against a phylogeny following Fritz and Purvis (2009).
+* Documentation for new function
+* new internal C source code for `DPhyloStatistic`
+* new internal C source code for random utility functions, currently only has functions to generate random numbers
+
 # SynExtend 1.9.18
 * Various internal improvements to presence/absence profile methods
 
