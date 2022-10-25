@@ -8,6 +8,7 @@
 #include <stdbool.h>
 
 #include "SynExtend.h"
+#include "SEutils.h"
 
 typedef struct tree {
   double height;
@@ -29,6 +30,8 @@ treeNode* findNextNode(treeNode *curNode, int *v, int *selfv, bool isCur);
 /* D value on Trees */
 void calcSisterClades(treeNode *node, unsigned int *pmap, int pmaplen, double *scoreArr);
 double scoreSisterClades(treeNode *node, double *scores);
+void propBrownianEvo(treeNode *node, double *scores, double curval, double sd);
+void findMapping(treeNode *node, int *mapping, unsigned int *hashvals, int lenHash);
 
 /* Fitch Parsimony */
 void resetTree(treeNode* node, int val);
