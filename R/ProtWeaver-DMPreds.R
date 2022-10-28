@@ -56,9 +56,12 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
     if (Verbose) cat('Normalizing profiles...\n')
     means <- colMeans(CPs, na.rm=TRUE)
     vars <- apply(CPs, MARGIN=2, var, na.rm=TRUE)
+    if (Verbose) pb <- txtProgressBar(max=ncol(CPs), style=3)
     for ( i in seq_len(ncol(CPs)) ){
       CPs[,i] <- (CPs[,i] - means[i]) / (ifelse(vars[i]!=0, sqrt(vars), 1))
+      if (Verbose) setTxtProgressBar(pb, i)
     }
+    if(Verbose) cat('\n')
   }
   if ('satoaverage' %in% MTCorrection){
     means <- rowMeans(CPs, na.rm = TRUE)
@@ -99,8 +102,8 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
     sd1 <- sd(v1, na.rm=TRUE)
     # Should only be NA if there's only one entry
     if (is.na(sd1) || sd1 == 0){
-      pairscores[(ctr+1):(ctr+pl)] <- 0
-      ctr <- ctr + length((i+1):pl)
+      pairscores[(ctr+1):(ctr+pl-i-1)] <- 0
+      ctr <- ctr + pl - i
       if (Verbose) setTxtProgressBar(pb, ctr)
     } else {
       for ( j in (i+1):pl ){
@@ -155,8 +158,8 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
       }
     }
     pairscores <- as.simMat(pairscores)
+    Diag(pairscores) <- 1
   }
-  Diag(pairscores) <- 1
   
   return(abs(pairscores))
 }
@@ -164,12 +167,12 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
 ContextTree.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, precalcProfs=NULL, 
                                    MySpeciesTree=NULL, ...){
   
-  if ( !is.null(MySpeciesTree) && is(MySpeciesTree, 'dendrogram')){
-    MTCorrection <- c('speciestree', 'normalize', 'partialcorrelation')
-  } else { 
-    MTCorrection <- c('normalize', 
-                      'partialcorrelation')
+  if ( is.null(MySpeciesTree) || !is(MySpeciesTree, 'dendrogram')){
+    MySpeciesTree <- findSpeciesTree(pw, Verbose)
   }
+  
+  #MTCorrection <- c('speciestree', 'normalize', 'partialcorrelation')
+  MTCorrection <- c('speciestree', 'normalize')
   
   return(MirrorTree(pw, MTCorrection=MTCorrection,
                     Verbose=Verbose, 
