@@ -28,6 +28,7 @@ export(BlastSeqs)
 export(SelectByK)
 export(SuperTree)
 export(DPhyloStatistic)
+export(GeneralizedRF)
 
 S3method(`[`, "LinkedPairs")
 S3method(print, "LinkedPairs")

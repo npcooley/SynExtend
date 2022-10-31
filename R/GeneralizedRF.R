@@ -1,16 +1,38 @@
-GeneralizedRF <- function(dend1, dend2){
+GeneralizedRF <- function(dend1, dend2, RawScore=FALSE){
   stopifnot("inputs must both be dendrograms!"=is(dend1, 'dendrogram') && is(dend2, 'dendrogram'))
   
+  if (!is(labels(dend1), 'character')){
+    dend1 <- dendrapply(dend1, \(x){
+      if (!is.null(attr(x, 'leaf')))
+        attr(x, 'label') <- as.character(attr(x, 'label'))
+      return(x)
+    })
+  }
+  if (!is(labels(dend2), 'character')){
+    dend2 <- dendrapply(dend2, \(x){
+      if (!is.null(attr(x, 'leaf')))
+        attr(x, 'label') <- as.character(attr(x, 'label'))
+      return(x)
+    })
+  }
   incommonLabs <- intersect(labels(dend1), labels(dend2))
-  if (length(incommonLabs) == 0) return(0)
-  
-  tree1ptr <- .Call("initCDend", dend1)
-  on.exit(rm(tree1ptr))
-  tree2ptr <- .Call("initCDend", dend2)
-  on.exit(rm(tree2ptr))
-  
-  val <- .Call("GRFInfo", incommonLabs)
-  if (val[0] == 0) return(1)
+  if (length(incommonLabs) == 0){ 
+    val = c(0, NA, NA)
+  } else {
+    tree1ptr <- .Call("initCDend", dend1)
+    on.exit(rm(tree1ptr))
+    tree2ptr <- .Call("initCDend", dend2)
+    on.exit(rm(tree2ptr))
+    
+    val <- .Call("GRFInfo", tree1ptr, tree2ptr, incommonLabs)
+  }
+  if (RawScore){
+    retval <- val
+    names(retval) <- c("Similarity", "dend1.Entropy", "dend2.Entropy")
+    if (val[1] == 0) retval[1:2] <- c(NA, NA)
+    return(retval)
+  }
+  if (val[1] == 0) return(Inf)
   maxval <- (val[2] + val[3]) / 2
   retval <- maxval - val[1]
   return(retval)

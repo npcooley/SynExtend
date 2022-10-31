@@ -486,7 +486,8 @@ double scorePMs(bool **pm1, bool **pm2, int pm1l, int pm2l, int lh){
   for (int i=0; i<shortl; i++){
     maxval = -1 * INT_MAX;
     curS = shortPm[i];
-    for (int j=0; j<(longl-i); j++){
+     for (int j=0; j<(longl-i); j++){
+    //for (int j=0; j<longl; j++){
       memset(counts, 0, sizeof(int)*8);
       curL = longPm[j];
       cursum = 0;

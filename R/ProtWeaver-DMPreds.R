@@ -239,8 +239,7 @@ GenRF.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
       if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
         interlabs <- intersect(labelsArray[[i]], labelsArray[[j]])
         s <- .Call("GRFInfo", pArray[[i]], pArray[[j]], interlabs)
-
-        pairscores[ctr+1] <- ifelse(s[1]==0, 0, 1 - 0.5*(s[2] + s[3]) + s[1])
+        pairscores[ctr+1] <- s[1]
       }
       ctr <- ctr + 1
       if (Verbose) setTxtProgressBar(pb, ctr)

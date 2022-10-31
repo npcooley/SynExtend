@@ -2,23 +2,28 @@
 \alias{GeneralizedRF}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Information-Theoretic Generalized Robinson-Foulds Similarity
+Information-Theoretic Generalized Robinson-Foulds Distance
 }
 \description{
-%%  ~~ A concise (1-5 lines) description of what the function does. ~~
+Calculate RF distance between two unrooted phylogenies using mutual clustering
+information of branch partitions.
 }
 \usage{
-GeneralizedRF(dend1, dend2)
+GeneralizedRF(dend1, dend2, RawScore=FALSE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{dend1}{
-  An object of class \code{dendrogram}, representing a bifurcating phylogenetic
+  An object of class \code{dendrogram}, representing an unrooted bifurcating phylogenetic
   tree.
 }
   \item{dend2}{
-  An object of class \code{dendrogram}, representing a bifurcating phylogenetic 
+  An object of class \code{dendrogram}, representing an unrooted bifurcating phylogenetic 
   tree.
+}
+\item{RawScore}{
+  If \code{TRUE}, returns the similarity metric with entropy for each tree. If
+  \code{FALSE}, returns the distance between the two trees.
 }
 }
 \details{
@@ -30,61 +35,52 @@ converted to a distance by normalizing by the average entropy of the two trees.
 This metric has been demonstrated to outperform numerous other metrics in capabilities; 
 see the original publication cited in References for more information. 
 
-This implementation uses a quick pairing algorithm to speed up computation at 
-the cost of slight inaccuracy. Results should be suitably close to the optimal
-pairing in the vast majority of cases.
+Users may wish to use the actual similarity values rather than a distance metric;
+the option to specify \code{RawScore=TRUE} is provided for this case. Distance
+is calculated as \eqn{\frac{1}{2}(H_1 + H_2) - S}, where \eqn{H_i} is the entropy of
+the \eqn{i}'th tree, and \eqn{S} is the similarity score between them. As shown in
+the original publication, this satisfies the necessary requirements to be considered
+a distance metric. Setting \code{RawScore=TRUE} will instead return a vector with
+\eqn{(S, H_1, H_2)}.
+}
+\value{
+Returns a non-negative value, with 0 indicating identical trees and greater values indicating
+larger differences. Note that branch lengths are not considered, so two trees
+with different branch lengths may return a distance of 0.
 
+If \code{RawScore=TRUE}, returns a named length 3 vector with the first entry the similarity
+score, and the subsequent entries the entropy values for each tree.
+
+If the trees have no leaves in common, the function will return \code{Inf} if 
+\code{RawScore=FALSE}, and \code{c(0, NA, NA)} if \code{TRUE}.
+}
+\references{
+Smith, Martin R. \emph{Information theoretic generalized Robinson–Foulds metrics for comparing phylogenetic trees.} Bioinformatics, 2020. \bold{36}(20):5007-5013.
+}
+\author{
+Aidan Lakshman \email{ahl27@pitt.edu}
+}
+\note{
 Note that this function requires the input dendrograms to be labeled alike (ex.
 leaf labeled \code{abc} in \code{dend1} represents the same species as 
 leaf labeled \code{abc} in \code{dend2}). 
 Labels can easily be modified using \code{\link{dendrapply}}. 
 }
-\value{
-A value from 0 to 1, with 1 indicating the trees are maximally different
-and 0 indicating the trees are identical.
-}
-\references{
-%% ~put references to the literature/web site here ~
-}
-\author{
-%%  ~~who you are~~
-}
-\note{
-%%  ~~further notes~~
-}
 
-%% ~Make other sections like Warning with \section{Warning }{....} ~
-
-\seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
-}
 \examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.
+# making some toy dendrograms
+set.seed(123)
+dm1 <- as.dist(matrix(runif(64, 0.5, 5), ncol=8))
+dm2 <- as.dist(matrix(runif(64, 0.5, 5), ncol=8))
+names(dm1) <- names(dm2) <- c('a', 'b', 'c', 'd', 
+                              'e', 'f', 'g', 'h')
+tree1 <- as.dendrogram(hclust(dm1))
+tree2 <- as.dendrogram(hclust(dm2))
 
-## The function is currently defined as
-function (dend1, dend2) 
-{
-    stopifnot(`inputs must both be dendrograms!` = is(dend1, 
-        "dendrogram") && is(dend2, "dendrogram"))
-    incommonLabs <- intersect(labels(dend1), labels(dend2))
-    if (length(incommonLabs) == 0) 
-        return(0)
-    tree1ptr <- .Call("initCDend", dend1)
-    on.exit(rm(tree1ptr))
-    tree2ptr <- .Call("initCDend", dend2)
-    on.exit(rm(tree2ptr))
-    val <- .Call("GRFInfo", incommonLabs)
-    return(val)
-  }
+# get RF distance
+GeneralizedRF(tree1, tree2)
+
+# get similarity score with individual entropies
+GeneralizedRF(tree1, tree2, RawScore=TRUE)
 }
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory (show via RShowDoc("KEYWORDS")):
-% \keyword{ ~kwd1 }
-% \keyword{ ~kwd2 }
-% Use only one keyword per line.
-% For non-standard keywords, use \concept instead of \keyword:
-% \concept{ ~cpt1 }
-% \concept{ ~cpt2 }
-% Use only one concept per line.
+
