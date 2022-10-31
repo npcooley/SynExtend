@@ -1,3 +1,9 @@
+# SynExtend 1.9.20
+* Adds new `GeneralizedRF` function to calculated information-theoretic Generalized Robinson-Foulds distance between two dendrograms.
+* Documentation for new function 
+* New ProtWeaver predictor based off of `GeneralizedRF` metric
+* New internal C source code for `GeneralizedRF`
+
 # SynExtend 1.9.19
 * Adds new `DPhyloStatistic` function to calculate the D-statistic for a binary state against a phylogeny following Fritz and Purvis (2009).
 * Documentation for new function

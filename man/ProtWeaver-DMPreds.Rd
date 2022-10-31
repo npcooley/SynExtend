@@ -12,10 +12,11 @@ methods and algorithms. Distance Matrix (DM) methods examine conservation
 of overall evolutionary rates within orthology groups using distance matrices
 constructed from each gene tree.
 
-\code{predict.ProtWeaver} currently supports two DM methods:
+\code{predict.ProtWeaver} currently supports three DM methods:
 \itemize{
   \item \code{'MirrorTree'}
   \item \code{'ContextTree'}
+  \item \code{'GenRF'}
 }
 }
 
@@ -35,6 +36,10 @@ called \code{ContextTree} methods. These improvements include correcting
 for overall evolutionary rate using a species tree or projection vectors, using partial correlation coefficient instead of Pearson correlation, and/or 
 normalizing distances prior to calculation. The built-in \code{ContextTree}
 method uses corrections based on what is possible with provided input data.
+
+The \code{GenRF} method uses information-theoretic Generalized Robinson-Foulds
+distance to quantify distance between gene trees. See \code{\link{GeneralizedRF}}
+for more information.
 }
 
 \author{
@@ -62,4 +67,6 @@ Sato, T., et al., \emph{Partial correlation coefficient between distance matrice
 \link[=ProtWeaver-ColocPreds]{ProtWeaver Co-localization Predictors}
 
 \link[=ProtWeaver-ResiduePreds]{ProtWeaver Residue Level Predictors}
+
+\code{\link{GeneralizedRF}}
 }
