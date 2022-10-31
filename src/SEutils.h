@@ -21,7 +21,6 @@ int inline irand(){ return (int) floor(frand() * INT_MAX);}
 double inline rnorm(double mu, double sd){ return sd * (norm_rand()) + mu; }
 
 
-
 /*** Random permutations using Fisher-Yates shuffling ***/
 
 // Returns an array with a random sample of [0,n)
@@ -40,4 +39,11 @@ void shuffle_double_(double *x, int n);
 void shuffle_char_(char *x, int n);
 
 #define shuffle(xtype, x, n) shuffle_ ## xtype ##_(x, n)
-  
+
+
+/*** Random math functions ***/
+long inline doubleFactorial(int n){
+  long retval = 1;
+  while (n > 0) retval *= n--;
+  return retval;
+}

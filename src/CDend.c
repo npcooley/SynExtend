@@ -72,6 +72,8 @@ SEXP calcGainLoss(SEXP tnPtr, SEXP occVec, SEXP convertToGL){
   return retvec;
 }
 
+/**** Scoring Functions ****/
+
 SEXP calcScoreGL(SEXP tnPtr, SEXP glv1, SEXP glv2){
   treeNode *head = checkPtrExists(tnPtr);
   //if (LENGTH(glv1) != LENGTH(glv2)) error("Gain/Loss vectors are different lengths!");
@@ -134,6 +136,65 @@ SEXP calcScoreHamming(SEXP ov1, SEXP ov2, SEXP NN, SEXP norm){
   return retval;
 }
 
+/**** Tree Distance ****/
+SEXP GRFInfo(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
+  treeNode *tree1 = checkPtrExists(tnPtr1);
+  treeNode *tree2 = checkPtrExists(tnPtr2);
+
+  int numLabels = LENGTH(allLabels);
+  if (numLabels == 0){
+    SEXP retval = PROTECT(allocVector(REALSXP, 3));
+    double *outptr = REAL(retval);
+    outptr[0] = 0;
+    outptr[1] = 0;
+    outptr[2] = 0;
+    UNPROTECT(1);
+    return retval;
+  }
+
+  unsigned int *allHashed = malloc(sizeof(unsigned int) * numLabels);
+  for (int i=0; i<numLabels; i++){
+    allHashed[i] = hashLabel(STRING_ELT(allLabels, i));
+  }
+
+  bool **part1, **part2;
+  int t1pl = tree1->value - 1;
+  int t2pl = tree2->value - 1;
+  part1 = malloc(sizeof(bool*) * t1pl);
+  part2 = malloc(sizeof(bool*) * t2pl);
+
+  // memory allocated in this function
+  internalPartitionMap(tree1, part1, allHashed, numLabels, t1pl);
+  internalPartitionMap(tree2, part2, allHashed, numLabels, t2pl);
+
+  // trim down the size of the array
+  t1pl = reallocPartitionMap(part1, numLabels, t1pl);
+  t2pl = reallocPartitionMap(part2, numLabels, t2pl);
+ 
+  double entropy1 = calcEntropy(part1, numLabels, t1pl);
+  double entropy2 = calcEntropy(part2, numLabels, t2pl);
+
+  double RFscore = scorePMs(part1, part2, t1pl, t2pl, numLabels);
+  
+  // cleanup
+  int maxval = t1pl > t2pl ? t1pl : t2pl;
+  for (int i=0; i<maxval; i++){
+    if (i < t1pl) free(part1[i]);
+    if (i < t2pl) free(part2[i]);
+  }
+  free(part1);
+  free(part2);
+  free(allHashed);
+  SEXP retval = PROTECT(allocVector(REALSXP, 3));
+  double *rptr = REAL(retval);
+  rptr[0] = RFscore;
+  rptr[1] = entropy1;
+  rptr[2] = entropy2;
+  UNPROTECT(1);
+  return retval;
+}
+
+/**** D Value External Functions ****/
 SEXP calcDValue(SEXP tnPtr, SEXP occVec){
   treeNode *head = checkPtrExists(tnPtr);
 
@@ -264,6 +325,7 @@ SEXP calcDBrownValue(SEXP tnPtr, SEXP allLabels, SEXP iterNum, SEXP SD, SEXP STA
   return retval;
 }
 
+
 /******  D value internal calculations  ******/
 void calcSisterClades(treeNode *node, unsigned int *pmap, int pmaplen, double *scoreArr){
   int nv = node->value;
@@ -354,6 +416,131 @@ void findMapping(treeNode *node, int *mapping, unsigned int *hashvals, int lenHa
   if (node->right) findMapping(node->right, mapping, hashvals, lenHash);
 }
 
+/****** Tree Distance Internal Functions ******/
+void internalPartitionMap(treeNode *node, bool **pSets, unsigned int *hvs, int lh, int rootv){
+  int nv = node->value;
+  if (node->label != 0){
+    pSets[nv] = calloc(lh, sizeof(bool));
+    for (int i=0; i<lh; i++){
+      if (node->label == hvs[i]){
+        pSets[nv][i] = true;
+        return;
+      }
+    }
+  } else { 
+    if (node->left) internalPartitionMap(node->left, pSets, hvs, lh, rootv);
+    if (node->right) internalPartitionMap(node->right, pSets, hvs, lh, rootv);
+    if (nv <= rootv) { // squashes root node by removing root and right branch
+      int lv = node->left->value;
+      int rv = node->right->value;
+      pSets[nv] = malloc(sizeof(bool) * lh);
+      for (int i=0; i<lh; i++)
+        pSets[nv][i] = pSets[lv][i] || pSets[rv][i];
+    }
+  }
+
+  return;
+}
+
+int reallocPartitionMap(bool **pSets, int lh, int plen){
+  int sum, ctr = 0;
+  int *idxToKeep = calloc(plen, sizeof(int));
+
+  for (int i=0; i<plen; i++){
+    sum = 0;
+    for (int j=0; j<lh; j++){
+      sum += pSets[i][j];
+    }
+    if (sum > 1){
+      idxToKeep[ctr] = i;
+      ctr++;
+    }
+  }
+
+  for (int i=0; i<plen; i++){
+    if (i < ctr)
+      memcpy(pSets[i], pSets[idxToKeep[i]], lh);
+    else 
+      free(pSets[i]);
+  }
+
+  return ctr;
+}
+
+double scorePMs(bool **pm1, bool **pm2, int pm1l, int pm2l, int lh){
+  bool firstlonger = pm1l > pm2l;
+  bool **longPm = firstlonger ? pm1 : pm2;
+  bool **shortPm = firstlonger ? pm2 : pm1;
+  int longl = firstlonger ? pm1l : pm2l;
+  int shortl = firstlonger ? pm2l : pm1l;
+
+  bool *curS, *curL, v1, v2;
+  double retval = 0.0;
+  double cursum, maxval;
+  int idxchange;
+
+  // counts stores all the pairwise counts, as follows:
+  // [A1, A2, B1, B2, A1A2, A1B2, B1A2, B1B2]
+  // note that B1 = !A1, B2 = !A2
+  int counts[8];
+  for (int i=0; i<shortl; i++){
+    maxval = -1 * INT_MAX;
+    curS = shortPm[i];
+    for (int j=0; j<(longl-i); j++){
+      memset(counts, 0, sizeof(int)*8);
+      curL = longPm[j];
+      cursum = 0;
+      for (int k=0; k<lh; k++){
+        // there's probably a more concise way to do this but it works fine
+        // compiler can handle optimization on its own
+        v1 = curS[k];
+        v2 = curL[k];
+        counts[0] += v1;
+        counts[1] += v2;
+        counts[2] += !v1;
+        counts[3] += !v2;
+        counts[4] += v1 && v2;
+        counts[5] += v1 && !v2;
+        counts[6] += !v1 && v2;
+        counts[7] += !v1 && !v2;
+      }
+
+      cursum += PclDist(counts[0], counts[1], counts[4], lh); // A1 A2
+      cursum += PclDist(counts[0], counts[3], counts[5], lh); // A1 B2
+      cursum += PclDist(counts[2], counts[1], counts[6], lh); // B1 A2
+      cursum += PclDist(counts[2], counts[3], counts[7], lh); // B1 B2
+      if (cursum > maxval){
+        maxval = cursum;
+        idxchange = j;
+      }
+    }
+
+    retval += maxval;
+    // swap in the last column so we don't search it again
+    memcpy(longPm[idxchange], longPm[longl-i-1], lh);
+  }
+
+  return retval;
+}
+
+double calcEntropy(bool **pm, int lh, int pml){
+  double res = 0.0;
+  double p1, p2;
+  for (int i=0; i<pml; i++){
+    p1 = 0;
+    p2 = 0;
+    for (int j=0; j<lh; j++){
+      p1 += pm[i][j];
+      p2 += !pm[i][j];
+    }
+    p1 /= lh;
+    p2 /= lh;
+    res += p1 == 0 ? 0 : (-1 * p1 * log2(p1));
+    res += p2 == 0 ? 0 : (-1 * p2 * log2(p2));
+  }
+
+  return(res);
+}
 
 /****** Gain / Loss Functions ******/
 void findNodeScores(treeNode *curNode, int *v1, int *v2, double *scores, treeNode* head, bool isHead){

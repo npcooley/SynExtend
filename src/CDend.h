@@ -33,6 +33,12 @@ double scoreSisterClades(treeNode *node, double *scores);
 void propBrownianEvo(treeNode *node, double *scores, double curval, double sd);
 void findMapping(treeNode *node, int *mapping, unsigned int *hashvals, int lenHash);
 
+/* Tree Distance */
+void internalPartitionMap(treeNode *node, bool **pSets, unsigned int *hvs, int lh, int rootv);
+int reallocPartitionMap(bool **pSets, int lh, int plen);
+double scorePMs(bool **pm1, bool **pm2, int pm1l, int pm2l, int lh);
+double calcEntropy(bool **pm, int lh, int pml);
+
 /* Fitch Parsimony */
 void resetTree(treeNode* node, int val);
 void fitchUp(treeNode* node, unsigned int* hashMap, int hashMapLen, int* PAvec);
@@ -42,6 +48,9 @@ void convertGL(treeNode* node, bool curVal, int* PAvec);
 int populateVector(treeNode* node, int* container, int idx);
 
 /* internal functions */
+static inline double PclDist(double f, double s, double o, int tl){
+  return o == 0 ? 0 : ((o/tl) * (log2((tl * o) / (s * f))));
+}
 static inline int getNumNodes(treeNode* node, int n);
 static inline int labelTreePostorder(treeNode* node, int n);
 static inline treeNode* checkPtrExists(SEXP tnPtr);
