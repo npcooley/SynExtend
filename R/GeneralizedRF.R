@@ -35,5 +35,7 @@ GeneralizedRF <- function(dend1, dend2, RawScore=FALSE){
   if (val[1] == 0) return(1)
   maxval <- (val[2] + val[3]) / 2
   retval <- (maxval - val[1]) / maxval
+  if (maxval == 0)
+    retval <- as.integer(val[1] != 0)
   return(retval)
 }
