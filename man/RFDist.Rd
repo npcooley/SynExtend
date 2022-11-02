@@ -28,6 +28,8 @@ RFDist(dend1, dend2, RawScore=FALSE)
 \details{
 This function implements Robinson-Foulds distance between two unrooted phylogenies. Each dendrogram is first pruned to only internal branches implying a partition in the shared leaf set; trivial partitions (where one leaf set contains 1 or 0 leaves) are ignored. The total score is calculated as the number of unique partitions divided by the total number of partitions in both trees. Setting \code{RawScore=TRUE} will instead return a vector with
 \eqn{(P_{shared}, P_1, P_2)}, corresponding to the shared partitions and partitions in the first and second trees (respectively).
+
+This algorithm incorporates some optimizations from Pattengale et al. (2007) to improve computation time of the original fast RF algorithm detailed in Day (1985).
 }
 \value{
 Returns a normalized distance, with 0 indicating identical trees and 1 indicating 
@@ -41,6 +43,10 @@ If the trees have no leaves in common, the function will return \code{1} if
 }
 \references{
 Robinson, D.F. and Foulds, L.R. \emph{Comparison of phylogenetic trees.} Mathematical Biosciences, 1987. \bold{53}(1–2): 131–147.
+
+Day, William H.E. \emph{Optimal algorithms for comparing trees with labeled leaves.} Journal of classification, 1985. \bold{2}(1): 7-28.
+
+Pattengale, N.D., Gottlieb, E.J., and Moret, B.M. \emph{Efficiently computing the Robinson-Foulds metric.} Journal of computational biology, 2007. \bold{14}(6): 724-735.
 }
 \author{
 Aidan Lakshman \email{ahl27@pitt.edu}
