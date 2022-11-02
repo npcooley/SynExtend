@@ -50,7 +50,7 @@ jobs:
           BiocManager::install("BiocCheck")
         shell: Rscript {0}
 
-      - name: CheckLinux
+      - name: R CMD CHECK
         if: runner.os == 'Linux'
         env:
           _R_CHECK_CRAN_INCOMING_REMOTE_: false
