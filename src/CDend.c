@@ -343,7 +343,7 @@ SEXP calcDRandValue(SEXP tnPtr, SEXP allLabels, SEXP numP, SEXP iterNum){
   GetRNGstate();
 
   int numScores = head->value+1;
-  double *scores = Calloc(numScores, double);
+  double *scores = calloc(numScores, sizeof(double));
   double randSum = 0.0;
   for (int i=0; i<numIter; i++){
     // reset vector
@@ -359,7 +359,7 @@ SEXP calcDRandValue(SEXP tnPtr, SEXP allLabels, SEXP numP, SEXP iterNum){
   // cleanup
   SEXP retval = PROTECT(allocVector(REALSXP, 1));
   REAL(retval)[0] = randSum;
-  Free(scores);
+  free(scores);
   free(allHashed);
   PutRNGstate();
   UNPROTECT(1);
@@ -389,7 +389,7 @@ SEXP calcDBrownValue(SEXP tnPtr, SEXP allLabels, SEXP iterNum, SEXP SD, SEXP STA
   GetRNGstate();
 
   int numScores = head->value+1;
-  double *scores = Calloc(numScores, double);
+  double *scores = calloc(numScores, sizeof(double));
   unsigned int *labs = Calloc(numLabels, unsigned int);
   double randSum = 0.0;
   int ctr;
@@ -424,7 +424,7 @@ SEXP calcDBrownValue(SEXP tnPtr, SEXP allLabels, SEXP iterNum, SEXP SD, SEXP STA
   // cleanup
   SEXP retval = PROTECT(allocVector(REALSXP, 1));
   REAL(retval)[0] = randSum;
-  Free(scores);
+  free(scores);
   Free(labs);
   free(allHashed);
   PutRNGstate();
