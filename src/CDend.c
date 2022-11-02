@@ -595,6 +595,7 @@ int reallocPartitionMap(bool **pSets, int lh, int plen){
     else 
       free(pSets[i]);
   }
+  free(idxToKeep);
 
   return ctr;
 }
