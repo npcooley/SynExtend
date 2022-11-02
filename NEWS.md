@@ -1,3 +1,6 @@
+# SynExtend 1.10.1
+* Memory leak bugfix
+
 # SynExtend 1.9.21
 * Adds new `RFDist` function to calculate Robinson-Foulds Distance
 * Adds normalization for `GeneralizedRF` to make the distance between 0 and 1
