@@ -11,6 +11,7 @@
 MirrorTree <- function(pw, ...) UseMethod('MirrorTree')
 ContextTree <- function(pw, ...) UseMethod('ContextTree')
 GenRF <- function(pw, ...) UseMethod('GenRF')
+RF <- function(pw, ...) UseMethod('RF')
 ################################
 
 MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
@@ -208,7 +209,7 @@ GenRF.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
     if (useColoc){
       tree <- dendrapply(tree, \(x){
         if (!is.null(attr(x, 'leaf'))){
-          attr(x, 'label') <- gsub("(.*)_.*", '\\1', attr(x, 'label'))
+          attr(x, 'label') <- gsub("(.*)_.*_.*", '\\1', attr(x, 'label'))
         }
         return(x)
       })

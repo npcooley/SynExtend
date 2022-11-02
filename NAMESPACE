@@ -29,6 +29,7 @@ export(SelectByK)
 export(SuperTree)
 export(DPhyloStatistic)
 export(GeneralizedRF)
+export(RFDist)
 
 S3method(`[`, "LinkedPairs")
 S3method(print, "LinkedPairs")
