@@ -319,6 +319,7 @@ SEXP calcDValue(SEXP tnPtr, SEXP occVec){
   // cleanup
   SEXP retval = PROTECT(allocVector(REALSXP, 1));
   REAL(retval)[0] = score;
+  free(presMap);
   Free(scores);
   UNPROTECT(1);
 
