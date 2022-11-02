@@ -188,7 +188,7 @@ flatdendrapply <- function(dend, NODEFUN=NULL, LEAFFUN=NODEFUN,
   lens <- vapply(retval, length, FUN.VALUE=0L)
   atom <- vapply(retval, is.atomic, FUN.VALUE=TRUE)
   
-  if(all(lens[1] == 1L) && all(atom))
+  if(all(lens == 1L) && all(atom))
     retval <- unlist(retval)
   
   return(retval)

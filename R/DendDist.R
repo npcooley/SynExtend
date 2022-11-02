@@ -1,4 +1,4 @@
-GeneralizedRF <- function(dend1, dend2, RawScore=FALSE){
+DendDist <- function(dend1, dend2, Method, RawScore=FALSE){
   stopifnot("inputs must both be dendrograms!"=is(dend1, 'dendrogram') && is(dend2, 'dendrogram'))
   
   if (!is(labels(dend1), 'character')){
@@ -24,16 +24,45 @@ GeneralizedRF <- function(dend1, dend2, RawScore=FALSE){
     tree2ptr <- .Call("initCDend", dend2)
     on.exit(rm(tree2ptr))
     
-    val <- .Call("GRFInfo", tree1ptr, tree2ptr, incommonLabs)
+    if (Method == 'GRF')
+      val <- .Call("GRFInfo", tree1ptr, tree2ptr, incommonLabs)
+    else if (Method == 'RF')
+      val <- .Call("RFDist", tree1ptr, tree2ptr, incommonLabs)
+    else
+      stop("Method not recognized!")
   }
+  
+  return(val)
+}
+
+GeneralizedRF <- function(dend1, dend2, RawScore=FALSE){
+  val <- DendDist(dend1, dend2, Method="GRF")
   if (RawScore){
     retval <- val
     names(retval) <- c("Similarity", "dend1.Entropy", "dend2.Entropy")
     if (val[1] == 0) retval[1:2] <- c(NA, NA)
     return(retval)
   }
-  if (val[1] == 0) return(Inf)
-  maxval <- (val[2] + val[3]) / 2
-  retval <- maxval - val[1]
+  
+  if (val[1] == 0) return(1)
+  maxval <- (val[2] + val[3])
+  retval <- val[1] / maxval
+  if (maxval == 0)
+    retval <- as.integer(val[1] != 0)
+  return(retval)
+}
+
+RFDist <- function(dend1, dend2, RawScore=FALSE){
+  val <- DendDist(dend1, dend2, Method="RF")
+  if (RawScore){
+    retval <- val
+    names(retval) <- c("UniqueSplits", "dend1.Splits", "dend2.Splits")
+    return(retval)
+  }
+  
+  maxval <- val[2] + val[3]
+  retval <- val[1] / maxval
+  if (maxval == 0)
+    retval <- as.integer(val[1] != 0)
   return(retval)
 }

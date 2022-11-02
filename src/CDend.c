@@ -136,7 +136,7 @@ SEXP calcScoreHamming(SEXP ov1, SEXP ov2, SEXP NN, SEXP norm){
   return retval;
 }
 
-/**** Tree Distance ****/
+/**** Tree Distances ****/
 SEXP GRFInfo(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
   treeNode *tree1 = checkPtrExists(tnPtr1);
   treeNode *tree2 = checkPtrExists(tnPtr2);
@@ -194,6 +194,113 @@ SEXP GRFInfo(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
   return retval;
 }
 
+SEXP RFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
+  treeNode *tree1 = checkPtrExists(tnPtr1);
+  treeNode *tree2 = checkPtrExists(tnPtr2);
+
+  int numLabels = LENGTH(allLabels);
+  if (numLabels == 0){
+    SEXP retval = PROTECT(allocVector(INTSXP, 3));
+    int *outptr = INTEGER(retval);
+    outptr[0] = 0;
+    outptr[1] = 0;
+    outptr[2] = 0;
+    UNPROTECT(1);
+    return retval;
+  }
+
+  unsigned int *allHashed = Calloc(numLabels, unsigned int);
+  for (int i=0; i<numLabels; i++){
+    allHashed[i] = hashLabel(STRING_ELT(allLabels, i));
+  }
+
+  int t1pl = tree1->value-1;
+  int t2pl = tree2->value-1;
+
+  unsigned long *keyvals = Calloc(numLabels, unsigned long);
+  unsigned long *ht1 = Calloc(t1pl, unsigned long);
+  unsigned long *ht2 = Calloc(t2pl, unsigned long);
+
+  // seed random number generator
+  GetRNGstate();
+
+  unsigned long totalval = 0;
+  for (int i=0; i<numLabels; i++){
+    keyvals[i] = irand() * irand();
+    totalval ^= keyvals[i];
+  }
+
+  PutRNGstate();
+  
+  RFHashMap(tree1, ht1, keyvals, allHashed, numLabels, t1pl);
+  RFHashMap(tree2, ht2, keyvals, allHashed, numLabels, t2pl);
+  Free(allHashed);
+  Free(keyvals);
+
+  int ctr1 = 0, ctr2=0;
+  int *idxToKeep1 = Calloc(t1pl, int);
+  int *idxToKeep2 = Calloc(t2pl, int);
+  for (int i=0; i<t1pl; i++){
+    if (ht1[i] != 0 && ht1[i] != totalval){
+      idxToKeep1[ctr1] = i;
+      ctr1++;
+    }
+  }
+  for (int i=0; i<t2pl; i++){
+    if (ht2[i] != 0 && ht2[i] != totalval){
+      idxToKeep2[ctr2] = i;
+      ctr2++;
+    }
+  }
+
+  for (int i=0; i<ctr1; i++)
+    ht1[i] = ht1[idxToKeep1[i]];
+  for (int i=0; i<ctr2; i++)
+    ht2[i] = ht2[idxToKeep2[i]];
+  Free(idxToKeep1);
+  Free(idxToKeep2);
+
+  int num_unique = 0;
+  unsigned long curval, test;
+  bool found;
+  for (int i=0; i<ctr1; i++){
+    curval = ht1[i];
+    found = false;
+    for (int j=0; j<ctr2; j++){
+      test = curval ^ ht2[j];
+      if (test == 0 || test == totalval){
+        found = true;
+        break;
+      }
+    }
+    if (!found) num_unique++;
+  }
+
+  for (int i=0; i<ctr2; i++){
+    curval = ht2[i];
+    found = false;
+    for (int j=0; j<ctr1; j++){
+      test = curval ^ ht1[j];
+      if (test == 0 || test == totalval){
+        found = true;
+        break;
+      }
+    }
+    if (!found) num_unique++;
+  }  
+  
+  // cleanup
+  Free(ht1);
+  Free(ht2);
+  SEXP retval = PROTECT(allocVector(INTSXP, 3));
+  int *rptr = INTEGER(retval);
+  rptr[0] = num_unique;
+  rptr[1] = ctr1;
+  rptr[2] = ctr2;
+  UNPROTECT(1);
+  return retval;
+}
+
 /**** D Value External Functions ****/
 SEXP calcDValue(SEXP tnPtr, SEXP occVec){
   treeNode *head = checkPtrExists(tnPtr);
@@ -212,6 +319,7 @@ SEXP calcDValue(SEXP tnPtr, SEXP occVec){
   // cleanup
   SEXP retval = PROTECT(allocVector(REALSXP, 1));
   REAL(retval)[0] = score;
+  free(presMap);
   Free(scores);
   UNPROTECT(1);
 
@@ -236,7 +344,7 @@ SEXP calcDRandValue(SEXP tnPtr, SEXP allLabels, SEXP numP, SEXP iterNum){
   GetRNGstate();
 
   int numScores = head->value+1;
-  double *scores = Calloc(numScores, double);
+  double *scores = calloc(numScores, sizeof(double));
   double randSum = 0.0;
   for (int i=0; i<numIter; i++){
     // reset vector
@@ -252,7 +360,7 @@ SEXP calcDRandValue(SEXP tnPtr, SEXP allLabels, SEXP numP, SEXP iterNum){
   // cleanup
   SEXP retval = PROTECT(allocVector(REALSXP, 1));
   REAL(retval)[0] = randSum;
-  Free(scores);
+  free(scores);
   free(allHashed);
   PutRNGstate();
   UNPROTECT(1);
@@ -282,7 +390,7 @@ SEXP calcDBrownValue(SEXP tnPtr, SEXP allLabels, SEXP iterNum, SEXP SD, SEXP STA
   GetRNGstate();
 
   int numScores = head->value+1;
-  double *scores = Calloc(numScores, double);
+  double *scores = calloc(numScores, sizeof(double));
   unsigned int *labs = Calloc(numLabels, unsigned int);
   double randSum = 0.0;
   int ctr;
@@ -317,7 +425,7 @@ SEXP calcDBrownValue(SEXP tnPtr, SEXP allLabels, SEXP iterNum, SEXP SD, SEXP STA
   // cleanup
   SEXP retval = PROTECT(allocVector(REALSXP, 1));
   REAL(retval)[0] = randSum;
-  Free(scores);
+  free(scores);
   Free(labs);
   free(allHashed);
   PutRNGstate();
@@ -442,6 +550,31 @@ void internalPartitionMap(treeNode *node, bool **pSets, unsigned int *hvs, int l
   return;
 }
 
+unsigned long RFHashMap(treeNode *node, unsigned long *htable, unsigned long *keys, unsigned int *hvs, int lh, int rootv){
+  int nv = node->value;
+  if (node->label != 0){
+    for (int i=0; i<lh; i++){
+      if (node->label == hvs[i]){
+        // htable[nv] = 0;    // doesn't count leaf partitions
+        htable[nv] = keys[i]; // counts leaf partitions
+        return keys[i];
+      }
+    }
+  } else {
+    unsigned long lval=0, rval=0, setval; 
+    if (node->left) lval = RFHashMap(node->left, htable, keys, hvs, lh, rootv);
+    if (node->right) rval = RFHashMap(node->right, htable, keys, hvs, lh, rootv);
+    setval = (lval != 0 && rval !=0) ? rval ^ lval : 0;
+    rval ^= lval;
+    //setval = rval;
+    if (nv < rootv)
+      htable[nv] = setval;
+    return rval;
+  }
+
+  return 0;
+}
+
 int reallocPartitionMap(bool **pSets, int lh, int plen){
   int sum, ctr = 0;
   int *idxToKeep = calloc(plen, sizeof(int));
@@ -451,7 +584,7 @@ int reallocPartitionMap(bool **pSets, int lh, int plen){
     for (int j=0; j<lh; j++){
       sum += pSets[i][j];
     }
-    if (sum > 1){
+    if (sum > 1 && sum != lh){
       idxToKeep[ctr] = i;
       ctr++;
     }
@@ -463,6 +596,7 @@ int reallocPartitionMap(bool **pSets, int lh, int plen){
     else 
       free(pSets[i]);
   }
+  free(idxToKeep);
 
   return ctr;
 }
@@ -477,7 +611,7 @@ double scorePMs(bool **pm1, bool **pm2, int pm1l, int pm2l, int lh){
   bool *curS, *curL, v1, v2;
   double retval = 0.0;
   double cursum, maxval;
-  int idxchange;
+  int idxchange = longl-1;
 
   // counts stores all the pairwise counts, as follows:
   // [A1, A2, B1, B2, A1A2, A1B2, B1A2, B1B2]

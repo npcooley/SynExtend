@@ -1,3 +1,9 @@
+# SynExtend 1.9.21
+* Adds new `RFDist` function to calculate Robinson-Foulds Distance
+* Adds normalization for `GeneralizedRF` to make the distance between 0 and 1
+* Minor bugfixes
+* Documentation for new functions
+
 # SynExtend 1.9.20
 * Adds new `GeneralizedRF` function to calculated information-theoretic Generalized Robinson-Foulds distance between two dendrograms.
 * Documentation for new function 

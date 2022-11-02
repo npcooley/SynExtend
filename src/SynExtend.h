@@ -20,6 +20,7 @@ SEXP calcScoreHamming(SEXP ov1, SEXP ov2, SEXP NN, SEXP norm);
 
 // Tree distance
 SEXP GRFInfo(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels);
+SEXP RFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels);
 
 // D value calculation
 SEXP calcDValue(SEXP tnPtr, SEXP occVec);

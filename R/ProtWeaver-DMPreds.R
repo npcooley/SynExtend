@@ -11,6 +11,7 @@
 MirrorTree <- function(pw, ...) UseMethod('MirrorTree')
 ContextTree <- function(pw, ...) UseMethod('ContextTree')
 GenRF <- function(pw, ...) UseMethod('GenRF')
+RF <- function(pw, ...) UseMethod('RF')
 ################################
 
 MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
@@ -208,7 +209,7 @@ GenRF.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
     if (useColoc){
       tree <- dendrapply(tree, \(x){
         if (!is.null(attr(x, 'leaf'))){
-          attr(x, 'label') <- gsub("(.*)_.*", '\\1', attr(x, 'label'))
+          attr(x, 'label') <- gsub("(.*)_.*_.*", '\\1', attr(x, 'label'))
         }
         return(x)
       })
@@ -224,11 +225,6 @@ GenRF.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
     return(0L)
   }, integer(1)))
   
-  #normScores <- numeric(l)
-  #for (i in seq_len(l)){
-  #  normScores[i] <- .Call("GRFInfo", pArray[[i]], pArray[[i]], labelsArray[[i]])
-  #}
-  
   if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
   for ( i in seq_len(l-1) ){
     uval1 <- uvals[i]
@@ -239,7 +235,82 @@ GenRF.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
       if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
         interlabs <- intersect(labelsArray[[i]], labelsArray[[j]])
         s <- .Call("GRFInfo", pArray[[i]], pArray[[j]], interlabs)
-        pairscores[ctr+1] <- s[1]
+        #pairscores[ctr+1] <- s[1]
+        normval <- 0.5*(s[2]+s[3]) 
+        if (is.na(normval) || normval == 0)
+          pairscores[ctr+1] <- ifelse(s[1] == 0, 0, 1)
+        else
+          pairscores[ctr+1] <- 1-((normval-s[1])/normval)
+      }
+      ctr <- ctr + 1
+      if (Verbose) setTxtProgressBar(pb, ctr)
+    }
+  }
+  if (Verbose) cat('\n')
+  
+  n <- n[uvals]
+  pairscores <- as.simMat(pairscores, NAMES=n, DIAG=FALSE)
+  return(pairscores) 
+}
+
+RF.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
+                          precalcSubset=NULL, ...){
+  if (!is.null(precalcSubset))
+    subs <- precalcSubset
+  else
+    subs <- ProcessSubset(pw, Subset)
+  uvals <- subs$uvals
+  evalmap <- subs$evalmap
+  
+  useColoc <- attr(pw, "useColoc")
+  l <- length(uvals)
+  n <- names(pw)
+  if ( l == 1 ){
+    mat <- matrix(1, nrow=1, ncol=1)
+    rownames(mat) <- colnames(mat) <- n
+    return(mat)
+  }
+  
+  pairscores <- rep(NA_real_, l*(l-1)/2)
+  ctr <- 0
+  pArray <- vector('list', length=l)
+  labelsArray <- vector('list', length=l)
+  for ( i in seq_len(l) ){
+    tree <- pw[[uvals[i]]]
+    if (useColoc){
+      tree <- dendrapply(tree, \(x){
+        if (!is.null(attr(x, 'leaf'))){
+          attr(x, 'label') <- gsub("(.*)_.*_.*", '\\1', attr(x, 'label'))
+        }
+        return(x)
+      })
+    }
+    labs <- labels(tree)
+    ptr <- .Call("initCDend", tree)
+    pArray[[i]] <- ptr
+    labelsArray[[i]] <- labs
+  }
+  on.exit(vapply(seq_len(l), \(x){
+    ptr <- pArray[[x]]
+    rm(ptr)
+    return(0L)
+  }, integer(1)))
+  
+  if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
+  for ( i in seq_len(l-1) ){
+    uval1 <- uvals[i]
+    for ( j in (i+1):l ){
+      uval2 <- uvals[j]
+      accessor <- as.character(min(uval1, uval2))
+      entry <- max(uval1, uval2)
+      if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
+        interlabs <- intersect(labelsArray[[i]], labelsArray[[j]])
+        s <- .Call("RFDist", pArray[[i]], pArray[[j]], interlabs)
+        normval <- s[2]+s[3] 
+        if (is.na(normval) || normval == 0)
+          pairscores[ctr+1] <- ifelse(s[1] == 0, 0, 1)
+        else
+          pairscores[ctr+1] <- 1 - s[1] / normval
       }
       ctr <- ctr + 1
       if (Verbose) setTxtProgressBar(pb, ctr)
