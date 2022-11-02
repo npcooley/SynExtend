@@ -611,7 +611,7 @@ double scorePMs(bool **pm1, bool **pm2, int pm1l, int pm2l, int lh){
   bool *curS, *curL, v1, v2;
   double retval = 0.0;
   double cursum, maxval;
-  int idxchange;
+  int idxchange = longl-1;
 
   // counts stores all the pairwise counts, as follows:
   // [A1, A2, B1, B2, A1A2, A1B2, B1A2, B1B2]
