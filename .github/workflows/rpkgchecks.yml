@@ -1,71 +1,106 @@
-name: rcmdcheck and BiocCheck
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
 
-on: [push, pull_request]
-
-env:
-  cache-version: v1
+name: R-CMD-check
 
 jobs:
-  r-build-and-check:
-    runs-on: ubuntu-latest
-    container: bioconductor/bioconductor_docker:devel
+  R-CMD-check:
+    runs-on: ${{ matrix.config.os }}
+
+    name: ${{ matrix.config.os }} (${{ matrix.config.r }})
+
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {os: macOS-latest,   r: 'release'}
+          - {os: windows-latest, r: 'release'}
+          - {os: ubuntu-20.04,   r: 'release', rspm: "https://packagemanager.rstudio.com/cran/__linux__/focal/latest"}
+
     env:
       R_REMOTES_NO_ERRORS_FROM_WARNINGS: true
+      RSPM: ${{ matrix.config.rspm }}
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
     steps:
       - uses: actions/checkout@v2
 
-      - name: Query dependencies and update old packages
-        run: |
-          BiocManager::install(ask=FALSE)
-          saveRDS(remotes::dev_package_deps(dependencies = TRUE), ".github/depends.Rds", version = 2)
-        shell: Rscript {0}
+      - uses: r-lib/actions/setup-r@v2-branch
+        with:
+          r-version: ${{ matrix.config.r }}
+
+      - uses: r-lib/actions/setup-pandoc@v2-branch
         
+      - name: Query dependencies
+        run: |
+          install.packages('remotes')
+          saveRDS(remotes::dev_package_deps(dependencies = TRUE), ".github/depends.Rds", version = 2)
+          writeLines(sprintf("R-%i.%i", getRversion()$major, getRversion()$minor), ".github/R-version")
+        shell: Rscript {0}
+
       - name: Cache R packages
         if: runner.os != 'Windows'
         uses: actions/cache@v1
         with:
-          path: /usr/local/lib/R/site-library
-          key: ${{ env.cache-version }}-${{ runner.os }}-r-${{ hashFiles('.github/depends.Rds') }}
-          restore-keys: ${{ env.cache-version }}-${{ runner.os }}-r-
+          path: ${{ env.R_LIBS_USER }}
+          key: ${{ runner.os }}-${{ hashFiles('.github/R-version') }}-1-${{ hashFiles('.github/depends.Rds') }}
+          restore-keys: ${{ runner.os }}-${{ hashFiles('.github/R-version') }}-1-
 
-      # This lets us augment with additional dependencies
       - name: Install system dependencies
         if: runner.os == 'Linux'
         env:
           RHUB_PLATFORM: linux-x86_64-ubuntu-gcc
         run: |
-          sudo apt update
-          sudo apt install -y valgrind texlive-latex-base
           Rscript -e "remotes::install_github('r-hub/sysreqs')"
           sysreqs=$(Rscript -e "cat(sysreqs::sysreq_commands('DESCRIPTION'))")
           sudo -s eval "$sysreqs"
-          
-      - name: Install dependencies
+        
+      - name: Install R dependencies
         run: |
-          options(repos = c(CRAN = "https://cran.r-project.org"))
+          remotes::install_deps(dependencies = TRUE)
+          install.packages("BiocManager")
           BiocManager::repositories()
           remotes::install_deps(dependencies = TRUE, repos = BiocManager::repositories())
+          remotes::install_cran("devtools")
           remotes::install_cran("rcmdcheck")
           BiocManager::install("BiocCheck")
         shell: Rscript {0}
+        
+      - name: Session info
+        run: |
+          options(width = 100)
+          pkgs <- installed.packages()[, "Package"]
+          sessioninfo::session_info(pkgs, include_base = TRUE)
+        shell: Rscript {0}
 
-      - name: R CMD CHECK
-        if: runner.os == 'Linux'
+      - name: R CMD Check
         env:
-          _R_CHECK_CRAN_INCOMING_REMOTE_: false
-        run: rcmdcheck::rcmdcheck(build_args = c("--no-manual", "--no-build-vignettes"), args=c("--use-valgrind", "--no-vignettes", "--ignore-vignettes"), error_on = "warning", check_dir = "check")
+          _R_CHECK_CRAN_INCOMING_: false
+        run: rcmdcheck::rcmdcheck(build_args = c("--no-build-vignettes", "--no-manual"),
+                                  args = c("--no-manual", "--no-build-vignettes", "--no-vignettes", "--ignore-vignettes"), 
+                                  error_on = "warning", 
+                                  check_dir = "check")
         shell: Rscript {0}
         
-      - name: BiocCheck
+      - name: Bioconductor Check
         env:
           _R_CHECK_CRAN_INCOMING_REMOTE_: false
         run: | 
           checkres <- BiocCheck::BiocCheck()
+          print(checkres$warning)
           checkres$warning$checkVersionNumber <- NULL
-          if (length(checkres$warning) > 0 || length(checkres$error) > 0) error("Failed BiocCheck")
+          if (length(checkres$warning) > 0 || length(checkres$error) > 0){ 
+            if (!is.null(checkres$warning)) print(checkres$warning)
+            if (!is.null(checkres$error)) print(checkres$error)
+            error("Failed BiocCheck")
+          }
         shell: Rscript {0}
-        
-      
+
       
 
 
