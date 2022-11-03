@@ -11,3 +11,6 @@
 .RData
 *.BiocCheck
 *.BiocCheck/*
+.github
+.github/*
+.github/workflows/*.yaml
