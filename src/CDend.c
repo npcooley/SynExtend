@@ -157,31 +157,36 @@ SEXP GRFInfo(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
     allHashed[i] = hashLabel(STRING_ELT(allLabels, i));
   }
 
-  bool **part1, **part2;
   int t1pl = tree1->value - 1;
   int t2pl = tree2->value - 1;
-  part1 = malloc(sizeof(bool*) * t1pl);
-  part2 = malloc(sizeof(bool*) * t2pl);
+  bool **part1 = malloc(sizeof(bool*) * t1pl);
+  bool **part2 = malloc(sizeof(bool*) * t2pl);
 
-  // memory allocated in this function
+  for (int i=0; i<t1pl; i++){
+    part1[i] = calloc(numLabels, sizeof(bool));
+  }
+  for (int i=0; i<t2pl; i++){
+    part2[i] = calloc(numLabels, sizeof(bool));
+  }
+
   internalPartitionMap(tree1, part1, allHashed, numLabels, t1pl);
   internalPartitionMap(tree2, part2, allHashed, numLabels, t2pl);
 
   // trim down the size of the array
-  //t1pl = reallocPartitionMap(part1, numLabels, t1pl);
-  //t2pl = reallocPartitionMap(part2, numLabels, t2pl);
+  int t1pln = reallocPartitionMap(part1, numLabels, t1pl);
+  int t2pln = reallocPartitionMap(part2, numLabels, t2pl);
  
-  double entropy1 = calcEntropy(part1, numLabels, t1pl);
-  double entropy2 = calcEntropy(part2, numLabels, t2pl);
+  double entropy1 = calcEntropy(part1, numLabels, t1pln);
+  double entropy2 = calcEntropy(part2, numLabels, t2pln);
 
-  double RFscore = scorePMs(part1, part2, t1pl, t2pl, numLabels);
+  double RFscore = scorePMs(part1, part2, t1pln, t2pln, numLabels);
   
   // cleanup
-  int maxval = t1pl > t2pl ? t1pl : t2pl;
-  for (int i=0; i<maxval; i++){
-    if (i < t1pl) free(part1[i]);
-    if (i < t2pl) free(part2[i]);
-  }
+  for (int i=0; i<t1pl; i++)
+    free(part1[i]);
+  for (int i=0; i<t2pl; i++)
+    free(part2[i]);
+
   free(part1);
   free(part2);
   free(allHashed);
@@ -528,20 +533,23 @@ void findMapping(treeNode *node, int *mapping, unsigned int *hashvals, int lenHa
 void internalPartitionMap(treeNode *node, bool **pSets, unsigned int *hvs, int lh, int rootv){
   int nv = node->value;
   if (node->label != 0){
-    pSets[nv] = calloc(lh, sizeof(bool));
     for (int i=0; i<lh; i++){
       if (node->label == hvs[i]){
         pSets[nv][i] = true;
         return;
       }
     }
-  } else { 
-    if (node->left) internalPartitionMap(node->left, pSets, hvs, lh, rootv);
-    if (node->right) internalPartitionMap(node->right, pSets, hvs, lh, rootv);
-    if (nv <= rootv) { // squashes root node by removing root and right branch
-      int lv = node->left->value;
-      int rv = node->right->value;
-      pSets[nv] = malloc(sizeof(bool) * lh);
+  } else {
+    int lv=0, rv=0; 
+    if (node->left){
+      internalPartitionMap(node->left, pSets, hvs, lh, rootv);
+      lv = node->left->value;
+    } 
+    if (node->right){
+      internalPartitionMap(node->right, pSets, hvs, lh, rootv);
+      rv = node->right->value;
+    }
+    if (nv < rootv) { // squashes root node by removing root and right branch
       for (int i=0; i<lh; i++)
         pSets[nv][i] = pSets[lv][i] || pSets[rv][i];
     }
@@ -584,7 +592,7 @@ int reallocPartitionMap(bool **pSets, int lh, int plen){
     for (int j=0; j<lh; j++){
       sum += pSets[i][j];
     }
-    if (sum > 1 && sum != lh){
+    if (sum > 1 && sum < (lh-1)){
       idxToKeep[ctr] = i;
       ctr++;
     }
@@ -593,8 +601,6 @@ int reallocPartitionMap(bool **pSets, int lh, int plen){
   for (int i=0; i<plen; i++){
     if (i < ctr)
       memcpy(pSets[i], pSets[idxToKeep[i]], lh);
-    else 
-      free(pSets[i]);
   }
   free(idxToKeep);
 
