@@ -14,3 +14,4 @@
 .github
 .github/*
 .github/workflows/*.yaml
+.github/workflows/*.yml
