@@ -168,8 +168,8 @@ SEXP GRFInfo(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
   internalPartitionMap(tree2, part2, allHashed, numLabels, t2pl);
 
   // trim down the size of the array
-  t1pl = reallocPartitionMap(part1, numLabels, t1pl);
-  t2pl = reallocPartitionMap(part2, numLabels, t2pl);
+  //t1pl = reallocPartitionMap(part1, numLabels, t1pl);
+  //t2pl = reallocPartitionMap(part2, numLabels, t2pl);
  
   double entropy1 = calcEntropy(part1, numLabels, t1pl);
   double entropy2 = calcEntropy(part2, numLabels, t2pl);
