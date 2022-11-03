@@ -77,9 +77,9 @@ tree1 <- as.dendrogram(hclust(dm1))
 tree2 <- as.dendrogram(hclust(dm2))
 
 # get RF distance
-GeneralizedRF(tree1, tree2)
+#GeneralizedRF(tree1, tree2)
 
 # get similarity score with individual entropies
-GeneralizedRF(tree1, tree2, RawScore=TRUE)
+#GeneralizedRF(tree1, tree2, RawScore=TRUE)
 }
 
