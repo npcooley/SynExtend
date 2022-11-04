@@ -1,12 +1,9 @@
 on:
-  push:
-    branches:
-      - master
   pull_request:
     branches:
       - master
 
-name: R-CMD-check
+name: R-CMD-Check
 
 jobs:
   R-CMD-check:
