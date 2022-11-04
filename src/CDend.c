@@ -563,8 +563,8 @@ unsigned long RFHashMap(treeNode *node, unsigned long *htable, unsigned long *ke
   if (node->label != 0){
     for (int i=0; i<lh; i++){
       if (node->label == hvs[i]){
-        // htable[nv] = 0;    // doesn't count leaf partitions
-        htable[nv] = keys[i]; // counts leaf partitions
+        htable[nv] = 0;    // doesn't count leaf partitions
+        //htable[nv] = keys[i]; // counts leaf partitions
         return keys[i];
       }
     }
