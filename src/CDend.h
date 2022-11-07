@@ -43,6 +43,8 @@ double scorePMs(bool **pm1, bool **pm2, int pm1l, int pm2l, int lh);
 double calcEntropy(bool **pm, int lh, int pml);
 ulong RFHashMap(treeNode *node, ulong *htable, ulong *keys, unsigned int *hvs, int lh, int rootv);
 ulong KFHashMap(treeNode *node, ulong *htable, double *dists, ulong *keys, unsigned int *hvs, int lh, int rootv);
+double scoreJaccardRFDist(bool **pm1, bool **pm2, int pm1l, int pm2l, int lh, double expv);
+double calcJaccardPairingScore(bool *v1, bool *v2, int lh, double expv);
 
 /* Fitch Parsimony */
 void resetTree(treeNode* node, int val);

@@ -1,5 +1,60 @@
-DendDist <- function(dend1, dend2, Method, RawScore=FALSE){
+GeneralizedRF <- function(val, RawScore=FALSE){
+  if (RawScore){
+    retval <- val
+    names(retval) <- c("Similarity", "dend1.Entropy", "dend2.Entropy")
+    if (val[1] == 0) retval[1:2] <- c(NA, NA)
+    return(retval)
+  }
+  
+  if (val[1] == 0) return(1)
+  maxval <- (val[2] + val[3])
+  retval <- (maxval - val[1]) / maxval
+  if (maxval == 0)
+    retval <- as.integer(val[1] != 0)
+  return(retval)
+}
+
+RFDist <- function(val, RawScore=FALSE){
+  if (RawScore){
+    retval <- val
+    names(retval) <- c("UniqueSplits", "dend1.Splits", "dend2.Splits")
+    return(retval)
+  }
+  
+  maxval <- val[2] + val[3]
+  retval <- val[1] / maxval
+  if (maxval == 0)
+    retval <- as.integer(val[1] != 0)
+  return(retval)
+}
+
+KFDist <- function(val){
+  maxval <- val[2]
+  retval <- val[1] / maxval
+  if (maxval == 0)
+    retval <- as.integer(val[1] != 0)
+  return(retval)
+}
+
+JRFDist <- function(val, RawScore=FALSE){
+  if (RawScore){
+    retval <- val
+    names(retval) <- c("Distance", "dend1.NumSplits", "dend2.NumSplits")
+    if (val[1] == 0) retval[1:2] <- c(NA, NA)
+    return(retval)
+  }
+  if (val[1] == 0) return(1)
+  maxval <- (val[2] + val[3])
+  retval <- (val[1]) / maxval
+  if (maxval == 0)
+    retval <- as.integer(val[1] != 0)
+  return(retval)
+}
+
+PhyloDistance <- function(dend1, dend2, Method, RawScore=FALSE, JRFExp=0){
   stopifnot("inputs must both be dendrograms!"=is(dend1, 'dendrogram') && is(dend2, 'dendrogram'))
+  if (is.integer(JRFExp)) JRFExp <- as.numeric(JRFExp) 
+  stopifnot("ExpVal must be numeric or integer"=is.numeric(JRFExp))
   
   if (!is(labels(dend1), 'character')){
     dend1 <- dendrapply(dend1, \(x){
@@ -24,57 +79,22 @@ DendDist <- function(dend1, dend2, Method, RawScore=FALSE){
     tree2ptr <- .Call("initCDend", dend2)
     on.exit(rm(tree2ptr))
     
-    if (Method == 'GRF')
-      val <- .Call("GRFInfo", tree1ptr, tree2ptr, incommonLabs)
-    else if (Method == 'RF')
+    if (Method == 'GRF'){
+      val <- .Call("GRFInfo", tree1ptr, tree2ptr, incommonLabs, FALSE, 0)
+      return(GeneralizedRF(val, RawScore))
+    } else if (Method == 'JRF'){
+      val <- .Call("GRFInfo", tree1ptr, tree2ptr, incommonLabs, TRUE, JRFExp)
+      return(JRFDist(val, RawScore))
+    } else if (Method == 'RF'){
       val <- .Call("RFDist", tree1ptr, tree2ptr, incommonLabs)
-    else if (Method == 'KF')
+      return(RFDist(val, RawScore))
+    } else if (Method == 'KF') {
       val <- .Call("KFDist", tree1ptr, tree2ptr, incommonLabs)
+      return(KFDist(val))
+    }
     else
       stop("Method not recognized!")
   }
   
-  return(val)
-}
-
-GeneralizedRF <- function(dend1, dend2, RawScore=FALSE){
-  val <- DendDist(dend1, dend2, Method="GRF")
-  if (RawScore){
-    retval <- val
-    names(retval) <- c("Similarity", "dend1.Entropy", "dend2.Entropy")
-    if (val[1] == 0) retval[1:2] <- c(NA, NA)
-    return(retval)
-  }
-  
-  if (val[1] == 0) return(1)
-  maxval <- (val[2] + val[3])
-  retval <- (maxval - val[1]) / maxval
-  if (maxval == 0)
-    retval <- as.integer(val[1] != 0)
-  return(retval)
-}
-
-RFDist <- function(dend1, dend2, RawScore=FALSE){
-  val <- DendDist(dend1, dend2, Method="RF")
-  if (RawScore){
-    retval <- val
-    names(retval) <- c("UniqueSplits", "dend1.Splits", "dend2.Splits")
-    return(retval)
-  }
-  
-  maxval <- val[2] + val[3]
-  retval <- val[1] / maxval
-  if (maxval == 0)
-    retval <- as.integer(val[1] != 0)
-  return(retval)
-}
-
-KFDist <- function(dend1, dend2){
-  val <- DendDist(dend1, dend2, Method="KF")
-  
-  maxval <- val[2]
-  retval <- val[1] / maxval
-  if (maxval == 0)
-    retval <- as.integer(val[1] != 0)
-  return(retval)
+  return(NULL)
 }

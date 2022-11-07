@@ -1,5 +1,7 @@
 # SynExtend 1.11.2
 * Adds KF Distance for trees
+* Adds Jaccard Robinson Foulds Distance for trees
+* Reworks tree distances into `PhyloDistance` function
 
 # SynExtend 1.11.1
 * Minor bugfix to RF distance

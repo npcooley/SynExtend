@@ -1,4 +1,4 @@
-\name{RFDist}
+\name{PhyloDistance.RFDist}
 \alias{RFDist}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
@@ -8,7 +8,8 @@ Robinson-Foulds Distance
 Calculate RF distance between two unrooted phylogenies.
 }
 \usage{
-RFDist(dend1, dend2, RawScore=FALSE)
+# Called using PhyloDistance
+PhyloDistance(dend1, dend2, Method="RF", RawScore=FALSE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -63,15 +64,14 @@ Labels can easily be modified using \code{\link{dendrapply}}.
 set.seed(123)
 dm1 <- as.dist(matrix(runif(64, 0.5, 5), ncol=8))
 dm2 <- as.dist(matrix(runif(64, 0.5, 5), ncol=8))
-names(dm1) <- names(dm2) <- c('a', 'b', 'c', 'd', 
-                              'e', 'f', 'g', 'h')
+
 tree1 <- as.dendrogram(hclust(dm1))
 tree2 <- as.dendrogram(hclust(dm2))
 
 # get RF distance
-RFDist(tree1, tree2)
+PhyloDistance(tree1, tree2, Method="RF")
 
 # get number of unique splits per tree
-RFDist(tree1, tree2, RawScore=TRUE)
+PhyloDistance(tree1, tree2, Method="RF", RawScore=TRUE)
 }
 

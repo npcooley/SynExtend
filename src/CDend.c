@@ -138,9 +138,13 @@ SEXP calcScoreHamming(SEXP ov1, SEXP ov2, SEXP NN, SEXP norm){
 
 /**** Tree Distances ****/
 // RF Distance with information-theoretic scoring (clustering info)
-SEXP GRFInfo(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
+SEXP GRFInfo(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels, SEXP shouldUseJRF, SEXP JRFExp){
   treeNode *tree1 = checkPtrExists(tnPtr1);
   treeNode *tree2 = checkPtrExists(tnPtr2);
+  bool useJRF = LOGICAL(shouldUseJRF)[0];
+  double jaccardExp = 0;
+  if (useJRF)
+    jaccardExp = REAL(JRFExp)[0];
 
   int numLabels = LENGTH(allLabels);
   if (numLabels == 0){
@@ -176,11 +180,18 @@ SEXP GRFInfo(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
   // trim down the size of the array
   int t1pln = reallocPartitionMap(part1, numLabels, t1pl);
   int t2pln = reallocPartitionMap(part2, numLabels, t2pl);
- 
-  double entropy1 = calcEntropy(part1, numLabels, t1pln);
-  double entropy2 = calcEntropy(part2, numLabels, t2pln);
 
-  double RFscore = scorePMs(part1, part2, t1pln, t2pln, numLabels);
+  double RFscore, entropy1, entropy2;
+  if (useJRF){
+    RFscore = scoreJaccardRFDist(part1, part2, t1pln, t2pln, numLabels, jaccardExp); 
+    entropy1 = t1pln;
+    entropy2 = t2pln;
+  } else {
+    RFscore = scorePMs(part1, part2, t1pln, t2pln, numLabels); 
+    entropy1 = calcEntropy(part1, numLabels, t1pln);
+    entropy2 = calcEntropy(part2, numLabels, t2pln); 
+  }
+  
   
   // cleanup
   for (int i=0; i<t1pl; i++)
@@ -843,6 +854,83 @@ double calcEntropy(bool **pm, int lh, int pml){
   }
 
   return(res);
+}
+
+double scoreJaccardRFDist(bool **pm1, bool **pm2, int pm1l, int pm2l, int lh, double expv){
+  bool firstlonger = pm1l > pm2l;
+  bool **longPm = firstlonger ? pm1 : pm2;
+  bool **shortPm = firstlonger ? pm2 : pm1;
+  int longl = firstlonger ? pm1l : pm2l;
+  int shortl = firstlonger ? pm2l : pm1l;
+
+  bool *curS, *curL;
+  double retval = 0.0;
+  double cursum, maxval;
+  int idxchange = longl-1;
+
+  // counts stores all the pairwise counts, as follows:
+  // [A1, A2, B1, B2, A1A2, A1B2, B1A2, B1B2]
+  // note that B1 = !A1, B2 = !A2
+  int counts[8];
+  for (int i=0; i<shortl; i++){
+    maxval = -1 * INT_MAX;
+    curS = shortPm[i];
+     for (int j=0; j<(longl-i); j++){
+      memset(counts, 0, sizeof(counts));
+      curL = longPm[j];
+      cursum = 2 - 2*calcJaccardPairingScore(curS, curL, lh, expv);
+      if (cursum > maxval){
+        maxval = cursum;
+        idxchange = j;
+      }
+    }
+
+    retval += maxval;
+    // swap in the last column so we don't search it again
+    memcpy(longPm[idxchange], longPm[longl-i-1], lh);
+  }
+
+  return retval;
+}
+
+double calcJaccardPairingScore(bool *v1, bool *v2, int lh, double expv){
+  double vals[8];
+  memset(vals, 0, sizeof(int) * 8);
+
+  /****
+   * We have two sets, A and B.
+   * A = (A, A'); B = (B, B')
+   * 
+   * Memory Map:
+   * vals[0]: A  &&  B
+   * vals[1]: A' &&  B
+   * vals[2]: A  &&  B'
+   * vals[3]: A' &&  B'
+   * vals[4:7]: same as above but with ||
+    ****/
+  bool x, y;
+  for (int i=0; i<lh; i++){
+    x = v1[i];
+    y = v2[i];
+    vals[0] +=  x &&  y;
+    vals[1] += !x &&  y;
+    vals[2] +=  x && !y;
+    vals[3] += !x && !y;
+    vals[4] +=  x ||  y;
+    vals[5] += !x ||  y;
+    vals[6] +=  x || !y;
+    vals[7] += !x || !y;
+  }
+
+  for (int i=0; i<4; i++)
+    vals[i] = vals[i+4] == 0 ? 0 : pow(vals[i] / vals[i+4], expv);
+
+
+  vals[0] = vals[0] < vals[3] ? vals[0] : vals[3];
+  vals[1] = vals[1] < vals[2] ? vals[1] : vals[2];
+  vals[0] = vals[0] > vals[1] ? vals[0] : vals[1];
+
+  return vals[0];
 }
 
 /****** Gain / Loss Functions ******/

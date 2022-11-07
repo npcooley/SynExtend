@@ -1,4 +1,4 @@
-\name{KFDist}
+\name{PhyloDistance.KFDist}
 \alias{KFDist}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
@@ -8,7 +8,8 @@ Kuhner-Felsenstein Distance
 Calculate KF distance between two unrooted phylogenies.
 }
 \usage{
-KFDist(dend1, dend2)
+# Called using PhyloDistance
+PhyloDistance(dend1, dend2, Method="KF")
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -49,12 +50,11 @@ Labels can easily be modified using \code{\link{dendrapply}}.
 set.seed(123)
 dm1 <- as.dist(matrix(runif(64, 0.5, 5), ncol=8))
 dm2 <- as.dist(matrix(runif(64, 0.5, 5), ncol=8))
-names(dm1) <- names(dm2) <- c('a', 'b', 'c', 'd', 
-                              'e', 'f', 'g', 'h')
+
 tree1 <- as.dendrogram(hclust(dm1))
 tree2 <- as.dendrogram(hclust(dm2))
 
 # get KF distance
-KFDist(tree1, tree2)
+PhyloDistance(tree1, tree2, Method="KF")
 }
 
