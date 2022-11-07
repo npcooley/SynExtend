@@ -1,4 +1,5 @@
-\name{PhyloDistance.RFDist}
+\name{PhyloDistance-RFDist}
+\alias{PhyloDistance-RF}
 \alias{RFDist}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
@@ -7,27 +8,8 @@ Robinson-Foulds Distance
 \description{
 Calculate RF distance between two unrooted phylogenies.
 }
-\usage{
-# Called using PhyloDistance
-PhyloDistance(dend1, dend2, Method="RF", RawScore=FALSE)
-}
-%- maybe also 'usage' for other objects documented here.
-\arguments{
-  \item{dend1}{
-  An object of class \code{dendrogram}, representing an unrooted bifurcating phylogenetic
-  tree.
-}
-  \item{dend2}{
-  An object of class \code{dendrogram}, representing an unrooted bifurcating phylogenetic 
-  tree.
-}
-\item{RawScore}{
-  If \code{TRUE}, returns the number of unique splits and the total number of splits for each tree. If
-  \code{FALSE}, returns the distance between the two trees.
-}
-}
 \details{
-This function implements Robinson-Foulds distance between two unrooted phylogenies. Each dendrogram is first pruned to only internal branches implying a partition in the shared leaf set; trivial partitions (where one leaf set contains 1 or 0 leaves) are ignored. The total score is calculated as the number of unique partitions divided by the total number of partitions in both trees. Setting \code{RawScore=TRUE} will instead return a vector with
+This function is called as part of \code{\link{PhyloDistance}} and calculates Robinson-Foulds distance between two unrooted phylogenies. Each dendrogram is first pruned to only internal branches implying a partition in the shared leaf set; trivial partitions (where one leaf set contains 1 or 0 leaves) are ignored. The total score is calculated as the number of unique partitions divided by the total number of partitions in both trees. Setting \code{RawScore=TRUE} will instead return a vector with
 \eqn{(P_{shared}, P_1, P_2)}, corresponding to the shared partitions and partitions in the first and second trees (respectively).
 
 This algorithm incorporates some optimizations from Pattengale et al. (2007) to improve computation time of the original fast RF algorithm detailed in Day (1985).

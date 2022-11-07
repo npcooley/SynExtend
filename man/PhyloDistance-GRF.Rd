@@ -1,4 +1,5 @@
-\name{PhyloDistance.GRFDist}
+\name{PhyloDistance-GRFDist}
+\alias{PhyloDistance-GRF}
 \alias{GRFDist}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
@@ -8,27 +9,9 @@ Information-Theoretic Generalized Robinson-Foulds Distance
 Calculate RF distance between two unrooted phylogenies using mutual clustering
 information of branch partitions.
 }
-\usage{
-# Called using PhyloDistance
-GeneralizedRF(dend1, dend2, Method="GRF", RawScore=FALSE)
-}
-%- maybe also 'usage' for other objects documented here.
-\arguments{
-  \item{dend1}{
-  An object of class \code{dendrogram}, representing an unrooted bifurcating phylogenetic
-  tree.
-}
-  \item{dend2}{
-  An object of class \code{dendrogram}, representing an unrooted bifurcating phylogenetic 
-  tree.
-}
-\item{RawScore}{
-  If \code{TRUE}, returns the similarity metric with entropy for each tree. If
-  \code{FALSE}, returns the distance between the two trees.
-}
-}
+
 \details{
-This function implements Robinson-Foulds distance using the clustering information
+This function is called as part of \code{\link{PhyloDistance}} and calculates Robinson-Foulds distance using the clustering information
 approach first described in Smith (2020). This function iteratively pairs
 internal tree branches of a phylogeny based on their similarity, then scores 
 overall similarity as the sum of these measures. The similarity score is then

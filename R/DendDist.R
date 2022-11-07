@@ -51,7 +51,7 @@ JRFDist <- function(val, RawScore=FALSE){
   return(retval)
 }
 
-PhyloDistance <- function(dend1, dend2, Method, RawScore=FALSE, JRFExp=0){
+PhyloDistance <- function(dend1, dend2, Method="GRF", RawScore=FALSE, JRFExp=2){
   stopifnot("inputs must both be dendrograms!"=is(dend1, 'dendrogram') && is(dend2, 'dendrogram'))
   if (is.integer(JRFExp)) JRFExp <- as.numeric(JRFExp) 
   stopifnot("ExpVal must be numeric or integer"=is.numeric(JRFExp))

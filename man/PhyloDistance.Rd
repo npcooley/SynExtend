@@ -35,10 +35,10 @@ PhyloDistance(dend1, dend2, Method="GRF",
 This function implements a variety of tree distances, specified by the value of \code{Method}. The following values are supported, along with links to documentation pages for each function:
 
 \itemize{
-  \item{\code{"RF"}: \link[=PhyloDistance.RFDist]{Robinson-Foulds Distance}}
-  \item{\code{"GRF"}: \link[=PhyloDistance.GRFDist]{Generalized Information-Theoretic Robinson Foulds Distance}}
-  \item{\code{"JRF"}: \link[=PhyloDistance.JRFDist]{Jaccard-Robinson-Foulds Distance}, equivalent to the Nye Distance Metric when \code{ExpVal=1}}
-  \item{\code{"KF"}: \link[=PhyloDistance.KFDist]{Kuhner-Felsenstein Distance}}
+  \item{\code{"RF"}: \link[=RFDist]{Robinson-Foulds Distance}}
+  \item{\code{"GRF"}: \link[=GRFDist]{Generalized Information-Theoretic Robinson Foulds Distance}}
+  \item{\code{"JRF"}: \link[=JRFDist]{Jaccard-Robinson-Foulds Distance}, equivalent to the Nye Distance Metric when \code{JRFVal=1}}
+  \item{\code{"KF"}: \link[=KFDist]{Kuhner-Felsenstein Distance}}
 }
 
 Information on each of these algorithms, how scores are calculated, and references to literature can be found at the above links. Method \code{"GRF"} is selected by default due to recent work showing this method as the most robust tree distance metric under general conditions.
@@ -60,6 +60,15 @@ leaf labeled \code{abc} in \code{dend2}).
 Labels can easily be modified using \code{\link{dendrapply}}. 
 }
 
+\seealso{
+\link[=RFDist]{Robinson-Foulds Distance}
+
+\link[=GRFDist]{Generalized Information-Theoretic Robinson Foulds Distance}
+
+\link[=JRFDist]{Jaccard-Robinson-Foulds Distance}
+
+\link[=KFDist]{Kuhner-Felsenstein Distance}
+}
 \examples{
 # making some toy dendrograms
 set.seed(123)

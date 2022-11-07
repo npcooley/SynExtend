@@ -1,4 +1,5 @@
-\name{PhyloDistance.JRFDist}
+\name{PhyloDistance-JRFDist}
+\alias{PhyloDistance-JRF}
 \alias{JRFDist}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
@@ -7,34 +8,12 @@ Jaccard-Robinson-Foulds Distance
 \description{
 Calculate JRF distance between two unrooted phylogenies.
 }
-\usage{
-# Internally called using PhyloDistance with Method arg
-PhyloDistance(dend1, dend2, Method="JRF", RawScore=FALSE, ExpVal=2)
-}
-%- maybe also 'usage' for other objects documented here.
-\arguments{
-  \item{dend1}{
-  An object of class \code{dendrogram}, representing an unrooted bifurcating phylogenetic
-  tree.
-}
-  \item{dend2}{
-  An object of class \code{dendrogram}, representing an unrooted bifurcating phylogenetic 
-  tree.
-}
-\item{RawScore}{
-  If \code{TRUE}, returns the distance score and the total number of splits for each tree. If
-  \code{FALSE}, returns the distance between the two trees.
-}
-\item{ExpVal}{
-  Numeric specifying the value of \code{k} to use in calculation. Larger values penalize partial matches more; see Details for more information.
-}
-}
 \details{
-This function implements the Jaccard-Robinson-Foulds distance between two unrooted phylogenies. Each dendrogram is first pruned to only internal branches implying a partition in the shared leaf set; trivial partitions (where one leaf set contains 1 or 0 leaves) are ignored. 
+This function is called as part of \code{\link{PhyloDistance}} and calculates the Jaccard-Robinson-Foulds distance between two unrooted phylogenies. Each dendrogram is first pruned to only internal branches implying a partition in the shared leaf set; trivial partitions (where one leaf set contains 1 or 0 leaves) are ignored. 
 
 The total score is calculated by pairing branches and scoring their similarity. For a set of two branches \eqn{A, B} that partition the leaves into \eqn{(A_1, A_2)} and \eqn{(B_1, B_2)} (resp.), the distance between the branches is calculated as:
 
-\eqn{2 - 2\left(\frac{|X \cap Y|}{| X\cup Y|}\right)^k}
+\deqn{2 - 2\left(\frac{|X \cap Y|}{| X\cup Y|}\right)^k}
 
 where \eqn{X \in (A_1, A_2),\; Y \in (B_1, B_2)} are chosen to maximize the score of the pairing, and \eqn{k} the value of \code{ExpVal}. The sum of these scores for all branches produces the overall distance between the two trees, which is then normalized by the number of branches in each tree.
 
@@ -73,13 +52,13 @@ tree1 <- as.dendrogram(hclust(dm1))
 tree2 <- as.dendrogram(hclust(dm2))
 
 # Nye Metric
-PhyloDistance(tree1, tree2, Method="JRF", ExpVal=1)
+PhyloDistance(tree1, tree2, Method="JRF", JRFExp=1)
 
 # Jaccard-RobinsonFoulds
-JRFDist(tree1, tree2, Method="JRF", ExpVal=2)
+PhyloDistance(tree1, tree2, Method="JRF", JRFExp=2)
 
 # Good approximation to RF Dist (note RFDist is much faster for this)
-JRFDist(tree1, tree2, Method="JRF", ExpVal=1000)
-RFDist(tree1, tree2, Method="RF")
+PhyloDistance(tree1, tree2, Method="JRF", JRFExp=1000)
+PhyloDistance(tree1, tree2, Method="RF")
 }
 
