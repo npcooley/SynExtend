@@ -207,12 +207,12 @@ GenRF.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   for ( i in seq_len(l) ){
     tree <- pw[[uvals[i]]]
     if (useColoc){
-      tree <- dendrapply(tree, \(x){
+      tree <- rapply(tree, \(x){
         if (!is.null(attr(x, 'leaf'))){
           attr(x, 'label') <- gsub("(.*)_.*_.*", '\\1', attr(x, 'label'))
         }
         return(x)
-      })
+      }, how='replace')
     }
     labs <- labels(tree)
     ptr <- .Call("initCDend", tree)
@@ -234,7 +234,7 @@ GenRF.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
       entry <- max(uval1, uval2)
       if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
         interlabs <- intersect(labelsArray[[i]], labelsArray[[j]])
-        s <- .Call("GRFInfo", pArray[[i]], pArray[[j]], interlabs)
+        s <- .Call("GRFInfo", pArray[[i]], pArray[[j]], interlabs, FALSE, 0)
         #pairscores[ctr+1] <- s[1]
         normval <- 0.5*(s[2]+s[3]) 
         if (is.na(normval) || normval == 0)
@@ -278,12 +278,12 @@ RF.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   for ( i in seq_len(l) ){
     tree <- pw[[uvals[i]]]
     if (useColoc){
-      tree <- dendrapply(tree, \(x){
+      tree <- rapply(tree, \(x){
         if (!is.null(attr(x, 'leaf'))){
           attr(x, 'label') <- gsub("(.*)_.*_.*", '\\1', attr(x, 'label'))
         }
         return(x)
-      })
+      }, how='replace')
     }
     labs <- labels(tree)
     ptr <- .Call("initCDend", tree)

@@ -57,18 +57,18 @@ PhyloDistance <- function(dend1, dend2, Method="GRF", RawScore=FALSE, JRFExp=2){
   stopifnot("ExpVal must be numeric or integer"=is.numeric(JRFExp))
   
   if (!is(labels(dend1), 'character')){
-    dend1 <- dendrapply(dend1, \(x){
+    dend1 <- rapply(dend1, \(x){
       if (!is.null(attr(x, 'leaf')))
         attr(x, 'label') <- as.character(attr(x, 'label'))
       return(x)
-    })
+    }, how='replace')
   }
   if (!is(labels(dend2), 'character')){
-    dend2 <- dendrapply(dend2, \(x){
+    dend2 <- rapply(dend2, \(x){
       if (!is.null(attr(x, 'leaf')))
         attr(x, 'label') <- as.character(attr(x, 'label'))
       return(x)
-    })
+    }, how='replace')
   }
   incommonLabs <- intersect(labels(dend1), labels(dend2))
   if (length(incommonLabs) == 0){ 
