@@ -137,6 +137,7 @@ SEXP calcScoreHamming(SEXP ov1, SEXP ov2, SEXP NN, SEXP norm){
 }
 
 /**** Tree Distances ****/
+// RF Distance with information-theoretic scoring (clustering info)
 SEXP GRFInfo(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
   treeNode *tree1 = checkPtrExists(tnPtr1);
   treeNode *tree2 = checkPtrExists(tnPtr2);
@@ -199,6 +200,7 @@ SEXP GRFInfo(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
   return retval;
 }
 
+// Robinson-Foulds Distance
 SEXP RFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
   treeNode *tree1 = checkPtrExists(tnPtr1);
   treeNode *tree2 = checkPtrExists(tnPtr2);
@@ -222,14 +224,14 @@ SEXP RFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
   int t1pl = tree1->value-1;
   int t2pl = tree2->value-1;
 
-  unsigned long *keyvals = Calloc(numLabels, unsigned long);
-  unsigned long *ht1 = Calloc(t1pl, unsigned long);
-  unsigned long *ht2 = Calloc(t2pl, unsigned long);
+  ulong *keyvals = Calloc(numLabels, ulong);
+  ulong *ht1 = Calloc(t1pl, ulong);
+  ulong *ht2 = Calloc(t2pl, ulong);
 
   // seed random number generator
   GetRNGstate();
 
-  unsigned long totalval = 0;
+  ulong totalval = 0;
   for (int i=0; i<numLabels; i++){
     keyvals[i] = irand() * irand();
     totalval ^= keyvals[i];
@@ -266,7 +268,7 @@ SEXP RFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
   Free(idxToKeep2);
 
   int num_unique = 0;
-  unsigned long curval, test;
+  ulong curval, test;
   bool found;
   for (int i=0; i<ctr1; i++){
     curval = ht1[i];
@@ -302,6 +304,135 @@ SEXP RFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
   rptr[0] = num_unique;
   rptr[1] = ctr1;
   rptr[2] = ctr2;
+  UNPROTECT(1);
+  return retval;
+}
+
+// Kuhner-Felsenstein Distance
+SEXP KFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
+  // algo from https://evolution.genetics.washington.edu/phylip/doc/treedist.html
+  treeNode *tree1 = checkPtrExists(tnPtr1);
+  treeNode *tree2 = checkPtrExists(tnPtr2);
+
+  int numLabels = LENGTH(allLabels);
+  if (numLabels == 0){
+    SEXP retval = PROTECT(allocVector(INTSXP, 3));
+    int *outptr = INTEGER(retval);
+    outptr[0] = 0;
+    outptr[1] = 0;
+    outptr[2] = 0;
+    UNPROTECT(1);
+    return retval;
+  }
+
+  unsigned int *allHashed = Calloc(numLabels, unsigned int);
+  for (int i=0; i<numLabels; i++){
+    allHashed[i] = hashLabel(STRING_ELT(allLabels, i));
+  }
+
+  int t1pl = tree1->value-1;
+  int t2pl = tree2->value-1;
+
+  ulong *keyvals = Calloc(numLabels, ulong);
+  ulong *ht1 = Calloc(t1pl, ulong);
+  ulong *ht2 = Calloc(t2pl, ulong);
+  double *dists1 = Calloc(t1pl, double);
+  double *dists2 = Calloc(t2pl, double);
+
+  // seed random number generator
+  GetRNGstate();
+
+  ulong totalval = 0;
+  for (int i=0; i<numLabels; i++){
+    keyvals[i] = irand() * irand();
+    totalval ^= keyvals[i];
+  }
+
+  PutRNGstate();
+  
+  KFHashMap(tree1, ht1, dists1, keyvals, allHashed, numLabels, t1pl);
+  KFHashMap(tree2, ht2, dists2, keyvals, allHashed, numLabels, t2pl);
+  Free(allHashed);
+  Free(keyvals);
+
+  // Correct length of root node
+  if (tree1->left && tree1->right)
+    dists1[t1pl-1] = 2*tree1->height - tree1->left->height - tree1->right->height;
+
+  if (tree2->left && tree2->right)
+    dists2[t2pl-1] = 2*tree2->height - tree2->left->height - tree2->right->height;
+
+  int ctr1 = 0, ctr2=0;
+  int *idxToKeep1 = Calloc(t1pl, int);
+  int *idxToKeep2 = Calloc(t2pl, int);
+  for (int i=0; i<t1pl; i++){
+    if (ht1[i] != 0 && ht1[i] != totalval){
+      idxToKeep1[ctr1] = i;
+      ctr1++;
+    }
+  }
+  for (int i=0; i<t2pl; i++){
+    if (ht2[i] != 0 && ht2[i] != totalval){
+      idxToKeep2[ctr2] = i;
+      ctr2++;
+    }
+  }
+
+  for (int i=0; i<ctr1; i++){
+    ht1[i] = ht1[idxToKeep1[i]];
+    dists1[i] = dists1[idxToKeep1[i]];
+  }
+  for (int i=0; i<ctr2; i++){
+    ht2[i] = ht2[idxToKeep2[i]];
+    dists2[i] = dists2[idxToKeep2[i]];
+  }
+  Free(idxToKeep1);
+  Free(idxToKeep2);
+
+  double score = 0, maxval=0, curh;
+  ulong curval, test;
+  bool found;
+  for (int i=0; i<ctr1; i++){
+    curval = ht1[i];
+    curh = dists1[i];
+    maxval += curh * curh;
+    found = false;
+    for (int j=0; j<ctr2; j++){
+      test = curval ^ ht2[j];
+      if (test == 0 || test == totalval){
+        score += pow(dists1[i] - dists2[j], 2);
+        found = true;
+        break;
+      }
+    }
+    if (!found) score += pow(curh, 2);
+  }
+
+  for (int i=0; i<ctr2; i++){
+    curval = ht2[i];
+    curh = dists2[i];
+    maxval += curh * curh;
+    found = false;
+    for (int j=0; j<ctr1; j++){
+      test = curval ^ ht1[j];
+      if (test == 0 || test == totalval){
+        // don't add here, if we find a match we would've already added it
+        found = true;
+        break;
+      }
+    }
+    if (!found) score += pow(curh, 2);
+  }  
+  
+  // cleanup
+  Free(ht1);
+  Free(ht2);
+  Free(dists1);
+  Free(dists2);
+  SEXP retval = PROTECT(allocVector(REALSXP, 2));
+  double *rptr = REAL(retval);
+  rptr[0] = score;
+  rptr[1] = maxval;
   UNPROTECT(1);
   return retval;
 }
@@ -558,7 +689,7 @@ void internalPartitionMap(treeNode *node, bool **pSets, unsigned int *hvs, int l
   return;
 }
 
-unsigned long RFHashMap(treeNode *node, unsigned long *htable, unsigned long *keys, unsigned int *hvs, int lh, int rootv){
+ulong RFHashMap(treeNode *node, ulong *htable, ulong *keys, unsigned int *hvs, int lh, int rootv){
   int nv = node->value;
   if (node->label != 0){
     for (int i=0; i<lh; i++){
@@ -569,9 +700,40 @@ unsigned long RFHashMap(treeNode *node, unsigned long *htable, unsigned long *ke
       }
     }
   } else {
-    unsigned long lval=0, rval=0, setval; 
+    ulong lval=0, rval=0, setval; 
     if (node->left) lval = RFHashMap(node->left, htable, keys, hvs, lh, rootv);
     if (node->right) rval = RFHashMap(node->right, htable, keys, hvs, lh, rootv);
+    setval = (lval != 0 && rval !=0) ? rval ^ lval : 0;
+    rval ^= lval;
+    //setval = rval;
+    if (nv < rootv)
+      htable[nv] = setval;
+    return rval;
+  }
+
+  return 0;
+}
+
+ulong KFHashMap(treeNode *node, ulong *htable, double *dists, ulong *keys, unsigned int *hvs, int lh, int rootv){
+  int nv = node->value;
+  if (node->label != 0){
+    for (int i=0; i<lh; i++){
+      if (node->label == hvs[i]){
+        htable[nv] = 0;    // doesn't count leaf partitions
+        //htable[nv] = keys[i]; // counts leaf partitions
+        return keys[i];
+      }
+    }
+  } else {
+    ulong lval=0, rval=0, setval; 
+    if (node->left){
+     lval = RFHashMap(node->left, htable, keys, hvs, lh, rootv);
+     dists[node->left->value] = node->height - node->left->height;
+    }
+    if (node->right){
+     rval = RFHashMap(node->right, htable, keys, hvs, lh, rootv);
+     dists[node->right->value] = node->height - node->right->height;
+    }
     setval = (lval != 0 && rval !=0) ? rval ^ lval : 0;
     rval ^= lval;
     //setval = rval;

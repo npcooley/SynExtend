@@ -11,6 +11,8 @@
 #include "SynExtend.h"
 #include "SEutils.h"
 
+typedef unsigned long ulong;
+
 typedef struct tree {
   double height;
   int value;
@@ -39,7 +41,8 @@ void internalPartitionMap(treeNode *node, bool **pSets, unsigned int *hvs, int l
 int reallocPartitionMap(bool **pSets, int lh, int plen);
 double scorePMs(bool **pm1, bool **pm2, int pm1l, int pm2l, int lh);
 double calcEntropy(bool **pm, int lh, int pml);
-unsigned long RFHashMap(treeNode *node, unsigned long *htable, unsigned long *keys, unsigned int *hvs, int lh, int rootv);
+ulong RFHashMap(treeNode *node, ulong *htable, ulong *keys, unsigned int *hvs, int lh, int rootv);
+ulong KFHashMap(treeNode *node, ulong *htable, double *dists, ulong *keys, unsigned int *hvs, int lh, int rootv);
 
 /* Fitch Parsimony */
 void resetTree(treeNode* node, int val);

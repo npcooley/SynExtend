@@ -28,6 +28,8 @@ DendDist <- function(dend1, dend2, Method, RawScore=FALSE){
       val <- .Call("GRFInfo", tree1ptr, tree2ptr, incommonLabs)
     else if (Method == 'RF')
       val <- .Call("RFDist", tree1ptr, tree2ptr, incommonLabs)
+    else if (Method == 'KF')
+      val <- .Call("KFDist", tree1ptr, tree2ptr, incommonLabs)
     else
       stop("Method not recognized!")
   }
@@ -61,6 +63,16 @@ RFDist <- function(dend1, dend2, RawScore=FALSE){
   }
   
   maxval <- val[2] + val[3]
+  retval <- val[1] / maxval
+  if (maxval == 0)
+    retval <- as.integer(val[1] != 0)
+  return(retval)
+}
+
+KFDist <- function(dend1, dend2){
+  val <- DendDist(dend1, dend2, Method="KF")
+  
+  maxval <- val[2]
   retval <- val[1] / maxval
   if (maxval == 0)
     retval <- as.integer(val[1] != 0)

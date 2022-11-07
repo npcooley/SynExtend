@@ -1,3 +1,6 @@
+# SynExtend 1.11.2
+* Adds KF Distance for trees
+
 # SynExtend 1.11.1
 * Minor bugfix to RF distance
 * updates gitignore for workflows

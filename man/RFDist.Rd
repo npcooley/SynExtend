@@ -5,7 +5,7 @@
 Robinson-Foulds Distance
 }
 \description{
-Calculate RF distance between two unrooted phylogenie..
+Calculate RF distance between two unrooted phylogenies.
 }
 \usage{
 RFDist(dend1, dend2, RawScore=FALSE)
