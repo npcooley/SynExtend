@@ -1,3 +1,10 @@
+# SynExtend 1.11.2
+* Adds KF Distance for trees
+* Adds Jaccard Robinson Foulds Distance for trees
+* Reworks tree distances into `PhyloDistance` function
+* Numerous new documentation pages
+* Updates internal functions to use `rapply` instead of `dendrapply` to avoid stack overflow issues due to R recursion
+
 # SynExtend 1.11.1
 * Minor bugfix to RF distance
 * updates gitignore for workflows

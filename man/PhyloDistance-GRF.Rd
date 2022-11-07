@@ -1,5 +1,6 @@
-\name{GeneralizedRF}
-\alias{GeneralizedRF}
+\name{PhyloDistance-GRFDist}
+\alias{PhyloDistance-GRF}
+\alias{GRFDist}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
 Information-Theoretic Generalized Robinson-Foulds Distance
@@ -8,26 +9,9 @@ Information-Theoretic Generalized Robinson-Foulds Distance
 Calculate RF distance between two unrooted phylogenies using mutual clustering
 information of branch partitions.
 }
-\usage{
-GeneralizedRF(dend1, dend2, RawScore=FALSE)
-}
-%- maybe also 'usage' for other objects documented here.
-\arguments{
-  \item{dend1}{
-  An object of class \code{dendrogram}, representing an unrooted bifurcating phylogenetic
-  tree.
-}
-  \item{dend2}{
-  An object of class \code{dendrogram}, representing an unrooted bifurcating phylogenetic 
-  tree.
-}
-\item{RawScore}{
-  If \code{TRUE}, returns the similarity metric with entropy for each tree. If
-  \code{FALSE}, returns the distance between the two trees.
-}
-}
+
 \details{
-This function implements Robinson-Foulds distance using the clustering information
+This function is called as part of \code{\link{PhyloDistance}} and calculates Robinson-Foulds distance using the clustering information
 approach first described in Smith (2020). This function iteratively pairs
 internal tree branches of a phylogeny based on their similarity, then scores 
 overall similarity as the sum of these measures. The similarity score is then
@@ -71,15 +55,14 @@ Labels can easily be modified using \code{\link{dendrapply}}.
 set.seed(123)
 dm1 <- as.dist(matrix(runif(64, 0.5, 5), ncol=8))
 dm2 <- as.dist(matrix(runif(64, 0.5, 5), ncol=8))
-names(dm1) <- names(dm2) <- c('a', 'b', 'c', 'd', 
-                              'e', 'f', 'g', 'h')
+
 tree1 <- as.dendrogram(hclust(dm1))
 tree2 <- as.dendrogram(hclust(dm2))
 
 # get RF distance
-GeneralizedRF(tree1, tree2)
+PhyloDistance(tree1, tree2, Method="GRF")
 
 # get similarity score with individual entropies
-GeneralizedRF(tree1, tree2, RawScore=TRUE)
+PhyloDistance(tree1, tree2, Method="GRF", RawScore=TRUE)
 }
 

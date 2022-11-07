@@ -6,12 +6,12 @@ DPhyloStatistic <- function(dend, PAProfile, NumIter=1000L){
   
   allLabels <- labels(dend)
   if (!is.character(allLabels)){
-    dend <- dendrapply(dend, \(x){
+    dend <- rapply(dend, \(x){
       if (!is.null(attr(x, 'leaf'))){
         attr(x, 'label') <- as.character(attr(x, 'label'))
       }
       return(x)
-    })
+    }, how='replace')
   }
   allLabels <- labels(dend)
   # Error check PAProfile

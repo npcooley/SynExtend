@@ -38,7 +38,7 @@ normalizing distances prior to calculation. The built-in \code{ContextTree}
 method uses corrections based on what is possible with provided input data.
 
 The \code{GenRF} method uses information-theoretic Generalized Robinson-Foulds
-distance to quantify distance between gene trees. See \code{\link{GeneralizedRF}}
+distance to quantify distance between gene trees. See \code{\link{PhyloDistance}} and \code{\link[=GRFDist]{GRF Distance}}
 for more information.
 }
 
@@ -68,5 +68,5 @@ Sato, T., et al., \emph{Partial correlation coefficient between distance matrice
 
 \link[=ProtWeaver-ResiduePreds]{ProtWeaver Residue Level Predictors}
 
-\code{\link{GeneralizedRF}}
+\code{\link{PhyloDistance}}
 }
