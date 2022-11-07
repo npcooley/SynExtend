@@ -347,8 +347,8 @@ SEXP KFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
   ulong *keyvals = Calloc(numLabels, ulong);
   ulong *ht1 = Calloc(t1pl, ulong);
   ulong *ht2 = Calloc(t2pl, ulong);
-  double *dists1 = Calloc(t1pl, double);
-  double *dists2 = Calloc(t2pl, double);
+  double *dists1 = Calloc(t1pl+2, double);
+  double *dists2 = Calloc(t2pl+2, double);
 
   // seed random number generator
   GetRNGstate();
