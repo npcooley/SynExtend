@@ -164,13 +164,13 @@ SEXP GRFInfo(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels, SEXP shouldUseJRF, SEXP J
 
   int t1pl = tree1->value - 1;
   int t2pl = tree2->value - 1;
-  bool **part1 = malloc(sizeof(bool*) * t1pl);
-  bool **part2 = malloc(sizeof(bool*) * t2pl);
+  bool **part1 = malloc(sizeof(bool*) * (t1pl+1));
+  bool **part2 = malloc(sizeof(bool*) * (t2pl+1));
 
-  for (int i=0; i<t1pl; i++){
+  for (int i=0; i<=t1pl; i++){
     part1[i] = calloc(numLabels, sizeof(bool));
   }
-  for (int i=0; i<t2pl; i++){
+  for (int i=0; i<=t2pl; i++){
     part2[i] = calloc(numLabels, sizeof(bool));
   }
 
@@ -192,11 +192,10 @@ SEXP GRFInfo(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels, SEXP shouldUseJRF, SEXP J
     entropy2 = calcEntropy(part2, numLabels, t2pln); 
   }
   
-  
   // cleanup
-  for (int i=0; i<t1pl; i++)
+  for (int i=0; i<=t1pl; i++)
     free(part1[i]);
-  for (int i=0; i<t2pl; i++)
+  for (int i=0; i<=t2pl; i++)
     free(part2[i]);
 
   free(part1);

@@ -96,5 +96,5 @@ PhyloDistance <- function(dend1, dend2, Method="GRF", RawScore=FALSE, JRFExp=2){
       stop("Method not recognized!")
   }
   
-  return(NULL)
+  return(val)
 }
