@@ -236,9 +236,8 @@ GenRF.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
       if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
         #cat(i, j, '\n')
         interlabs <- intersect(labelsArray[[i]], labelsArray[[j]])
-        s <- .Call("GRFInfo", pArray[[i]], pArray[[j]], interlabs, TRUE, 2)
-        #print(s)
-        pairscores[ctr+1] <- s[1]
+        s <- .Call("GRFInfo", pArray[[i]], pArray[[j]], interlabs, FALSE, 0)
+        #pairscores[ctr+1] <- s[1]
         normval <- 0.5*(s[2]+s[3]) 
         #normval <- (s[2]+s[3]) 
         if (is.na(normval) || normval == 0)
