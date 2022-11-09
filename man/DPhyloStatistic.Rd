@@ -24,8 +24,7 @@ DPhyloStatistic(dend, PAProfile, NumIter = 1000L)
 }
 \details{
 This function implements the D-Statistic for binary traits on a phylogeny, as introduced in Fritz and Purvis (2009). The statstic is the following ratio:
-\eqn{\frac{D_{obs} - D_b}{D_r - D_b}}.
-
+\deqn{\frac{D_{obs} - D_b}{D_r - D_b}}
 Here \eqn{D_{obs}} is the D value for the input data, \eqn{D_b} is the value under simulated Brownian evolution, and \eqn{D_r} is the value under random permutation of the input data. The D value measures the sum of sister clade differences in a phylogeny weighted by branch lengths. A score close to 1 indicates phylogenetically random distribution, and a score close to 0 indicates the trait likely evolved under Brownian motion. Scores can fall outside this range; these scores are only intended as benchmark points on the scale. See the original paper cited in References for more information.
 
 The input \code{PAProfile} supports a number of formatting options:

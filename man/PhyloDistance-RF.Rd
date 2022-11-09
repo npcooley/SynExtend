@@ -1,32 +1,15 @@
-\name{RFDist}
+\name{PhyloDistance-RFDist}
+\alias{PhyloDistance-RF}
 \alias{RFDist}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
 Robinson-Foulds Distance
 }
 \description{
-Calculate RF distance between two unrooted phylogenie..
-}
-\usage{
-RFDist(dend1, dend2, RawScore=FALSE)
-}
-%- maybe also 'usage' for other objects documented here.
-\arguments{
-  \item{dend1}{
-  An object of class \code{dendrogram}, representing an unrooted bifurcating phylogenetic
-  tree.
-}
-  \item{dend2}{
-  An object of class \code{dendrogram}, representing an unrooted bifurcating phylogenetic 
-  tree.
-}
-\item{RawScore}{
-  If \code{TRUE}, returns the number of unique splits and the total number of splits for each tree. If
-  \code{FALSE}, returns the distance between the two trees.
-}
+Calculate RF distance between two unrooted phylogenies.
 }
 \details{
-This function implements Robinson-Foulds distance between two unrooted phylogenies. Each dendrogram is first pruned to only internal branches implying a partition in the shared leaf set; trivial partitions (where one leaf set contains 1 or 0 leaves) are ignored. The total score is calculated as the number of unique partitions divided by the total number of partitions in both trees. Setting \code{RawScore=TRUE} will instead return a vector with
+This function is called as part of \code{\link{PhyloDistance}} and calculates Robinson-Foulds distance between two unrooted phylogenies. Each dendrogram is first pruned to only internal branches implying a partition in the shared leaf set; trivial partitions (where one leaf set contains 1 or 0 leaves) are ignored. The total score is calculated as the number of unique partitions divided by the total number of partitions in both trees. Setting \code{RawScore=TRUE} will instead return a vector with
 \eqn{(P_{shared}, P_1, P_2)}, corresponding to the shared partitions and partitions in the first and second trees (respectively).
 
 This algorithm incorporates some optimizations from Pattengale et al. (2007) to improve computation time of the original fast RF algorithm detailed in Day (1985).
@@ -63,15 +46,14 @@ Labels can easily be modified using \code{\link{dendrapply}}.
 set.seed(123)
 dm1 <- as.dist(matrix(runif(64, 0.5, 5), ncol=8))
 dm2 <- as.dist(matrix(runif(64, 0.5, 5), ncol=8))
-names(dm1) <- names(dm2) <- c('a', 'b', 'c', 'd', 
-                              'e', 'f', 'g', 'h')
+
 tree1 <- as.dendrogram(hclust(dm1))
 tree2 <- as.dendrogram(hclust(dm2))
 
 # get RF distance
-RFDist(tree1, tree2)
+PhyloDistance(tree1, tree2, Method="RF")
 
 # get number of unique splits per tree
-RFDist(tree1, tree2, RawScore=TRUE)
+PhyloDistance(tree1, tree2, Method="RF", RawScore=TRUE)
 }
 
