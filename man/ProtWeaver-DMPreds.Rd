@@ -16,7 +16,7 @@ constructed from each gene tree.
 \itemize{
   \item \code{'MirrorTree'}
   \item \code{'ContextTree'}
-  \item \code{'GenRF'}
+  \item \code{'TreeDistance'}
 }
 }
 
@@ -37,9 +37,19 @@ for overall evolutionary rate using a species tree or projection vectors, using 
 normalizing distances prior to calculation. The built-in \code{ContextTree}
 method uses corrections based on what is possible with provided input data.
 
-The \code{GenRF} method uses information-theoretic Generalized Robinson-Foulds
-distance to quantify distance between gene trees. See \code{\link{PhyloDistance}} and \code{\link[=GRFDist]{GRF Distance}}
-for more information.
+The \code{TreeDistance} method uses phylogenetic tree distance to quantify differences between gene trees. This method implements a number of metrics and groups them together to improve overall runtime. Individual methods can be specified using the \code{TreeMethods} argument, which expects a character vector containing one or more of the following:
+\itemize{
+\item \code{"GRF"}: \link[=GRFDist]{Information-Theoretic Robinson-Foulds Distance}
+\item \code{"RF"}: \link[=RFDist]{Robinson-Foulds Distance}
+\item \code{"JRF"}: \link[=JRFDist]{Jaccard-Robinson-Foulds Distance}
+\item \code{"Nye"}: \link[=JRFDist]{Nye Similarity}
+\item \code{"KF"}: \link[=KFDist]{Kuhner-Felsenstein Distance}
+\item \code{"all"}: All of the above methods
+}
+
+See the links above for more information and references. All of these metrics are accessible using the \code{\link{PhyloDistance}} method. Method \code{"JRF"} defaults to a \code{k}
+value of 2, but this can be specified further if necessary using the \code{JRFk} input parameter. Higher values of \code{k} approach the value of Robinson-Foulds 
+distance, but these have a negligible impact on performance so use of the default parameter is encouraged for simplicity.
 }
 
 \author{

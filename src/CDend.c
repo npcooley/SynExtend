@@ -864,30 +864,40 @@ double scoreJaccardRFDist(bool **pm1, bool **pm2, int pm1l, int pm2l, int lh, do
 
   bool *curS, *curL;
   double retval = 0.0;
-  double cursum, maxval;
+  double cursum, minval;
   int idxchange = longl-1;
+  int numFound = 0;
+  bool found;
 
   // counts stores all the pairwise counts, as follows:
   // [A1, A2, B1, B2, A1A2, A1B2, B1A2, B1B2]
   // note that B1 = !A1, B2 = !A2
   int counts[8];
   for (int i=0; i<shortl; i++){
-    maxval = -1 * INT_MAX;
+    minval = 1;
     curS = shortPm[i];
-     for (int j=0; j<(longl-i); j++){
+    found = false;
+     for (int j=0; j<(longl-numFound); j++){
       memset(counts, 0, sizeof(counts));
       curL = longPm[j];
       cursum = 2 - 2*calcJaccardPairingScore(curS, curL, lh, expv);
-      if (cursum > maxval){
-        maxval = cursum;
+      if (cursum < minval){
+        minval = cursum;
         idxchange = j;
+        found = true;
       }
     }
 
-    retval += maxval;
+    retval += minval;
     // swap in the last column so we don't search it again
-    memcpy(longPm[idxchange], longPm[longl-i-1], lh);
+    if (found){
+      memcpy(longPm[idxchange], longPm[longl-numFound-1], lh);
+      numFound++;
+    }
   }
+  // numFound is the number of pairs
+  // Thus we have (shortl-numFound) + (longl-numFound) unpaired entries
+  retval += (shortl + longl - 2*numFound);
 
   return retval;
 }

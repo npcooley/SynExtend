@@ -1,3 +1,9 @@
+# SynExtend 1.11.3
+* Internal bugfixes for JRF Distance--previous commit was incorrectly calculating values
+* Adds new `TreeDistance` predictor for `ProtWeaver`, incorporating all tree distance metrics; these metrics are bundled due to some backend optimizations that improve performance
+* Bugfixes for `PhyloDistance`
+* Updates to documentation files
+
 # SynExtend 1.11.2
 * Adds KF Distance for trees
 * Adds Jaccard Robinson Foulds Distance for trees

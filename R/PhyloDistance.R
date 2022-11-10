@@ -7,7 +7,7 @@ GeneralizedRF <- function(val, RawScore=FALSE){
   }
   
   if (val[1] == 0) return(1)
-  maxval <- (val[2] + val[3])
+  maxval <- 0.5*(val[2] + val[3])
   retval <- (maxval - val[1]) / maxval
   if (maxval == 0)
     retval <- as.integer(val[1] != 0)
@@ -45,7 +45,7 @@ JRFDist <- function(val, RawScore=FALSE){
   }
   if (val[1] == 0) return(1)
   maxval <- (val[2] + val[3])
-  retval <- (val[1]) / maxval
+  retval <- 1 - (val[1] / maxval)
   if (maxval == 0)
     retval <- as.integer(val[1] != 0)
   return(retval)
