@@ -6,6 +6,7 @@
 \alias{ProfDCA.ProtWeaver}
 \alias{Behdenna.ProtWeaver}
 \alias{GainLoss.ProtWeaver}
+\alias{CorrGL.ProtWeaver}
 \docType{data}
 \title{
 Presence/Absence Predictions for ProtWeaver
@@ -20,7 +21,7 @@ constructed from presence/absence patterns.
 \itemize{
   \item \code{'Jaccard'}
   \item \code{'Hamming'}
-  \item \code{'HammingGL'}
+  \item \code{'CorrGL'}
   \item \code{'MutualInformation'}
   \item \code{'ProfDCA'}
   \item \code{'Behdenna'}
@@ -57,6 +58,8 @@ a species tree as input. If the \code{ProtWeaver} object is initialized with \co
 \code{GainLoss} uses a similar method to \code{Behdenna}. This method uses Fitch Parsimony to infer where events were gained or lost on a species tree, and then looks for distance between these gain/loss events. Unlike \code{Behdenna}, this method takes into account the types of events (ex. gain/gain and loss/loss are treated differently than gain/loss). This method requires
 a species tree as input. If the \code{ProtWeaver} object is initialized with \code{dendrogram} objects, \code{\link{SuperTree}} will be used to infer a species tree.
 
+\code{CorrGL} infers where events were gained or lost on a species tree as in method
+\code{GainLoss}, then uses a Pearson's correlation coefficient weighted by p-value to infer similarity.
 }
 
 \author{

@@ -13,7 +13,7 @@
 #### S3 Generic Definitions ####
 Jaccard <- function(pw, ...) UseMethod('Jaccard')
 Hamming <- function(pw, ...) UseMethod('Hamming')
-HammingGL <- function(pw, ...) UseMethod('HammingGL')
+CorrGL <- function(pw, ...) UseMethod('CorrGL')
 MutualInformation <- function(pw, ...) UseMethod('MutualInformation')
 ProfileDCA <- function(pw, ...) UseMethod('ProfileDCA')
 Behdenna <- function(pw, ...) UseMethod('Behdenna')
@@ -120,7 +120,7 @@ Hamming.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   return(pairscores)
 }
 
-HammingGL.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
+CorrGL.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
                                 MySpeciesTree=NULL,
                                precalcProfs=NULL, precalcSubset=NULL, ...){
   if (!is.null(precalcSubset))
@@ -182,7 +182,11 @@ HammingGL.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
       entry <- max(uval1, uval2)
       if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
         v2 <- glvs[,j]
-        pairscores[ctr+1] <- .Call('calcScoreHamming', v1, v2, numnodes, 2)
+        #val <- .Call('calcScoreHamming', v1, v2, numnodes, 2)
+        val <- cor(v1, v2)
+        pval <- 1 - pt(val, numnodes - 2, lower.tail=FALSE)
+        val <- pval*val
+        pairscores[ctr+1] <- val
       }
       ctr <- ctr + 1
       if (Verbose) setTxtProgressBar(pb, ctr)

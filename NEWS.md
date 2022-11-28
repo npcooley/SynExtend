@@ -4,6 +4,7 @@
 * Bugfixes for `PhyloDistance`
 * Adds Random Projection for `MirrorTree` predictor to solve memory problems and increase accuracy
 * New internal random number generator using xorshift, significantly faster than `sample()`
+* `HammingGL` changed to `CorrGL`, now uses Pearson's R weighted by p-value
 * Updates to documentation files
 
 # SynExtend 1.11.2

@@ -125,11 +125,15 @@ SEXP calcScoreHamming(SEXP ov1, SEXP ov2, SEXP NN, SEXP norm){
   double outval = 0.0;
   double addamt;
   for (int i=0; i<v1len; i++){
+    // original
     addamt = abs(v1[i] - v2[i]);
     outval += addamt / normer;
+
+    // test run
+    //outval += pow((v1[i] - v2[i]), 2);
   }
   outval = 1 - (outval / v1len);
-
+  
   SEXP retval = PROTECT(allocVector(REALSXP, 1));
   REAL(retval)[0] = outval;
   UNPROTECT(1);
