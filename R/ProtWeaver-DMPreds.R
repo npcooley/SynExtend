@@ -25,16 +25,8 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
   evalmap <- subs$evalmap
   pl <- length(uvals)
   
-  DIM_LENGTH <- 80L
-  multPV <- ("mpv" %in% MTCorrection)
-  divCoph <- ("dcoph" %in% MTCorrection)
-  if ("rho" %in% MTCorrection){
-    corMethod <- "spearman"
-  } else if ("kendall" %in% MTCorrection){
-    corMethod <- "kendall"
-  } else {
-    corMethod <- "pearson"
-  }
+  DIM_LENGTH <- min(80L, length(attr(pw, "allOrgs")))
+  
   MTCorrection <- tolower(MTCorrection)
   useSpecCorr <- FALSE
   if ('speciestree' %in% MTCorrection){
@@ -49,10 +41,13 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
   if (is.null(precalcProfs)){
     if (Verbose) cat('Pre-processing distance matrices...\n')
     spl <- NULL
-    if (!is.null(MySpeciesTree)) spl <- labels(MySpeciesTree)
+    if (!is.null(MySpeciesTree)){
+      spl <- labels(MySpeciesTree)
+      DIM_LENGTH <- min(80L, length(spl))
+    } 
     #CPs <- CophProfiles(pw, uvals, Verbose=Verbose, speciesList=spl)
     CPs <- RandCophProfiles(pw, uvals, Verbose=Verbose, 
-                              speciesList=spl, outdim=DIM_LENGTH, 
+                              speciesList=spl, outdim=as.integer(DIM_LENGTH), 
                               speciesCorrect=useSpecCorr, 
                               mySpeciesTree=MySpeciesTree, ...)
   } else {
@@ -90,8 +85,6 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
     if (Verbose) cat('\n')
   }
 
-  #pairscores <- matrix(NA, nrow=pl, ncol=pl)
-  #pairscores <- simMat(nelem=pl)
   pairscores <- rep(NA_real_, pl*(pl-1) / 2)
   ctr <- 0
   endOfRow <- 0
@@ -122,7 +115,7 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
                                         method='spearman'))
             num_branch <- length(v1)
             pval <- 1 - exp(pt(val, num_branch-2, lower.tail=FALSE, log.p=TRUE))
-            val <- ifelse(multPV, val*pval, pval)
+            val <- val*pval
           }
           pairscores[ctr+1] <- ifelse(is.na(val), 0, val)
         }
@@ -134,37 +127,6 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
   if (Verbose) cat('\n')
   pairscores <- as.simMat(pairscores, NAMES=names(pw)[uvals], DIAG=FALSE)
   Diag(pairscores) <- 1
-  # if ('partialcorrelation' %in% MTCorrection){
-  #   flag <- TRUE
-  #   pairscores <- as.matrix(pairscores)
-  #   if (!is.null(Subset)){
-  #     opsm <- pairscores
-  #     #pairscores <- pairscores[uvals, uvals]
-  #     if (any(is.na(pairscores))){
-  #       pairscores <- opsm
-  #       warning('Partial correlation requires a square matrix. Skipping.')
-  #       flag <- FALSE
-  #     }
-  #   }
-  #   if (flag){
-  #     d <- det(pairscores)
-  #     if (d == 0){
-  #       warning('Matrix is exactly singular, cannot use partial correlation correction.')
-  #     } else {
-  #       inv <- solve(pairscores)
-  #       cols <- matrix(diag(inv), nrow=nrow(inv), ncol=ncol(inv))
-  #       rows <- matrix(diag(inv), nrow=nrow(inv), ncol=ncol(inv), byrow=TRUE)
-  #       divisor <- sqrt(cols * rows)
-  #       pairscores <- (-1 * inv) / divisor
-  #     }
-  #     if ( !is.null(Subset) ){
-  #       opsm[uvals,uvals] <- pairscores
-  #       pairscores <- opsm
-  #     }
-  #   }
-  #   pairscores <- as.simMat(pairscores)
-  #   Diag(pairscores) <- 1
-  # }
   
   return(pairscores)
 }
