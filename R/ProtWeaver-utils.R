@@ -5,6 +5,7 @@
 #### S3 Generic Definitions ####
 PAProfiles <- function(pw, ...) UseMethod('PAProfiles')
 CophProfiles <- function(pw, ...) UseMethod('CophProfiles')
+RandCophProfiles <- function(pw, ...) UseMethod('RandCophProfiles')
 ################################
 
 PAProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE, 
@@ -87,6 +88,82 @@ CophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
       }
       dummycoph[copOrgNames, copOrgNames] <- cop
       outmat[,i] <- dummycoph[ut]
+    }
+    if (Verbose) setTxtProgressBar(pb, i)
+  }
+  if(Verbose) cat('\n')
+  colnames(outmat) <- cols
+  if (!is.null(toEval)){
+    outmat <- outmat[,locs]
+    #ltr <- vapply(seq_len(nrow(outmat)), function(x) all(is.na(outmat[x,])),
+    #              FUN.VALUE=logical(1))
+    #outmat <- outmat[!ltr,]
+  }
+  return(outmat)
+}
+
+RandCophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE, 
+                                      speciesList=NULL, outdim=-1, 
+                                      speciesCorrect=FALSE, mySpeciesTree=NULL, ...){
+  ## TODO: Some way to handle paralogs
+  cols <- names(pw)
+  ao <- attr(pw, 'allOrgs')
+  if (!is.null(speciesList)){
+    stopifnot('Species list is missing species!'=all(ao %in% speciesList))
+    allOrgs <- speciesList
+  } else {
+    allOrgs <- ao
+  }
+  useColoc <- attr(pw, 'useColoc')
+  useMT <- attr(pw, 'useMT')
+  
+  stopifnot('ProtWeaver object must be initialized with dendrograms to run MirrorTree methods'=
+              useMT)
+  
+  skip <- FALSE
+  if ( !is.null(toEval) ){
+    skip <- TRUE
+    locs <- unique(c(toEval))
+  }
+  l <- length(allOrgs)
+  num_entries <- as.integer((l * (l-1)) / 2)
+  outdim <- ifelse(outdim < 1, l, outdim)
+  outdim <- as.integer(outdim)
+  outmat <- matrix(0, nrow=outdim, ncol=length(pw))
+  dummycoph <- matrix(NA, nrow=l, ncol=l)
+  ut <- upper.tri(dummycoph, diag=FALSE)
+  
+  if (speciesCorrect && !is.null(mySpeciesTree)){
+    specvec <- c(Cophenetic(mySpeciesTree))
+    spv2 <- specvec
+    spv2[spv2==0] <- 1
+    #nonzeros <- which(specvec != 0)
+    #specvec <- .Call("randomProjection", specvec, nonzeros, length(nonzeros), outdim)  
+  }
+  
+  rownames(dummycoph) <- colnames(dummycoph) <- allOrgs
+  if (Verbose) pb <- txtProgressBar(max=length(pw), style=3)
+  for ( i in seq_along(pw) ){
+    if ( !skip || i %in% locs ){
+      dummycoph[] <- 0
+      cop <- 0
+      # This is occasionally throwing errors that don't affect output for some reason
+      cop <- as.matrix(Cophenetic(pw[[i]]))
+      copOrgNames <- rownames(cop)
+      if (useColoc){
+        copOrgNames <- vapply(copOrgNames, gsub, pattern='(.+)_.+_[0-9]+', 
+                              replacement='\\1', FUN.VALUE=character(1))
+        rownames(cop) <- colnames(cop) <- copOrgNames
+      }
+      dummycoph[copOrgNames, copOrgNames] <- cop
+      copvec <- dummycoph[ut]
+      pos <- which(copvec != 0)
+      if (speciesCorrect){
+       copvec[pos] <- (copvec[pos] - specvec[pos]) / spv2[pos]
+      }
+      copvec <- .Call("randomProjection", copvec, pos, length(pos), outdim)  
+      copvec[copvec==0] <- NA
+      outmat[,i] <- copvec
     }
     if (Verbose) setTxtProgressBar(pb, i)
   }
