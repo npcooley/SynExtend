@@ -8,6 +8,44 @@ CophProfiles <- function(pw, ...) UseMethod('CophProfiles')
 RandCophProfiles <- function(pw, ...) UseMethod('RandCophProfiles')
 ################################
 
+BuildSimMatInternal <- function(vecs, uvals, evalmap, l, n, FXN, ARGS, Verbose,
+                                CORRECTION=NULL, InputIsList=FALSE){
+  pairscores <- rep(NA_real_, l*(l-1)/2)
+  ctr <- 0
+  if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
+  for ( i in seq_len(l-1) ){
+    uval1 <- uvals[i]
+    if (InputIsList){
+      v1 <- vecs[[i]]
+    } else {
+      v1 <- vecs[,i]
+    }
+    for ( j in (i+1):l ){
+      uval2 <- uvals[j]
+      accessor <- as.character(min(uval1, uval2))
+      entry <- max(uval1, uval2)
+      if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
+        if (InputIsList){
+          v2 <- vecs[[j]]
+        } else {
+          v2 <- vecs[,j]
+        }
+        pairscores[ctr+1] <- FXN(v1, v2, ARGS, i, j)
+      }
+      ctr <- ctr + 1
+      if (Verbose) setTxtProgressBar(pb, ctr)
+    }
+  }
+  if (Verbose) cat('\n')
+  
+  n <- n[uvals]
+  if (!is.null(CORRECTION)){
+    pairscores <- CORRECTION(pairscores)
+  }
+  pairscores <- as.simMat(pairscores, NAMES=n, DIAG=FALSE)
+  return(pairscores)
+}
+
 PAProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE, 
                                   speciesList=NULL, ...){
   cols <- names(pw)

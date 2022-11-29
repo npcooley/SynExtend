@@ -5,6 +5,10 @@
 #### Implemented Methods: ####
 #  - MirrorTree
 #  - ContextTree
+#  - TreeDistance 
+#     -> RF, RF w/ pvalue, Jaccard RF, Cluster Info RF
+#     -> Nye Similarity
+#     -> Kuhner-Felsenstein
 ##########################
 
 #### S3 Generic Definitions ####
@@ -84,7 +88,7 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
     }
     if (Verbose) cat('\n')
   }
-
+  
   pairscores <- rep(NA_real_, pl*(pl-1) / 2)
   ctr <- 0
   endOfRow <- 0

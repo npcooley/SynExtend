@@ -5,6 +5,7 @@
 * Adds Random Projection for `MirrorTree` predictor to solve memory problems and increase accuracy
 * New internal random number generator using xorshift, significantly faster than `sample()`
 * `HammingGL` changed to `CorrGL`, now uses Pearson's R weighted by p-value
+* Refactors internal predictors to reduce size of codebase and remove redundancies
 * Updates to documentation files
 
 # SynExtend 1.11.2

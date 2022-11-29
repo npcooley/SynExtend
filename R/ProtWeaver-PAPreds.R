@@ -8,6 +8,8 @@
 #  - Mutual Information
 #  - Inverse Potts Model
 #  - Behdenna 2016 gain/loss
+#  - Pearson correlation of gain/loss (w/ p-value)
+#  - Distance between gain/loss events
 ##########################
 
 #### S3 Generic Definitions ####
@@ -45,28 +47,12 @@ Jaccard.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   }
   nr <- nrow(pap)
   pap[] <- as.integer(pap) 
-  pairscores <- rep(NA_real_, l*(l-1)/2)
-  ctr <- 0
-  if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
-  for ( i in seq_len(l-1) ){
-    uval1 <- uvals[i]
-    p1 <- pap[,i]
-    for ( j in (i+1):l ){
-      uval2 <- uvals[j]
-      accessor <- as.character(min(uval1, uval2))
-      entry <- max(uval1, uval2)
-      if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
-        p2 <- pap[,j]
-        pairscores[ctr+1] <- .Call("calcScoreJaccard", p1, p2, nr)
-      }
-      ctr <- ctr + 1
-      if (Verbose) setTxtProgressBar(pb, ctr)
-    }
+  ARGS <- list(nr=nr)
+  FXN <- function(v1, v2, ARGS, ii, jj) {
+    return(.Call("calcScoreJaccard", v1, v2, ARGS$nr))
   }
-  if (Verbose) cat('\n')
-  
-  n <- n[uvals]
-  pairscores <- as.simMat(pairscores, NAMES=n, DIAG=FALSE)
+  pairscores <- BuildSimMatInternal(pap, uvals, evalmap, l, n, FXN, ARGS, Verbose)
+
   return(pairscores)
 }
 
@@ -95,28 +81,12 @@ Hamming.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   pairscores <- rep(NA_real_, l*(l-1)/2)
   #nc <- ncol(pap)
   pap[] <- as.integer(pap)
-  ctr <- 0
-  if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
-  for ( i in seq_len(l-1) ){
-    uval1 <- uvals[i]
-    p1 <- pap[,i]
-    for ( j in (i+1):l ){
-      uval2 <- uvals[j]
-      accessor <- as.character(min(uval1, uval2))
-      entry <- max(uval1, uval2)
-      if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
-        p2 <- pap[,j]
-        #pairscores[ctr+1] <-  sum(xor(p1,p2)) / nc
-        pairscores[ctr+1] <-  .Call("calcScoreHamming", p1, p2, nr, 1)
-      }
-      ctr <- ctr + 1
-      if (Verbose) setTxtProgressBar(pb, ctr)
-    }
+  ARGS <- list(nr=nr)
+  FXN <- function(v1, v2, ARGS, ii, jj) {
+    return(.Call("calcScoreHamming", v1, v2, ARGS$nr, 1))
   }
-  if (Verbose) cat('\n')
-
-  n <- n[uvals]
-  pairscores <- as.simMat(pairscores, NAMES=n, DIAG=FALSE)
+  pairscores <- BuildSimMatInternal(pap, uvals, evalmap, l, n, FXN, ARGS, Verbose)
+  
   return(pairscores)
 }
 
@@ -169,34 +139,15 @@ CorrGL.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
     glvs[,i] <- glv
     if (Verbose) setTxtProgressBar(pb, i)
   }
-  if (Verbose) cat('\n')
-  pairscores <- rep(NA_real_, l*(l-1)/2)
-  ctr <- 0
-  if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
-  for ( i in seq_len(l-1) ){
-    uval1 <- uvals[i]
-    v1 <- glvs[,i]
-    for ( j in (i+1):l ){
-      uval2 <- uvals[j]
-      accessor <- as.character(min(uval1, uval2))
-      entry <- max(uval1, uval2)
-      if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
-        v2 <- glvs[,j]
-        #val <- .Call('calcScoreHamming', v1, v2, numnodes, 2)
-        val <- cor(v1, v2)
-        pval <- 1 - pt(val, numnodes - 2, lower.tail=FALSE)
-        val <- pval*val
-        pairscores[ctr+1] <- val
-      }
-      ctr <- ctr + 1
-      if (Verbose) setTxtProgressBar(pb, ctr)
-    }
-  }
-  if (Verbose) cat('\n')
   
-  n <- n[uvals]
-  #pairscores <- 1 - pairscores
-  pairscores <- as.simMat(pairscores, NAMES=n, DIAG=FALSE)
+  ARGS <- list(numnodes=numnodes)
+  FXN <- function(v1, v2, ARGS, ii, jj) {
+    val <- cor(v1, v2)
+    pval <- 1 - pt(val, ARGS$numnodes - 2, lower.tail=FALSE)
+    return(pval*val)
+  }
+  pairscores <- BuildSimMatInternal(glvs, uvals, evalmap, l, n, FXN, ARGS, Verbose)
+  
   return(pairscores)
 }
 
@@ -223,56 +174,42 @@ MutualInformation.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
     return(mat)
   }
   
-  n <- n[uvals]
-  pairscores <- rep(NA_real_, l*(l-1)/2)
-  ctr <- 0
-  if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
-  for ( i in seq_len(l-1) ){
-    uval1 <- uvals[i]
-    v1 <- pap[,i]
-    for ( j in (i+1):l ){
-      uval2 <- uvals[j]
-      accessor <- as.character(min(uval1, uval2))
-      entry <- max(uval1, uval2)
-      if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
-        v2 <- pap[,j]
-        score <- 0
-        v1l <- length(v1)
-        tt <- sum(v1 & v2) / v1l
-        tf <- sum(v1 & !v2) / v1l
-        ft <- sum(!v1 & v2) / v1l
-        ff <- sum(!v1 & !v2) / v1l
-        jpd <- c(tt, tf, ft, ff)
-        
-        tv1 <- sum(v1) / v1l
-        tv2 <- sum(v2) / v1l
-        fv1 <- 1 - tv1
-        fv2 <- 1 - tv2
-        mpdv1 <- c(tv1, tv1, fv1, fv1)
-        mpdv2 <- c(tv2, fv2, tv2, fv2)
-        
-        mult <- c(1,-1,-1,1)
-        
-        for ( k in seq_along(jpd) ){
-          val <- jpd[k] * log(jpd[k] / (mpdv1[k] * mpdv2[k]), base=2) * mult[k]
-          score <- score + ifelse(is.nan(val), 0, val)
-        }
-        pairscores[ctr+1] <- score
-      }
-      ctr <- ctr + 1
-      if (Verbose) setTxtProgressBar(pb, ctr)
+  FXN <- function(v1, v2, ARGS, ii, jj){
+    score <- 0
+    v1l <- length(v1)
+    tt <- sum(v1 & v2) / v1l
+    tf <- sum(v1 & !v2) / v1l
+    ft <- sum(!v1 & v2) / v1l
+    ff <- sum(!v1 & !v2) / v1l
+    jpd <- c(tt, tf, ft, ff)
+    
+    tv1 <- sum(v1) / v1l
+    tv2 <- sum(v2) / v1l
+    fv1 <- 1 - tv1
+    fv2 <- 1 - tv2
+    mpdv1 <- c(tv1, tv1, fv1, fv1)
+    mpdv2 <- c(tv2, fv2, tv2, fv2)
+    
+    mult <- c(1,-1,-1,1)
+    
+    for ( k in seq_along(jpd) ){
+      val <- jpd[k] * log(jpd[k] / (mpdv1[k] * mpdv2[k]), base=2) * mult[k]
+      score <- score + ifelse(is.nan(val), 0, val)
     }
+    return(score)
   }
-  if (Verbose) cat('\n')
   
-  # Correction
-  apccorr <- mean(pairscores, na.rm=TRUE)
-  pairscores <- pairscores - apccorr
-  pairscores <- abs(pairscores)
-  # Normalize
-  denom <- max(pairscores, na.rm=TRUE)
-  pairscores <- pairscores / ifelse(denom==0, 1, denom)
-  pairscores <- as.simMat(pairscores, NAMES=n, DIAG=FALSE)
+  CORRECTION <- function(ps){
+    apccorr <- mean(ps, na.rm=TRUE)
+    ps <- ps - apccorr
+    ps <- abs(ps)
+    # Normalize
+    denom <- max(ps, na.rm=TRUE)
+    ps <- ps / ifelse(denom==0, 1, denom)
+  }
+  pairscores <- BuildSimMatInternal(pap, uvals, evalmap, l, n, FXN, NULL, Verbose,
+                                    CORRECTION=CORRECTION)
+  
   Diag(pairscores) <- 1
   #pairscores <- pairscores #because distance
   return(pairscores)
@@ -356,48 +293,34 @@ Behdenna.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   bl <- vals$blengths
   
   glmat <- abs(glmat)
-  #pairscores <- matrix(NA, nrow=l, ncol=l)
-  #pairscores <- simMat(nelem=l, NAMES=n)
-  pairscores <- rep(NA_real_, l*(l-1)/2)
   
-  ctr <- 0
-  if (Verbose) cat('\n  Calculating pairscores:\n')
-  if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
-  for ( i in seq_len(l-1)){
-    uval1 <- uvals[i]
-    gl1 <- glmat[,i]
-    n1 <- sum(gl1)
-    for ( j in (i+1):l){
-      uval2 <- uvals[j]
-      accessor <- as.character(min(uval1, uval2))
-      entry <- max(uval1, uval2)
-      if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
-        gl2 <- glmat[,j]
-        n2 <- sum(gl2)
-        score <- 0
-        if ( n1*n2 != 0 ){
-          score <- t(gl1) %*% M %*% gl2
-          exp_mean <- n2 * (t(gl1) %*% M %*% bl)
-          exp_var <- n2*t(gl1) %*% M %*% Cmat %*% t(M) %*% gl1
-          score <- (score - exp_mean) / sqrt(abs(exp_var))
-        }
-        pairscores[ctr+1] <- score
-      }
-      ctr <- ctr + 1
-      if (Verbose) setTxtProgressBar(pb, ctr)
+  ARGS <- list(M=M, Cmat=Cmat, bl=bl)
+  FXN <- function(v1, v2, ARGS, ii, jj){
+    n1 <- sum(v1)
+    n2 <- sum(v2)
+    score <- 0
+    if ( n1*n2 != 0 ){
+      score <- t(v1) %*% ARGS$M %*% v2
+      exp_mean <- n2 * (t(v1) %*% ARGS$M %*% ARGS$bl)
+      exp_var <- n2*t(v1) %*% ARGS$M %*% ARGS$Cmat %*% t(M) %*% v1
+      score <- (score - exp_mean) / sqrt(abs(exp_var))
+    }
+    
+    return(score)
+  }
+  CORRECTION <- NULL
+  if (!rawZScores){
+    CORRECTION <- function(ps){
+      ps <- abs(ps)
+      ps <- ps / ifelse(max(ps,na.rm=TRUE) != 0, 
+                        max(ps, na.rm=TRUE), 1)
+      return(ps)
     }
   }
-  if (Verbose) cat('\n')
+  pairscores <- BuildSimMatInternal(glmat, uvals, evalmap, l, names(pw), 
+                                    FXN, ARGS, Verbose,
+                                    CORRECTION=CORRECTION)
   
-  if (!rawZScores){
-    pairscores <- abs(pairscores)
-    pairscores <- pairscores / ifelse(max(pairscores,na.rm=TRUE) != 0, 
-                                      max(pairscores, na.rm=TRUE), 1)
-    
-  }
-  
-  n <- names(pw)[uvals]
-  pairscores <- as.simMat(pairscores, NAMES=n, DIAG=FALSE)
   Diag(pairscores) <- ifelse(rawZScores, 1, 0)
   
   return(pairscores)
@@ -451,38 +374,21 @@ GainLoss.ProtWeaver <- function(pw, Subset=NULL,
     if (Verbose) setTxtProgressBar(pb, i)
   }
   
-  # Calculate pairscores between values
-  if (Verbose) cat("\n  Calculating pairscores...\n")
-  if (Verbose) pb <- txtProgressBar(max=(l*(l-1))/2, style=3)
-  pairscores <- rep(NA_real_, l*(l-1)/2)
-  ctr <- 0
-  for (i in seq_len(l-1)){
-    uval1 <- uvals[i]
-    v1 <- glvs[,i]
-    for (j in (i+1):l){
-      uval2 <- uvals[j]
-      accessor <- as.character(min(uval1, uval2))
-      entry <- max(uval1, uval2)
-      if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
-        v2 <- glvs[,j]
-        if (allnonzero[i] || allnonzero[j]){
-          pairscores[ctr+1] <- 0
-        } else {
-          res <- .Call("calcScoreGL", y, v1, v2)
-          #normer <- mean(sum(abs(v1)), sum(abs(v2)))
-          normer <- sum(abs(v1), abs(v2))
-          normer <- ifelse(normer==0, 1, normer)
-          pairscores[ctr+1] <- 2*res / normer
-        }
-      }
-      ctr <- ctr + 1
-      if (Verbose) setTxtProgressBar(pb, ctr)
+  ARGS <- list(allnonzero=allnonzero, y=y)
+  FXN <- function(v1, v2, ARGS, ii, jj){
+    allnonzero <- ARGS$allnonzero
+    if (allnonzero[ii] || allnonzero[jj]){
+      return(0)
+    } else {
+      res <- .Call("calcScoreGL", ARGS$y, v1, v2)
+      #normer <- mean(sum(abs(v1)), sum(abs(v2)))
+      normer <- sum(abs(v1), abs(v2))
+      normer <- ifelse(normer==0, 1, normer)
+      return(2*res / normer)
     }
   }
-  cat('\n')
-  # Convert to simMat and return
-  n <- names(pw)[uvals]
-  pairscores <- as.simMat(pairscores, names=n, DIAG=FALSE)
-  
+  pairscores <- BuildSimMatInternal(glvs, uvals, evalmap, l, names(pw), 
+                                    FXN, ARGS, Verbose)
+
   return(pairscores)
 }

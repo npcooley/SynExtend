@@ -45,7 +45,6 @@ SEXP seededPseudoRandomSample(SEXP N, SEXP SEED){
 
   SEXP outvec = PROTECT(allocVector(INTSXP, n));
   int *ptr = INTEGER(outvec);
-  double roll;
   for (int i=0; i<n; i++)
     ptr[i] = (xorshift128p(r) >> 32);
 
