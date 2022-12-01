@@ -1,11 +1,9 @@
-ShuffleC <- function(vec){
-  l <- length(vec)
-  stopifnot(l > 0)
-  if(l==1) return(vec)
-  
+ShuffleC <- function(vec, n=length(vec)){
+  stopifnot(n > 0 && n <= length(vec))
+  trimlen <- seq_len(n)
   if(is(vec, 'integer')){
-    return(.C("shuffleRInt", vec, l)[[1]])
+    return(.C("shuffleRInt", vec, n)[[1]][trimlen])
   } else {
-    return(vec[.C("shuffleRInt", seq_len(l), l)[[1]]])
+    return(vec[.C("shuffleRInt", seq_len(length(vec)), n)[[1]]][trimlen])
   }
 }
