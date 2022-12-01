@@ -1,7 +1,7 @@
 Package: SynExtend
 Type: Package
 Title: Tools for Working With Synteny Objects
-Version: 1.11.2
+Version: 1.11.3
 Authors@R: c(
 	person("Nicholas", "Cooley", email = "npc19@pitt.edu", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-6029-304X")),
 	person("Aidan", "Lakshman", email = "ahl27@pitt.edu", role = c("aut", "ctb"), comment = c(ORCID = "0000-0002-9465-6785")),

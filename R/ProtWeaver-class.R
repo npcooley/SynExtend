@@ -168,10 +168,23 @@ predict.ProtWeaver <- function(object, Method='Ensemble', Subset=NULL, NumCores=
   
   pc <- ProcessSubset(pw, Subset)
   n <- names(pw)[pc$uvals]
-  names(preds) <- n
-  rs <- structure(preds,
-                 method=Method,
-                 class=c('ProtWeb', 'simMat'))
+  if (Method=='TreeDistance'){
+    pnames <- names(preds)
+    for (i in seq_along(pnames)){
+      names(preds[[i]]) <- n
+      preds[[i]] <- structure(preds[[i]],
+                              method=pnames[i],
+                              class=c('ProtWeb', 'simMat'))
+    }
+    rs <- preds
+    if (length(rs) == 1) rs <- rs[[1]]
+  } else {
+    names(preds) <- n
+    rs <- structure(preds,
+                   method=Method,
+                   class=c('ProtWeb', 'simMat'))
+  }
+  
   invisible(rs)
 }
 

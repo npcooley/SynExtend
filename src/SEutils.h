@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <limits.h>
+#include <stdint.h>
 #include <R_ext/Random.h>
 
 typedef unsigned int uint;
@@ -39,6 +40,30 @@ void shuffle_double_(double *x, int n);
 void shuffle_char_(char *x, int n);
 
 #define shuffle(xtype, x, n) shuffle_ ## xtype ##_(x, n)
+
+/*** Random number generator using xorshift+ ***/
+
+// 64 bit generation //
+struct RNGstate64 {
+  uint64_t state[2];
+};
+
+void seedRNGState64(struct RNGstate64 *r, uint64_t seed);
+
+uint64_t xorshift128p(struct RNGstate64 *r);
+
+// 32 bit generation //
+struct RNGstate32 {
+  uint32_t state[4];
+};
+
+static inline uint32_t rotl(const uint32_t x, int k) {
+  return (x << k) | (x >> (32 - k));
+}
+
+void seedRNGState32(struct RNGstate32 *r, uint64_t seed);
+
+uint32_t xorshift32b(struct RNGstate32 *r);
 
 
 /*** Random math functions ***/
