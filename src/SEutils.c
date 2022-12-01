@@ -24,7 +24,8 @@ void shuffle_int_(int *x, int n){
 }
 
 void shuffle_uint_(uint *x, int n){
-  int j, tmp;
+  int j;
+  uint tmp;
   for (int i=(n-1); i>0; i--){
     j = irand() % (i+1);
     tmp = x[j];
@@ -35,7 +36,8 @@ void shuffle_uint_(uint *x, int n){
 
 
 void shuffle_double_(double *x, int n){
-  int j, tmp;
+  int j;
+  double tmp;
   for (int i=(n-1); i>0; i--){
     j = irand() % (i+1);
     tmp = x[j];
@@ -45,7 +47,8 @@ void shuffle_double_(double *x, int n){
 }
 
 void shuffle_char_(char *x, int n){
-  int j, tmp;
+  int j;
+  char tmp;
   for (int i=(n-1); i>0; i--){
     j = irand() % (i+1);
     tmp = x[j];

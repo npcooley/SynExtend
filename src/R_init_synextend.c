@@ -24,6 +24,9 @@
 // SynExtend header file
 #include "SynExtend.h"
 
+// Other header files for .C Routines
+#include "CShuffle.h"
+
 /*
  * -- REGISTRATION OF THE .Call ENTRY POINTS ---
  */
@@ -54,6 +57,8 @@ static const R_CallMethodDef callMethods[] = { // method call, pointer, num args
  */
 static const R_CMethodDef cMethods[] = {
   {"cleanupFxn", (DL_FUNC) &cleanupFxn, 0},
+  {"shuffleRInt", (DL_FUNC) &shuffleRInt, 2},
+  {"shuffleRDouble", (DL_FUNC) &shuffleRInt, 2},
   {NULL, NULL, 0}
 };
 

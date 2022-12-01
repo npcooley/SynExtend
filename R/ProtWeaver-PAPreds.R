@@ -283,7 +283,7 @@ Behdenna.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
     glmat[,i] <- abs(generateGainLossVec(fd, pap[,i], moveEventsUpward=useACCTRAN))
     if (Verbose) setTxtProgressBar(pb, i)
   }
-  
+  if (Verbose) cat('\n')
   vals <- calc_SId_mat(fd, IdOnly=!useSubtree)
   if (useSubtree)
     M <- vals$S
@@ -335,6 +335,7 @@ GainLoss.ProtWeaver <- function(pw, Subset=NULL,
     subs <- ProcessSubset(pw, Subset)
   uvals <- subs$uvals
   evalmap <- subs$evalmap
+  BOOTSTRAP_NUM <- 100L
 
   if (is.null(MySpeciesTree)){
     stopifnot("Method 'GainLoss' requires a species tree"=attr(pw, 'useMT'))
@@ -373,18 +374,36 @@ GainLoss.ProtWeaver <- function(pw, Subset=NULL,
     glvs[,i] <- glv
     if (Verbose) setTxtProgressBar(pb, i)
   }
-  
-  ARGS <- list(allnonzero=allnonzero, y=y)
+  if(Verbose) cat("\n")
+  lenglv <- nrow(glvs)
+  ARGS <- list(allnonzero=allnonzero, y=y, bsn=BOOTSTRAP_NUM, l=lenglv)
   FXN <- function(v1, v2, ARGS, ii, jj){
     allnonzero <- ARGS$allnonzero
     if (allnonzero[ii] || allnonzero[jj]){
       return(0)
     } else {
       res <- .Call("calcScoreGL", ARGS$y, v1, v2)
-      #normer <- mean(sum(abs(v1)), sum(abs(v2)))
-      normer <- sum(abs(v1), abs(v2))
-      normer <- ifelse(normer==0, 1, normer)
-      return(2*res / normer)
+      if (res==0) return(0)
+      num_bs <- ARGS$bsn
+      if(num_bs > 0){
+        v1 <- as.integer(v1)
+        v2 <- as.integer(v2)
+        l <- as.integer(ARGS$l)
+        replicates <- rep(NA_real_, num_bs)
+        for(i in seq_len(num_bs)){
+          replicates[i] <- abs(.Call("calcScoreGL", ARGS$y, 
+                                     .C("shuffleRInt", v1, l)[[1]],
+                                     .C("shuffleRInt", v2, l)[[1]]))
+        }
+        pv <- sum(replicates <= abs(res)) / num_bs
+        res <- pv*res
+      } else{
+        normer <- mean(sum(abs(v1)), sum(abs(v2)))
+        normer <- sum(abs(v1), abs(v2))
+        normer <- ifelse(normer==0, 1, normer)
+        res <- 2*res / normer
+      }
+      return(res)
     }
   }
   pairscores <- BuildSimMatInternal(glvs, uvals, evalmap, l, names(pw), 
