@@ -1,3 +1,6 @@
+#ifndef UTIL_FILE
+#define UTIL_FILE
+
 // Various utility functions
 #include <stdlib.h>
 #include <math.h>
@@ -65,10 +68,11 @@ void seedRNGState32(struct RNGstate32 *r, uint64_t seed);
 
 uint32_t xorshift32b(struct RNGstate32 *r);
 
-
 /*** Random math functions ***/
 long inline doubleFactorial(int n){
   long retval = 1;
   while (n > 0) retval *= n--;
   return retval;
 }
+
+#endif

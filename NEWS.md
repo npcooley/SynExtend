@@ -1,3 +1,8 @@
+# SynExtend 1.11.4
+* Internal code refactor
+* `ShuffleC` now supports reproducibility using R's `set.seed`
+* `ShuffleC` now support sampling with replacement, performance is around 2.25x faster than `sample`
+
 # SynExtend 1.11.3
 * Internal bugfixes for JRF Distance--previous commit was incorrectly calculating values
 * Adds new `TreeDistance` predictor for `ProtWeaver`, incorporating all tree distance metrics; these metrics are bundled due to some backend optimizations that improve performance
@@ -6,6 +11,8 @@
 * New internal random number generator using xorshift, significantly faster than `sample()`
 * `HammingGL` changed to `CorrGL`, now uses Pearson's R weighted by p-value
 * Refactors internal predictors to reduce size of codebase and remove redundancies
+* Internal `ShuffleC` function to replicate `sample` functionality with 2-6x speedup
+* Method `GainLoss` now uses bootstrapping to estimate a p-value
 * Updates to documentation files
 
 # SynExtend 1.11.2

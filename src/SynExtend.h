@@ -32,3 +32,9 @@ SEXP calcDBrownValue(SEXP tnPtr, SEXP allLabels, SEXP iterNum, SEXP SD, SEXP STA
 SEXP pseudoRandomSample(SEXP N);
 SEXP randomProjection(SEXP VEC, SEXP NONZERO, SEXP N, SEXP OUTDIM);
 SEXP seededPseudoRandomSample(SEXP N, SEXP SEED);
+
+
+/**** CShuffle.c ****/
+void shuffleRInt(int *v, int *l);
+
+void shuffleRRepl(int *v, int *l);
