@@ -33,6 +33,8 @@ SEXP pseudoRandomSample(SEXP N);
 SEXP randomProjection(SEXP VEC, SEXP NONZERO, SEXP N, SEXP OUTDIM);
 SEXP seededPseudoRandomSample(SEXP N, SEXP SEED);
 
+/**** MoranI.c ****/
+SEXP MoransI(SEXP VALS, SEXP DIST, SEXP DIM);
 
 /**** CShuffle.c ****/
 void shuffleRInt(int *v, int *l);

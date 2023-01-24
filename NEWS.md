@@ -1,3 +1,13 @@
+# SynExtend 1.11.5.2
+* Adds new colocalization algorithm `ColocMoran`, uses `Coloc` with `MoransI` to correct for phylogenetic signal
+* Adds new colocalization algorithm `TranscripMI`, uses mutual information of transcriptional direction
+* Adds new corrections/checks to allow for transcriptional direction to be in labels
+* Various bugfixes to support new four number labelling scheme
+* Various documentation updates
+
+# SynExtend 1.11.5.1
+* Adds new function `MoransI` to calculate Moran's *I* for a set of spatially distributed signals
+
 # SynExtend 1.11.4
 * Internal code refactor
 * `ShuffleC` now supports reproducibility using R's `set.seed`

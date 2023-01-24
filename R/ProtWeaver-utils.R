@@ -843,7 +843,7 @@ predictWithBuiltins <- function(preds){
 findSpeciesTree <- function(pw, Verbose=TRUE, NameFun=NULL){
   stopifnot("ProtWeaver object must contain dendrograms"=attr(pw, "useMT"))
   if (attr(pw, "useColoc") && is.null(NameFun)){
-    NameFun <- function(x) gsub('(.+)_.+_[0-9]+', '\\1', x)
+    NameFun <- function(x) gsub('([^_])_.*', '\\1', x)
   }
   
   SpecTree <- SuperTree(unclass(pw), NAMEFUN=NameFun, Verbose=Verbose)

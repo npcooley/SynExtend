@@ -33,6 +33,7 @@ new_ProtWeaver <- function(validatedInput){
             useMT=validatedInput$flags$usemirrortree,
             useColoc=validatedInput$flags$usecoloc,
             useResidue=validatedInput$flags$useresidue,
+            useStrand=validatedInput$flags$strandid,
             class='ProtWeaver')
 }
 
@@ -84,13 +85,16 @@ validate_ProtWeaver <- function(ipt, noWarn=FALSE){
     bitflags[['useresidue']] <- useResidueMI
   }
   
-  checkforcoloc <- grepl('.+_.+_[0-9]+', allentries)
+  checkforcoloc <- grepl('[^_]+_[^_]+_.*[0-9]+', allentries)
   if ( all(checkforcoloc) ){
     bitflags[['usecoloc']] <- TRUE
-    allentries <- unique(gsub('(.+)_.+_[0-9]+', '\\1', allentries))
+    checkforstrand <- grepl('[^_]+_[^_]+_[01]_[0-9]+', allentries)
+    bitflags[['strandid']] <- all(checkforstrand)
+    allentries <- unique(gsub('([^_]+)_[^_]+_.*[0-9]+', '\\1', allentries))
   }
   else{
     bitflags[['usecoloc']] <- FALSE
+    bitflags[['strandid']] <- FALSE
     if (!noWarn) message('Co-localization disabled. Labels must be in the format ',
               '[GENOME]_[INDEX]_[ORDER] to use co-localization ',
             '(where ORDER is a numeric). Consult the documentation for more info.\n')
