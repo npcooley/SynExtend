@@ -54,9 +54,9 @@ A \code{\link{list}} object containing the following named values:
   }
 }
 \references{
-Moran, P. A. P. \emph{Notes on Continuous Stochastic Phenomena}. Biometrika, 1950. \bold{37}(1): 17-23.
+Moran, P. A. P., \emph{Notes on Continuous Stochastic Phenomena}. Biometrika, 1950. \bold{37}(1): 17-23.
 
-Gittleman, J. L. and M. Kot. \emph{Adaptation: Statistics and a Null Model for Estimating Phylogenetic Effects}. Systematic Zoology, 1990. \bold{39}:227-241.
+Gittleman, J. L. and M. Kot., \emph{Adaptation: Statistics and a Null Model for Estimating Phylogenetic Effects}. Systematic Zoology, 1990. \bold{39}:227-241.
 }
 \author{
 Aidan Lakshman \email{ahl27@pitt.edu}

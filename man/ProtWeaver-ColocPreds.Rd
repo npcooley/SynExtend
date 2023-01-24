@@ -45,7 +45,9 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 \references{
 Beckley, Andrew and E. S. Wright. \emph{Identification of antibiotic pairs that evade concurrent resistance via a retrospective analysis of antimicrobial susceptibility test results}. The Lancet Microbe, 2021. \bold{2}(10): 545-554.
 
-Moran, P. A. P. \emph{Notes on Continuous Stochastic Phenomena}. Biometrika, 1950. \bold{37}(1): 17-23.
+Korbel, J. O., et al., \emph{Analysis of genomic context: prediction of functional associations from conserved bidirectionally transcribed gene pairs}. Nature Biotechnology, 2004. \bold{22}(7): 911-917.
+
+Moran, P. A. P., \emph{Notes on Continuous Stochastic Phenomena}. Biometrika, 1950. \bold{37}(1): 17-23.
 }
 
 \seealso{
