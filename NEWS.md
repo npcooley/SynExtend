@@ -1,3 +1,9 @@
+# SynExtend 1.11.6
+* Adds new Residue method `NVDT` using gene sequence **N**atural **V**ector with **D**inucleotide and **T**rinucleotide frequency
+* Adds some new C methods to speed up calculation of NVDT
+* Fixes `.Call()` not using `PACKAGE="SynExtend"`
+* Updates to documentation
+
 # SynExtend 1.11.5
 * Adds new colocalization algorithm `ColocMoran`, uses `Coloc` with `MoransI` to correct for phylogenetic signal
 * Adds new colocalization algorithm `TranscripMI`, uses mutual information of transcriptional direction

@@ -40,12 +40,15 @@ DPhyloStatistic <- function(dend, PAProfile, NumIter=1000L){
     return(0)
   }
   
-  y <- .Call("initCDend", dend)
+  y <- .Call("initCDend", dend, PACKAGE="SynExtend")
   on.exit(rm(y))
   
-  Dobs <- .Call('calcDValue', y, PAProfile)
-  Dr <- .Call('calcDRandValue', y, allLabels, length(PAProfile), NumIter)
-  Db <- .Call('calcDBrownValue', y, allLabels, NumIter, length(PAProfile) / length(allLabels), 0.5, length(PAProfile) / length(allLabels))
+  Dobs <- .Call('calcDValue', y, PAProfile, PACKAGE="SynExtend")
+  Dr <- .Call('calcDRandValue', y, allLabels, 
+              length(PAProfile), NumIter, PACKAGE="SynExtend")
+  Db <- .Call('calcDBrownValue', y, allLabels,
+              NumIter, length(PAProfile) / length(allLabels), 0.5, 
+              length(PAProfile) / length(allLabels), PACKAGE="SynExtend")
   if (Db - Dr == 0){
     warning("Denominator is zero!")
   }

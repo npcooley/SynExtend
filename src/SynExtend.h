@@ -40,3 +40,7 @@ SEXP MoransI(SEXP VALS, SEXP DIST, SEXP DIM);
 void shuffleRInt(int *v, int *l);
 
 void shuffleRRepl(int *v, int *l);
+
+
+/**** NucleotideCounts.c ****/
+SEXP StringToNVDC(SEXP DNASTRING, SEXP REMOVEGAPS, SEXP EXTENDED);

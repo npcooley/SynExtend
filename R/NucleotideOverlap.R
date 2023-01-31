@@ -444,7 +444,7 @@ NucleotideOverlap <- function(SyntenyObject,
       # }
       
       CurrentHitTable <- SyntenyObject[m1, m2, drop = FALSE][[1]]
-      # return(list(unique(CurrentHitTable[, 1:2]),
+      # return(list(unique(CurrentHitTable[, c(1,2)]),
       #             FeatureRepresentations[[m1]],
       #             FeatureRepresentations[[m2]],
       #             LimitIndex,

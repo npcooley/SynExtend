@@ -44,7 +44,8 @@ MoransI <- function(values, weights, alternative='two.sided'){
     return(list(observed=values[1], expected=NA_real_, sd=Inf, p.value=1))
   }
 
-  res <- .Call('MoransI', as.double(values), as.double(c(weights)), length(values))
+  res <- .Call('MoransI', as.double(values), as.double(c(weights)), 
+               length(values), PACKAGE="SynExtend")
   if(is.null(res[3])){
     # This really only happens when all the values are zero,
     # or like really really close to zero (on the order of <1e-295)
