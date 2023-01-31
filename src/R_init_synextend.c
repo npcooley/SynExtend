@@ -50,7 +50,7 @@ static const R_CallMethodDef callMethods[] = { // method call, pointer, num args
   {"randomProjection", (DL_FUNC) &randomProjection, 4},
   {"seededPseudoRandomSample", (DL_FUNC) &seededPseudoRandomSample, 2},
   {"MoransI", (DL_FUNC) &MoransI, 3},
-  {"StringToNVDC", (DL_FUNC) &StringToNVDC, 3},
+  {"StringToNVDT", (DL_FUNC) &StringToNVDT, 4},
   {NULL, NULL, 0}
 };
 

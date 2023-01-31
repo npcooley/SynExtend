@@ -111,10 +111,11 @@ NVDT.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
     #seqs <- gsub('.', '', seqs, fixed=TRUE, useBytes=TRUE)
     outv <- numeric(outl)
     for (j in seq_along(seqs)){
-      outv <- outv + .Call("StringToNVDC", 
+      outv <- outv + .Call("StringToNVDT", 
                            charToRaw(seqs[j]),
-                           FALSE,
-                           extended,
+                           FALSE,    # RemoveGaps
+                           extended, # Use di/tri freqs
+                           TRUE,     # Use DNA base pairs
                            PACKAGE="SynExtend")
     }
     outv <- outv / sqrt(sum(outv**2))

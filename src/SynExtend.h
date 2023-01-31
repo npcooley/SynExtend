@@ -43,4 +43,4 @@ void shuffleRRepl(int *v, int *l);
 
 
 /**** NucleotideCounts.c ****/
-SEXP StringToNVDC(SEXP DNASTRING, SEXP REMOVEGAPS, SEXP EXTENDED);
+SEXP StringToNVDT(SEXP DNASTRING, SEXP REMOVEGAPS, SEXP EXTENDED, SEXP USEDNA);
