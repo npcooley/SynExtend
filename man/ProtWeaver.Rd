@@ -29,21 +29,28 @@ ProtWeaver expects input data to be a list. All entries must be one of the follo
     \code{ListOfData[[i]] = c('ID#1', 'ID#2', ..., 'ID#k')}
   }
   \item{
-  \code{ListOfData[[i]] = c('i1_d1_p1', 'i2_d2_p2', ..., 'ik_dk_pk') }
-  }
+  (a) \code{ListOfData[[i]] = c('i1_d1_p1', 'i2_d2_p2', ..., 'ik_dk_pk') }
+  
+  
+    (b) \code{ListOfData[[i]] = c('i1_d1_s1_p1', 'i2_d2_s2_p2', ..., 'ik_dk_sk_pk') }}
+    
   \item{
   \code{ListOfData[[i]] = dendrogram(...)}
   }
 }
 In (1), each ID#i corresponds to the unique identifier for genome #i. For entry #j in the list, the presence of 'ID#i' means genome #i has an ortholog for gene/protein #j. 
 
-Case (2) is the same as (1), just with the formatting of names slightly different. Each entry is of the form \code{i_d_p}, where \code{i} is the unique identifier for the genome, \code{d} is which chromosome the ortholog is located, and \code{p} is what position the ortholog appears in on that chromosome. \code{p} must be a \code{numeric}, while the other entries can be any value.
+Case (2a) is the same as (1), just with the formatting of names slightly different. Each entry is of the form \code{i_d_p}, where \code{i} is the unique identifier for the genome, \code{d} is which chromosome the ortholog is located, and \code{p} is what position the ortholog appears in on that chromosome. \code{p} must be a \code{numeric}, while the other entries can be any value.
 
-Case (3) expects gene trees for each gene, with labeled leaves corresponding to each source genome. If \code{ListOfData} is in this format, taking \code{labels(ListOfData[[i]])} should produce a character vector that matches the format of either (2) or (1).
+Case (2b) is a variation on (2a), adding in an identifier \code{s}. This value must be \code{0} or \code{1}, corresponding to whether the gene is on the forward or reverse strand. Whether \code{0} denotes forward or reverse is inconsequential as long as the scheme is consistent.
+
+Case (3) expects gene trees for each gene, with labeled leaves corresponding to each source genome. If \code{ListOfData} is in this format, taking \code{labels(ListOfData[[i]])} should produce a character vector that matches the format of one of the previous cases.
 
 \emph{See the Examples section for illustrative examples.}
 
-ProtWeaver requires input of scenario (3) to use MirrorTree or ContextTree, and requires input of scenario (2) (or (3) with leaves labeled according to (2)) for co-localization analyses. 
+\emph{Whenever possible, provide a full set of \code{dendrogram} objects with leaf labels in form (2b). This will allow the most optimal algorithms to run. What follows is a more detailed description of which inputs allow which algorithms.}
+
+ProtWeaver requires input of scenario (3) to use distance matrix methods, and requires input of scenario (2) (or (3) with leaves labeled according to (2)) for co-localization analyses. Transcriptional direction analysis requires input of scenario (2b).
 Residue covariation methods require dendrograms with ancestral state reconstructions 
 present at each node in the form of a `state` attribute.
 
@@ -106,8 +113,18 @@ l[['c']] <- c('1_1_3', '2_1_2')
 l[['d']] <- c('1_1_4', '2_1_1') 
 l[['e']] <- c('2_1_3', '3_1_3', '4_1_2') 
 
-pwCase2 <- ProtWeaver(l)
+pwCase2a <- ProtWeaver(l)
 
+## If we want transcriptional information, we need an 
+## value corresponding to the strand of each gene
+## Notice that the genome identifer need not be numeric,
+## but the strand identifer must be 0 or 1
+l <- list()
+l[['a']] <- c('a_1_0_1', 'c_1_1_2', 'd_1_0_1') 
+l[['b']] <- c('a_1_1_2', 'c_1_1_1') 
+l[['c']] <- c('a_1_1_3', 'b_1_0_2') 
+l[['d']] <- c('a_1_0_4', 'b_1_0_1') 
+l[['e']] <- c('b_1_0_3', 'c_1_0_3', 'd_1_0_2') 
 
 ## For Case 3, we just need dendrogram objects for each
 # l[['a']] <- dendrogram(...)

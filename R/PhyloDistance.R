@@ -2,7 +2,7 @@ GeneralizedRF <- function(val, RawScore=FALSE){
   if (RawScore){
     retval <- val
     names(retval) <- c("Similarity", "dend1.Entropy", "dend2.Entropy")
-    if (val[1] == 0) retval[1:2] <- c(NA, NA)
+    if (val[1] == 0) retval[c(1,2)] <- c(NA, NA)
     return(retval)
   }
   
@@ -40,7 +40,7 @@ JRFDist <- function(val, RawScore=FALSE){
   if (RawScore){
     retval <- val
     names(retval) <- c("Distance", "dend1.NumSplits", "dend2.NumSplits")
-    if (val[1] == 0) retval[1:2] <- c(NA, NA)
+    if (val[1] == 0) retval[c(1,2)] <- c(NA, NA)
     return(retval)
   }
   if (val[1] == 0) return(1)
@@ -74,22 +74,26 @@ PhyloDistance <- function(dend1, dend2, Method="GRF", RawScore=FALSE, JRFExp=2){
   if (length(incommonLabs) == 0){ 
     val = c(0, NA, NA)
   } else {
-    tree1ptr <- .Call("initCDend", dend1)
+    tree1ptr <- .Call("initCDend", dend1, PACKAGE="SynExtend")
     on.exit(rm(tree1ptr))
-    tree2ptr <- .Call("initCDend", dend2)
+    tree2ptr <- .Call("initCDend", dend2, PACKAGE="SynExtend")
     on.exit(rm(tree2ptr))
     
     if (Method == 'GRF'){
-      val <- .Call("GRFInfo", tree1ptr, tree2ptr, incommonLabs, FALSE, 0)
+      val <- .Call("GRFInfo", tree1ptr, tree2ptr, 
+                   incommonLabs, FALSE, 0, PACKAGE="SynExtend")
       return(GeneralizedRF(val, RawScore))
     } else if (Method == 'JRF'){
-      val <- .Call("GRFInfo", tree1ptr, tree2ptr, incommonLabs, TRUE, JRFExp)
+      val <- .Call("GRFInfo", tree1ptr, tree2ptr, 
+                   incommonLabs, TRUE, JRFExp, PACKAGE="SynExtend")
       return(JRFDist(val, RawScore))
     } else if (Method == 'RF'){
-      val <- .Call("RFDist", tree1ptr, tree2ptr, incommonLabs)
+      val <- .Call("RFDist", tree1ptr, tree2ptr, 
+                   incommonLabs, PACKAGE="SynExtend")
       return(RFDist(val, RawScore))
     } else if (Method == 'KF') {
-      val <- .Call("KFDist", tree1ptr, tree2ptr, incommonLabs)
+      val <- .Call("KFDist", tree1ptr, tree2ptr, 
+                   incommonLabs, PACKAGE="SynExtend")
       return(KFDist(val))
     }
     else

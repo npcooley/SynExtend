@@ -199,7 +199,8 @@ RandCophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
       if (speciesCorrect){
        copvec[pos] <- (copvec[pos] - specvec[pos]) / spv2[pos]
       }
-      copvec <- .Call("randomProjection", copvec, pos, length(pos), outdim)  
+      copvec <- .Call("randomProjection", copvec, 
+                      pos, length(pos), outdim, PACKAGE="SynExtend")  
       copvec[copvec==0] <- NA
       outmat[,i] <- copvec
     }
@@ -561,7 +562,7 @@ MICalc_C <- function(v1, v2, uv, pseudocount=1L){
   stopifnot("'pseudocount' must be an integer"=is(pseudocount, 'integer'))
   pseudocount <- min(0, pseudocount)
   # Psuedocount=0.01 taken as default by Gerardos et al. (2022) in PLoS
-  a <- .Call('calcMIcVec', v1, v2, uv, pseudocount)
+  a <- .Call('calcMIcVec', v1, v2, uv, pseudocount, PACKAGE="SynExtend")
   return(a)
 }
 
@@ -572,7 +573,9 @@ CorrComp_C <- function(fm, fsp, ssp, nv, nr){
   stopifnot(all(fsp == as.integer(fsp)))
   stopifnot(all(ssp == as.integer(ssp)))
   
-  a <- .Call('trimCovar', fm, as.integer(fsp), as.integer(ssp), as.integer(nv), as.integer(nr))
+  a <- .Call('trimCovar', fm, as.integer(fsp), 
+             as.integer(ssp), as.integer(nv), 
+             as.integer(nr), PACKAGE="SynExtend")
   return(a)
 }
 
@@ -843,7 +846,7 @@ predictWithBuiltins <- function(preds){
 findSpeciesTree <- function(pw, Verbose=TRUE, NameFun=NULL){
   stopifnot("ProtWeaver object must contain dendrograms"=attr(pw, "useMT"))
   if (attr(pw, "useColoc") && is.null(NameFun)){
-    NameFun <- function(x) gsub('(.+)_.+_[0-9]+', '\\1', x)
+    NameFun <- function(x) gsub('([^_])_.*', '\\1', x)
   }
   
   SpecTree <- SuperTree(unclass(pw), NAMEFUN=NameFun, Verbose=Verbose)

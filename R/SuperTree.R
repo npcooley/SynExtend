@@ -80,12 +80,12 @@ SuperTree <- function(myDendList, NAMEFUN=NULL, Verbose=TRUE, Processors=1){
   }
   
   # Average result
-  dmat <- dmat / countmat
+  dmat <- as.dist(dmat / countmat)
   
   # Build species tree with NJ
-  if (Verbose) cat("\n  Building species tree...")
+  if (Verbose) cat("\n  Building species tree...\n")
   newTree <- TreeLine(myDistMatrix=dmat, method="NJ", 
-                      verbose=FALSE, processors = Processors)
+                      verbose=Verbose, processors = Processors)
   
   if (Verbose){
     dt <- difftime(start, Sys.time())

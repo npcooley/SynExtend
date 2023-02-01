@@ -49,7 +49,7 @@ Jaccard.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   pap[] <- as.integer(pap) 
   ARGS <- list(nr=nr)
   FXN <- function(v1, v2, ARGS, ii, jj) {
-    return(.Call("calcScoreJaccard", v1, v2, ARGS$nr))
+    return(.Call("calcScoreJaccard", v1, v2, ARGS$nr, PACKAGE="SynExtend"))
   }
   pairscores <- BuildSimMatInternal(pap, uvals, evalmap, l, n, FXN, ARGS, Verbose)
 
@@ -83,7 +83,7 @@ Hamming.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   pap[] <- as.integer(pap)
   ARGS <- list(nr=nr)
   FXN <- function(v1, v2, ARGS, ii, jj) {
-    return(.Call("calcScoreHamming", v1, v2, ARGS$nr, 1))
+    return(.Call("calcScoreHamming", v1, v2, ARGS$nr, 1, PACKAGE="SynExtend"))
   }
   pairscores <- BuildSimMatInternal(pap, uvals, evalmap, l, n, FXN, ARGS, Verbose)
   
@@ -120,9 +120,9 @@ CorrGL.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
     return(mat)
   }
   # Initialize Dendrogram in C
-  y <- .Call("initCDend", MySpeciesTree)
+  y <- .Call("initCDend", MySpeciesTree, PACKAGE="SynExtend")
   on.exit(rm(y))
-  numnodes <- .Call("getTreeNodesCount", y)
+  numnodes <- .Call("getTreeNodesCount", y, PACKAGE="SynExtend")
   rn <- rownames(pap)
   glvs <- matrix(NA_integer_, nrow=numnodes, ncol=l)
   
@@ -134,7 +134,7 @@ CorrGL.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
     if (length(v) == 0){
       glv <- rep(0L, numnodes)
     } else {
-      glv <- .Call("calcGainLoss", y, v, TRUE)
+      glv <- .Call("calcGainLoss", y, v, TRUE, PACKAGE="SynExtend")
     }
     glvs[,i] <- glv
     if (Verbose) setTxtProgressBar(pb, i)
@@ -354,9 +354,9 @@ GainLoss.ProtWeaver <- function(pw, Subset=NULL,
   
   
   # Initialize Dendrogram in C
-  y <- .Call("initCDend", MySpeciesTree)
+  y <- .Call("initCDend", MySpeciesTree, PACKAGE="SynExtend")
   on.exit(rm(y))
-  numnodes <- .Call("getTreeNodesCount", y)
+  numnodes <- .Call("getTreeNodesCount", y, PACKAGE="SynExtend")
   rn <- rownames(pap)
   glvs <- matrix(NA_integer_, nrow=numnodes, ncol=l)
   allnonzero <- logical(l)
@@ -369,7 +369,7 @@ GainLoss.ProtWeaver <- function(pw, Subset=NULL,
       glv <- rep(0L, numnodes)
       allnonzero[i] <- TRUE
     } else {
-      glv <- .Call("calcGainLoss", y, v, TRUE)
+      glv <- .Call("calcGainLoss", y, v, TRUE, PACKAGE="SynExtend")
     }
     glvs[,i] <- glv
     if (Verbose) setTxtProgressBar(pb, i)
@@ -382,7 +382,7 @@ GainLoss.ProtWeaver <- function(pw, Subset=NULL,
     if (allnonzero[ii] || allnonzero[jj]){
       return(0)
     } else {
-      res <- .Call("calcScoreGL", ARGS$y, v1, v2)
+      res <- .Call("calcScoreGL", ARGS$y, v1, v2, PACKAGE="SynExtend")
       if (res==0) return(0)
       num_bs <- ARGS$bsn
       if(num_bs > 0){
@@ -392,8 +392,9 @@ GainLoss.ProtWeaver <- function(pw, Subset=NULL,
         replicates <- rep(NA_real_, num_bs)
         for(i in seq_len(num_bs)){
           replicates[i] <- abs(.Call("calcScoreGL", ARGS$y, 
-                                     .C("shuffleRInt", v1, l)[[1]],
-                                     .C("shuffleRInt", v2, l)[[1]]))
+                                     .C("shuffleRInt", v1, l, PACKAGE="SynExtend")[[1]],
+                                     .C("shuffleRInt", v2, l, PACKAGE="SynExtend")[[1]], 
+                                     PACKAGE="SynExtend"))
         }
         pv <- sum(replicates <= abs(res)) / num_bs
         res <- pv*res

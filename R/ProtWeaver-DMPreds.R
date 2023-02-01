@@ -50,10 +50,11 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
       DIM_LENGTH <- min(80L, length(spl))
     } 
     #CPs <- CophProfiles(pw, uvals, Verbose=Verbose, speciesList=spl)
-    CPs <- RandCophProfiles(pw, uvals, Verbose=Verbose, 
-                              speciesList=spl, outdim=as.integer(DIM_LENGTH), 
-                              speciesCorrect=useSpecCorr, 
+    CPs <- RandCophProfiles(pw, uvals, Verbose=Verbose,
+                              speciesList=spl, outdim=as.integer(DIM_LENGTH),
+                              speciesCorrect=useSpecCorr,
                               mySpeciesTree=MySpeciesTree, ...)
+
   } else {
     CPs <- precalcProfs
   }
@@ -199,7 +200,7 @@ TreeDistance.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
       }, how='replace')
     }
     labs <- labels(tree)
-    ptr <- .Call("initCDend", tree)
+    ptr <- .Call("initCDend", tree, PACKAGE="SynExtend")
     pArray[[i]] <- ptr
     labelsArray[[i]] <- labs
   }
@@ -223,7 +224,7 @@ TreeDistance.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
         # GRF
         if (bitmask[1]){
           # GRF
-          s <- .Call("GRFInfo", p1, p2, interlabs, FALSE, 0)
+          s <- .Call("GRFInfo", p1, p2, interlabs, FALSE, 0, PACKAGE="SynExtend")
           normval <- 0.5*(s[2] + s[3])
 
           if (is.na(normval) || normval == 0){
@@ -235,7 +236,7 @@ TreeDistance.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
         }
         # RF
         if (bitmask[2]){
-          s <- .Call("RFDist", p1, p2, interlabs)
+          s <- .Call("RFDist", p1, p2, interlabs, PACKAGE="SynExtend")
           normval <- s[2] + s[3]
           if (is.na(normval) || normval == 0)
             pairscoresList$RF[ctr+1] <- NA
@@ -251,7 +252,7 @@ TreeDistance.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
         }
         # JRF
         if (bitmask[3]){
-          s <- .Call("GRFInfo", p1, p2, interlabs, TRUE, JRFk)
+          s <- .Call("GRFInfo", p1, p2, interlabs, TRUE, JRFk, PACKAGE="SynExtend")
           normval <- (s[2] + s[3])
           if (is.na(normval) || normval == 0)
             pairscoresList$JRF[ctr+1] <- NA
@@ -261,7 +262,7 @@ TreeDistance.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
         }
         # Nye
         if (bitmask[4]){
-          s <- .Call("GRFInfo", p1, p2, interlabs, TRUE, 1)
+          s <- .Call("GRFInfo", p1, p2, interlabs, TRUE, 1, PACKAGE="SynExtend")
           normval <- (s[2] + s[3])
           if (is.na(normval) || normval == 0)
             pairscoresList$Nye[ctr+1] <- NA
@@ -271,7 +272,7 @@ TreeDistance.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
         }
         # KF
         if (bitmask[5]){
-          s <- .Call("KFDist", p1, p2, interlabs)
+          s <- .Call("KFDist", p1, p2, interlabs, PACKAGE="SynExtend")
           normval <- s[2]
           if (is.na(normval) || normval == 0)
             pairscoresList$KF[ctr+1] <- NA
@@ -282,7 +283,7 @@ TreeDistance.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
 
         # p-value of RF Dist
         if (bitmask[6]){
-            s <- .Call("RFDist", p1, p2, interlabs)
+            s <- .Call("RFDist", p1, p2, interlabs, PACKAGE="SynExtend")
             normval <- s[2] + s[3]
             if (is.na(normval) || normval == 0)
               pairscoresList$RFPVal[ctr+1] <- NA
