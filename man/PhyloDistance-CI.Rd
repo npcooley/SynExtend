@@ -1,17 +1,17 @@
-\name{PhyloDistance-GRFDist}
-\alias{PhyloDistance-GRF}
-\alias{GRFDist}
+\name{PhyloDistance-CIDist}
+\alias{PhyloDistance-CI}
+\alias{CIDist}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Information-Theoretic Generalized Robinson-Foulds Distance
+Clustering Information Distance
 }
 \description{
-Calculate RF distance between two unrooted phylogenies using mutual clustering
+Calculate distance between two unrooted phylogenies using mutual clustering
 information of branch partitions.
 }
 
 \details{
-This function is called as part of \code{\link{PhyloDistance}} and calculates Robinson-Foulds distance using the clustering information
+This function is called as part of \code{\link{PhyloDistance}} and calculates tree distance using the clustering information
 approach first described in Smith (2020). This function iteratively pairs
 internal tree branches of a phylogeny based on their similarity, then scores 
 overall similarity as the sum of these measures. The similarity score is then
@@ -60,9 +60,9 @@ tree1 <- as.dendrogram(hclust(dm1))
 tree2 <- as.dendrogram(hclust(dm2))
 
 # get RF distance
-PhyloDistance(tree1, tree2, Method="GRF")
+PhyloDistance(tree1, tree2, Method="CI")
 
 # get similarity score with individual entropies
-PhyloDistance(tree1, tree2, Method="GRF", RawScore=TRUE)
+PhyloDistance(tree1, tree2, Method="CI", RawScore=TRUE)
 }
 

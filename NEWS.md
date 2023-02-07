@@ -1,3 +1,6 @@
+# SynExtend 1.11.7.1
+* Updates `GRF` method to be called `CI` (for **C**lustering **I**nformation Distance)
+
 # SynExtend 1.11.6
 * Adds new Residue method `NVDT` using gene sequence **N**atural **V**ector with **D**inucleotide and **T**rinucleotide frequency
 * Adds some new C methods to speed up calculation of NVDT

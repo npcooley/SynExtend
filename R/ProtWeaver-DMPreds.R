@@ -154,7 +154,7 @@ ContextTree.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, precalcProfs=N
 
 TreeDistance.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
                                       precalcSubset=NULL, 
-                                      TreeMethods="GRF", JRFk=4, ...){
+                                      TreeMethods="CI", JRFk=4, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
@@ -172,7 +172,7 @@ TreeDistance.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   }
   
   
-  bmn <- c("GRF", "RF", "JRF", "Nye", "KF", "RFPVal")
+  bmn <- c("CI", "RF", "JRF", "Nye", "KF", "RFPVal")
   if ('all' %in% TreeMethods){
     bitmask <- rep(TRUE, length(bmn))
   } else {
@@ -221,18 +221,18 @@ TreeDistance.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
       entry <- max(uval1, uval2)
       if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
         interlabs <- intersect(labelsArray[[i]], labelsArray[[j]])
-        # GRF
+        # GRF/CI
         if (bitmask[1]){
-          # GRF
+          # GRF/CI
           s <- .Call("GRFInfo", p1, p2, interlabs, FALSE, 0, PACKAGE="SynExtend")
           normval <- 0.5*(s[2] + s[3])
 
           if (is.na(normval) || normval == 0){
-            pairscoresList$GRF[ctr+1] <- NA
+            pairscoresList$CI[ctr+1] <- NA
             #pairscoresList$GRF[ctr+1] <- ifelse(s[1] == 0, 0, 1)
           }
           else
-            pairscoresList$GRF[ctr+1] <- 1 - (normval - s[1]) / normval
+            pairscoresList$CI[ctr+1] <- 1 - (normval - s[1]) / normval
         }
         # RF
         if (bitmask[2]){

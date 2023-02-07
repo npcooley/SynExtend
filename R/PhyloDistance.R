@@ -1,4 +1,6 @@
 GeneralizedRF <- function(val, RawScore=FALSE){
+  # This method is now being called "Clustering Information Distance"
+  # It's called with `Method='CI'`
   if (RawScore){
     retval <- val
     names(retval) <- c("Similarity", "dend1.Entropy", "dend2.Entropy")
@@ -51,7 +53,7 @@ JRFDist <- function(val, RawScore=FALSE){
   return(retval)
 }
 
-PhyloDistance <- function(dend1, dend2, Method="GRF", RawScore=FALSE, JRFExp=2){
+PhyloDistance <- function(dend1, dend2, Method="CI", RawScore=FALSE, JRFExp=2){
   stopifnot("inputs must both be dendrograms!"=is(dend1, 'dendrogram') && is(dend2, 'dendrogram'))
   if (is.integer(JRFExp)) JRFExp <- as.numeric(JRFExp) 
   stopifnot("ExpVal must be numeric or integer"=is.numeric(JRFExp))
@@ -79,7 +81,7 @@ PhyloDistance <- function(dend1, dend2, Method="GRF", RawScore=FALSE, JRFExp=2){
     tree2ptr <- .Call("initCDend", dend2, PACKAGE="SynExtend")
     on.exit(rm(tree2ptr))
     
-    if (Method == 'GRF'){
+    if (Method == 'CI'){
       val <- .Call("GRFInfo", tree1ptr, tree2ptr, 
                    incommonLabs, FALSE, 0, PACKAGE="SynExtend")
       return(GeneralizedRF(val, RawScore))

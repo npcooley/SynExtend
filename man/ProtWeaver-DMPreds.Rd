@@ -49,7 +49,7 @@ Note that the projection vector correction is not compatible with parallel imple
 
 The \code{TreeDistance} method uses phylogenetic tree distance to quantify differences between gene trees. This method implements a number of metrics and groups them together to improve overall runtime. Individual methods can be specified using the \code{TreeMethods} argument, which expects a character vector containing one or more of the following:
 \itemize{
-\item \code{"GRF"}: \link[=GRFDist]{Information-Theoretic Robinson-Foulds Distance}
+\item \code{"CI"}: \link[=CIDist]{Clustering Information Distance}
 \item \code{"RF"}: \link[=RFDist]{Robinson-Foulds Distance}
 \item \code{"JRF"}: \link[=JRFDist]{Jaccard-Robinson-Foulds Distance}
 \item \code{"Nye"}: \link[=JRFDist]{Nye Similarity}
