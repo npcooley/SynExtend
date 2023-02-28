@@ -1,5 +1,12 @@
-# SynExtend 1.11.7.1
+# SynExtend 1.11.7
+* Adds`HungarianAlgorithm` for optimal solving of the linear assignment problem (O(n^3) complexity)
+* Adds new C code for fast computation of Pearson's R and p-value
+* Adds new `Ancestral.ProtWeaver` algorithm for calculating coevolution from correlated residue changes
+* Supporting code and documentation for `Ancestral.ProtWeaver`
+* Other new internal methods
+* Various updates and optimizations to internal methods and documentations
 * Updates `GRF` method to be called `CI` (for **C**lustering **I**nformation Distance)
+* `Method="CI"` in `PhyloDistance` now calculates an approximate p-value using simulated data from Smith (2020)
 
 # SynExtend 1.11.6
 * Adds new Residue method `NVDT` using gene sequence **N**atural **V**ector with **D**inucleotide and **T**rinucleotide frequency

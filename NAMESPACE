@@ -58,6 +58,7 @@ S3method(TranscripMI, 'ProtWeaver')
 S3method(Behdenna, 'ProtWeaver')
 S3method(Ensemble, 'ProtWeaver')
 S3method(NVDT, 'ProtWeaver')
+S3method(Ancestral, 'ProtWeaver')
 
 S3method(plot, 'ProtWeb')
 S3method(summary, 'ProtWeb')

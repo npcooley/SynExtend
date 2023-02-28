@@ -8,7 +8,8 @@ Calculate Distance between Unrooted Phylogenies
 Calculates distance between two unrooted phylogenies using a variety of metrics.
 }
 \usage{
-PhyloDistance(dend1, dend2, Method="CI", 
+PhyloDistance(dend1, dend2,
+              Method=c("CI", "RF", "KF", "JRF"), 
               RawScore=FALSE, JRFExp=2)
 }
 %- maybe also 'usage' for other objects documented here.

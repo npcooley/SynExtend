@@ -4,6 +4,7 @@ void R_init_SynExtend(DllInfo *info);
 /**** calcMIR2C.c ****/
 void cleanupFxn();
 SEXP calcMIcVec(SEXP V1, SEXP V2, SEXP UV, SEXP PSEUDOCOUNT);
+SEXP calcMIVec(SEXP V1, SEXP V2, SEXP LEN);
 SEXP trimCovar(SEXP fMAT, SEXP fSP, SEXP sSP, SEXP NV, SEXP NR);
 
 /**** CDend.c ****/
@@ -38,9 +39,13 @@ SEXP MoransI(SEXP VALS, SEXP DIST, SEXP DIM);
 
 /**** CShuffle.c ****/
 void shuffleRInt(int *v, int *l);
-
 void shuffleRRepl(int *v, int *l);
 
 
 /**** NucleotideCounts.c ****/
 SEXP StringToNVDT(SEXP DNASTRING, SEXP REMOVEGAPS, SEXP EXTENDED, SEXP USEDNA);
+SEXP fastPearsonC(SEXP V1, SEXP V2);
+
+/**** HungarianAlgo.c ****/
+SEXP HungarianAssignment(SEXP MATVEC, SEXP DIM);
+void hungarianCleanup();
