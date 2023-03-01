@@ -29,6 +29,7 @@ export(SuperTree)
 export(DPhyloStatistic)
 export(PhyloDistance)
 export(MoransI)
+export(dendrapply)
 
 S3method(`[`, "LinkedPairs")
 S3method(print, "LinkedPairs")

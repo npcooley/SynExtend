@@ -1,3 +1,6 @@
+#ifndef HUNGARIAN_H
+#define HUNGARIAN_H
+
 #include <R.h>
 #include <Rdefines.h>
 #include <R_ext/Rdynload.h>
@@ -27,3 +30,5 @@ void hg_step3(double *costMatrix, uint8_t *statusarray, int n);
 int hg_step4(uint8_t *statusarray, bool *coveredCol, bool *coveredRow, int n, int statuscode);
 void hg_step5(double *costMatrix, bool *coveredCol, bool *coveredRow, int n);
 bool hg_statuscheck(uint8_t *statusarray, int *assignment, int n);
+
+#endif
