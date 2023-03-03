@@ -1,3 +1,6 @@
+#ifndef CDEND_H
+#define CDEND_H
+
 #include <R.h>
 #include <Rdefines.h>
 #include <R_ext/Rdynload.h>
@@ -66,3 +69,5 @@ static void printHelper(treeNode* node, int depth);
 static void CleanupTree(treeNode* head);
 
 SEXP TREEHT, TREEMEM, TREELAB, TREELF;
+
+#endif

@@ -62,8 +62,8 @@ validate_ProtWeaver <- function(ipt, noWarn=FALSE){
   # Now we know that the input is either of type 'character' or 'dendrogram'
   if (all(checkchar)){
     if (!noWarn) message('Disabling Residue and MirrorTree-based algorithms. ',
-                  'Input list must include inputs of type "dendrogram" ',
-                  'for MT algorithms. Consult the documentation for more info.\n')
+                         'Input list must include inputs of type "dendrogram" ',
+                         'for MT algorithms. Consult the documentation for more info.\n')
     bitflags[['usemirrortree']] <- FALSE
     allentries <- unique(unlist(ipt))
   } else {
@@ -96,8 +96,8 @@ validate_ProtWeaver <- function(ipt, noWarn=FALSE){
     bitflags[['usecoloc']] <- FALSE
     bitflags[['strandid']] <- FALSE
     if (!noWarn) message('Co-localization disabled. Labels must be in the format ',
-              '[GENOME]_[INDEX]_[ORDER] to use co-localization ',
-            '(where ORDER is a numeric). Consult the documentation for more info.\n')
+                         '[GENOME]_[INDEX]_[ORDER] to use co-localization ',
+                         '(where ORDER is a numeric). Consult the documentation for more info.\n')
   }
   
   if (is.null(names(ipt))){
@@ -185,8 +185,8 @@ predict.ProtWeaver <- function(object, Method='Ensemble', Subset=NULL, NumCores=
   } else {
     names(preds) <- n
     rs <- structure(preds,
-                   method=Method,
-                   class=c('ProtWeb', 'simMat'))
+                    method=Method,
+                    class=c('ProtWeb', 'simMat'))
   }
   
   invisible(rs)
@@ -211,7 +211,7 @@ Ensemble.ProtWeaver <- function(pw,
   if (!is.null(MySpeciesTree)){
     splist <- labels(MySpeciesTree)
   }
-    
+  
   if (Verbose) cat('Calculating P/A profiles:\n')
   PAs <- PAProfiles(pw, uvals, Verbose=Verbose, speciesList=splist)
   CPs <- NULL
@@ -227,7 +227,7 @@ Ensemble.ProtWeaver <- function(pw,
   if (!is.null(MySpeciesTree) && CheckBifurcating(MySpeciesTree)){
     submodels <- c(submodels, 'Behdenna')
   }
-
+  
   if (attr(pw, 'useColoc')){
     submodels <- c(submodels, 'Coloc')
   }
@@ -251,9 +251,9 @@ Ensemble.ProtWeaver <- function(pw,
     if (model %in% takesCP) profs <- CPs
     else profs <- PAs
     results[[model]] <- predict(pw, model, Verbose=Verbose, 
-                              ReturnRawData=TRUE, precalcProfs=profs,
-                              precalcSubset=subs, 
-                              MySpeciesTree=MySpeciesTree, ...)
+                                ReturnRawData=TRUE, precalcProfs=profs,
+                                precalcSubset=subs, 
+                                MySpeciesTree=MySpeciesTree, ...)
   }
   
   cat('Combining results...\n')
@@ -262,7 +262,7 @@ Ensemble.ProtWeaver <- function(pw,
   pas <- PAStats(results, PAs) 
   results[,'AvgOcc'] <- pas$avg
   results[,'OccDiff'] <- pas$diff
-
+  
   if (NoPrediction) return(list(res=results, noPostFormatting=TRUE))
   
   if (Verbose) cat('Predicting with Ensemble method...\n')

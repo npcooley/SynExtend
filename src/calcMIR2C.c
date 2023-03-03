@@ -71,7 +71,7 @@ SEXP calcMIcVec(SEXP V1, SEXP V2, SEXP UV, SEXP PSEUDOCOUNT)
   double *rans = REAL(ans);
   int l = length(V1);
   int uv = asInteger(UV);
-  double pcount = asInteger(PSEUDOCOUNT);
+  double pcount = REAL(PSEUDOCOUNT)[0];
   int *v1 = INTEGER(V1);
   int *v2 = INTEGER(V2);
   double *marg1 = (double*) S_alloc(uv, sizeof(double));
@@ -103,6 +103,58 @@ SEXP calcMIcVec(SEXP V1, SEXP V2, SEXP UV, SEXP PSEUDOCOUNT)
   *rans = outval;
   UNPROTECT(1);
   return ans;
+}
+
+SEXP calcMIVec(SEXP V1, SEXP V2, SEXP LEN){//, SEXP PSEUDOCOUNT){
+  // V1, V2 integer vectors
+  // LEN is the length of V1, V2 (int)
+  // UV is number of unique values (int)
+  // PSEUDOCOUNT is pseudocounts to add (double)
+  int *v1 = INTEGER(V1);
+  int *v2 = INTEGER(V2);
+  int l = LENGTH(V1);
+  int uv = INTEGER(LEN)[0];
+  //double pcount = REAL(PSEUDOCOUNT)[0];
+
+  double mi = 0;
+  double jointentropy = 0;
+
+  double *pX, *pY, *pJoint;
+  double div = ((double) 1) / ((double) l);
+  pX = calloc(uv, sizeof(double));
+  pY = calloc(uv, sizeof(double)); 
+  pJoint = calloc(uv*uv, sizeof(double));
+  int c1, c2;
+
+  // calc individual probability dists
+  for(int i=0; i<l; i++){
+    c1 = v1[i]-1;
+    c2 = v2[i]-1;
+    pX[c1] += div;
+    pY[c2] += div;
+    pJoint[c1*uv+c2] += div;
+  }
+
+  // calc MI
+  int idx;
+  for(int i=0; i<uv; i++){
+    for(int j=0; j<uv; j++){
+      idx = i*uv+j;
+      if(pJoint[idx] != 0){
+        mi += pJoint[idx] * log2(pJoint[idx] / (pX[i]*pY[j]));
+        jointentropy += pJoint[idx] * log2(pJoint[idx]);
+      }
+    }
+  }
+
+  mi /= (-1*jointentropy);
+  SEXP out = PROTECT(allocVector(REALSXP, 1));
+  REAL(out)[0] = mi;
+  free(pX);
+  free(pY);
+  free(pJoint);
+  UNPROTECT(1);
+  return(out);
 }
 
 

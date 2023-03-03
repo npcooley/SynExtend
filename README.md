@@ -156,7 +156,7 @@ A more self-contained example is maintained in this package's Bioconductor vigne
 
 ### Creating Functional Association Networks
 
-SynExtend also allows for prediction of functional association networks from presence/absence patterns of clusters of orthologous genes (COGs). Given a list of presence/absence data, the `ProtWeaver` class in SynExtend uses multiple algorithms to compute likelihood of pairwise functional association. This list can be generated with `DisjointSet(...)`, or can be created by the user. 
+SynExtend also allows for prediction of functional association networks from evidence of correlated selective pressures between of pairs of clusters of orthologous genes (COGs). Given a list of gene trees or presence/absence data, the `ProtWeaver` class in SynExtend uses multiple algorithms to compute likelihood of pairwise functional association. This list can be generated with `DisjointSet(...)`, or can be created by the user. 
 
 An example of using `ProtWeaver` can be done using the built-in example *Streptomyces* dataset. This will predict functional association of 200 genes from 301 genomes. 
 
@@ -170,12 +170,11 @@ predictions <- predict(pw, mySpeciesTree=exData$Tree)
 
 # View number of genes and number of predictions:
 
+# Print out the adjacency matrix:
+predictions
 
 # Print out pairwise associations:
-getProtWebData(predictions, asDf=TRUE)
-
-# Print out the entire adjacency matrix:
-getProtWebData(predictions)
+as.data.frame(predictions)
 
 # Plot genes using force-directed embedding:
 plot(predictions)
@@ -193,4 +192,4 @@ If users have specific requests I would love to incorporate them.
 
 ## Reporting Bugs and Errors
 
-Feel free to email me at npc19@pitt.edu or submit issues here on github.
+Feel free to email me at npc19@pitt.edu or submit issues here on GitHub. Questions related to `ProtWeaver` can be sent to ahl27@pitt.edu or submitted similarly on GitHub.

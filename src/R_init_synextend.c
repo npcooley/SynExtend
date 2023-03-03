@@ -14,43 +14,44 @@
 // for math functions
 #include <math.h>
 
-/*
- * Biostrings_interface.h is needed for the DNAencode(), get_XString_asRoSeq(),
- * init_match_reporting(), report_match() and reported_matches_asSEXP()
- * protoypes, and for the COUNT_MRMODE and START_MRMODE constant symbols.
- */
-// #include "Biostrings_interface.h"
-
 // SynExtend header file
 #include "SynExtend.h"
 
 // Other header files for .C Routines
 #include "SEutils.h"
 
+#define CALLDEF(name, n)  {#name, (DL_FUNC) &name, n}
+#define C_DEF(name, n)  {#name, (DL_FUNC) &name, n}
+
 /*
  * -- REGISTRATION OF THE .Call ENTRY POINTS ---
  */
 static const R_CallMethodDef callMethods[] = { // method call, pointer, num args
-  {"calcMIcVec", (DL_FUNC) &calcMIcVec, 4},
-  {"trimCovar", (DL_FUNC) &trimCovar, 5},
-  {"initCDend", (DL_FUNC) &initCDend, 1},
-  {"hashString", (DL_FUNC) &hashString, 1},
-  {"calcGainLoss", (DL_FUNC) &calcGainLoss, 3},
-  {"calcScoreGL", (DL_FUNC) &calcScoreGL, 3}, 
-  {"calcScoreJaccard", (DL_FUNC) &calcScoreJaccard, 3},
-  {"calcScoreHamming", (DL_FUNC) &calcScoreHamming, 4},
-  {"printTree", (DL_FUNC) &printTree, 1},
-  {"GRFInfo", (DL_FUNC) &GRFInfo, 5},
-  {"RFDist", (DL_FUNC) &RFDist, 3},
-  {"KFDist", (DL_FUNC) &KFDist, 3},
-  {"calcDValue", (DL_FUNC) &calcDValue, 2},
-  {"calcDRandValue", (DL_FUNC) &calcDRandValue, 4},
-  {"calcDBrownValue", (DL_FUNC) &calcDBrownValue, 6},
-  {"pseudoRandomSample", (DL_FUNC) &pseudoRandomSample, 1},
-  {"randomProjection", (DL_FUNC) &randomProjection, 4},
-  {"seededPseudoRandomSample", (DL_FUNC) &seededPseudoRandomSample, 2},
-  {"MoransI", (DL_FUNC) &MoransI, 3},
-  {"StringToNVDT", (DL_FUNC) &StringToNVDT, 4},
+  CALLDEF(calcMIcVec, 4),
+  CALLDEF(calcMIVec, 3),
+  CALLDEF(trimCovar, 5),
+  CALLDEF(initCDend, 1),
+  CALLDEF(hashString, 1),
+  CALLDEF(calcGainLoss, 3),
+  CALLDEF(calcScoreGL, 3), 
+  CALLDEF(calcScoreJaccard, 3),
+  CALLDEF(calcScoreHamming, 4),
+  CALLDEF(printTree, 1),
+  CALLDEF(GRFInfo, 5),
+  CALLDEF(RFDist, 3),
+  CALLDEF(KFDist, 3),
+  CALLDEF(calcDValue, 2),
+  CALLDEF(calcDRandValue, 4),
+  CALLDEF(calcDBrownValue, 6),
+  CALLDEF(pseudoRandomSample, 1),
+  CALLDEF(randomProjection, 4),
+  CALLDEF(seededPseudoRandomSample, 2),
+  CALLDEF(MoransI, 3),
+  CALLDEF(StringToNVDT, 4),
+  CALLDEF(rpdendrapply, 3),
+  CALLDEF(HungarianAssignment, 2),
+  CALLDEF(fastPearsonC, 2),
+  CALLDEF(do_dendrapply, 4),
   {NULL, NULL, 0}
 };
 
@@ -58,9 +59,12 @@ static const R_CallMethodDef callMethods[] = { // method call, pointer, num args
  * -- REGISTRATION OF THE .C ENTRY POINTS ---
  */
 static const R_CMethodDef cMethods[] = {
-  {"cleanupFxn", (DL_FUNC) &cleanupFxn, 0},
-  {"shuffleRInt", (DL_FUNC) &shuffleRInt, 2},
-  {"shuffleRRepl", (DL_FUNC) &shuffleRRepl, 2},
+  C_DEF(cleanupFxn, 0),
+  C_DEF(shuffleRInt, 2),
+  C_DEF(shuffleRRepl, 2),
+  C_DEF(hungarianCleanup, 0),
+  C_DEF(genCostMatrix, 7),
+  C_DEF(free_dendrapply_list, 0),
   {NULL, NULL, 0}
 };
 

@@ -391,13 +391,22 @@ GainLoss.ProtWeaver <- function(pw, Subset=NULL,
         l <- as.integer(ARGS$l)
         replicates <- rep(NA_real_, num_bs)
         for(i in seq_len(num_bs)){
-          replicates[i] <- abs(.Call("calcScoreGL", ARGS$y, 
+          replicates[i] <- .Call("calcScoreGL", ARGS$y, 
                                      .C("shuffleRInt", v1, l, PACKAGE="SynExtend")[[1]],
                                      .C("shuffleRInt", v2, l, PACKAGE="SynExtend")[[1]], 
-                                     PACKAGE="SynExtend"))
+                                     PACKAGE="SynExtend")
         }
-        pv <- sum(replicates <= abs(res)) / num_bs
-        res <- pv*res
+        normer <- sum(abs(v1), abs(v2))
+        normer <- ifelse(normer==0, 1, normer)
+        replicates <- 2*replicates / normer
+        res <- 2*res / normer
+        pv <- sum(replicates <= res) / num_bs
+        if(pv > 0.5){
+          pv <- 2*(1-pv)
+        } else {
+          pv <- 2*pv
+        }
+        res <- (1-pv)*res
       } else{
         normer <- mean(sum(abs(v1)), sum(abs(v2)))
         normer <- sum(abs(v1), abs(v2))

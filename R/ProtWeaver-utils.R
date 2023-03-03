@@ -61,7 +61,7 @@ PAProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
   if (useMT)
     pw <- lapply(pw, labels)
   if (useColoc)
-    pw <- lapply(pw, gsub, pattern='(.+)_.+_[0-9]+', replacement='\\1')
+    pw <- lapply(pw, gsub, pattern='([^_]*)_.*', replacement='\\1')
   
   skip <- FALSE
   if ( !is.null(toEval) ){
@@ -141,8 +141,8 @@ CophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
 }
 
 RandCophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE, 
-                                      speciesList=NULL, outdim=-1, 
-                                      speciesCorrect=FALSE, mySpeciesTree=NULL, ...){
+                                        speciesList=NULL, outdim=-1, 
+                                        speciesCorrect=FALSE, mySpeciesTree=NULL, ...){
   ## TODO: Some way to handle paralogs
   cols <- names(pw)
   ao <- attr(pw, 'allOrgs')
@@ -189,7 +189,7 @@ RandCophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
       cop <- as.matrix(Cophenetic(pw[[i]]))
       copOrgNames <- rownames(cop)
       if (useColoc){
-        copOrgNames <- vapply(copOrgNames, gsub, pattern='(.+)_.+_[0-9]+', 
+        copOrgNames <- vapply(copOrgNames, gsub, pattern='([^_]*)_.*', 
                               replacement='\\1', FUN.VALUE=character(1))
         rownames(cop) <- colnames(cop) <- copOrgNames
       }
@@ -197,7 +197,7 @@ RandCophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
       copvec <- dummycoph[ut]
       pos <- which(copvec != 0)
       if (speciesCorrect){
-       copvec[pos] <- (copvec[pos] - specvec[pos]) / spv2[pos]
+        copvec[pos] <- (copvec[pos] - specvec[pos]) / spv2[pos]
       }
       copvec <- .Call("randomProjection", copvec, 
                       pos, length(pos), outdim, PACKAGE="SynExtend")  
@@ -235,7 +235,7 @@ ProcessSubset <- function(pw, Subset=NULL){
         Subset <- matrix(vapply(c(Subset), function(x) {
           val <- which(x==n)
           val <- ifelse(length(val) == 0, -1, val[1])
-          }, 0), ncol=2)
+        }, 0), ncol=2)
         excise <- (Subset[,1] < 0) | (Subset[,2] < 0)
         if (sum(excise) > 0) 
           Subset <- Subset[!excise,]
@@ -308,6 +308,50 @@ flatdendrapply <- function(dend, NODEFUN=NULL, LEAFFUN=NODEFUN,
     retval <- unlist(retval)
   
   return(retval)
+}
+
+recursive_parentdendrapply <- function(dend, f){
+  # f must have two arguments
+  stopifnot("function must have two arguments"=length(formals(f)) == 2)
+  return(.Call("rpdendrapply", dend, f, new.env(), PACKAGE="SynExtend"))
+}
+
+find_dend_distances <- function(dend, useColoc=FALSE){
+  if(useColoc){
+    dend <- rapply(dend, \(x){
+      attr(x, 'label') <- gsub("([^_]*)_.*", '\\1',attr(x, 'label'))
+      return(x)
+    }, how='replace')
+  }
+  leafh <- rapply(dend, \(x) c(attr(x, 'label'), attr(x, 'height')))
+  leafheights <- as.numeric(leafh[seq(2, length(leafh)+1, 2)])
+  names(leafheights) <- leafh[seq(1, length(leafh), 2)]
+  
+  roothvec <- rep(attr(dend, 'height'), length(leafheights))
+  roothvec <- roothvec - leafheights
+  names(roothvec) <- names(leafheights)
+  roothvec <- roothvec[order(unlist(dend))]
+  attr(dend, 'distances') <- roothvec
+  attr(dend, 'branchlen') <- 0
+  
+  finddistvec <- function(node, parent){
+    curv <- attr(parent, 'distances')
+    branchlen <- attr(parent, 'height') - attr(node, 'height')
+    pbranchlen <- attr(parent, 'branchlen')
+    curv <- curv + 0.5*(branchlen+pbranchlen)
+    if (is.null(attr(node, 'leaf'))){
+      children <- unlist(node)
+    } else {
+      children <- attr(node, 'label')
+    }
+    curv[children] <- curv[children] - branchlen - pbranchlen
+    attr(node, 'distances') <- curv
+    attr(node, 'branchlen') <- branchlen
+    return(node)
+  }
+  
+  dend <- recursive_parentdendrapply(dend, finddistvec)
+  return(dend)
 }
 
 AdjMatToDf <- function(preds, Verbose=TRUE){
@@ -852,5 +896,108 @@ findSpeciesTree <- function(pw, Verbose=TRUE, NameFun=NULL){
   SpecTree <- SuperTree(unclass(pw), NAMEFUN=NameFun, Verbose=Verbose)
   
   return(SpecTree)
+}
+
+## Residue stuff
+find_dists_pos <- function(dend, useColoc=FALSE){
+  cutoff <- 100L
+  dend <- MapCharacters(dend)
+  dend <- find_dend_distances(dend, useColoc)
+  allPos <- names(sort(table(rapply(dend, \(x){
+    as.integer(gsub("[^0-9]([0-9]*)[^0-9]", "\\1", attr(x, 'change')))
+  }, how='unlist')), decreasing = TRUE))
+  
+  if(length(allPos) > cutoff){
+    allPos <- allPos[seq_len(cutoff)]
+  }
+  
+  # ensure they're always characters
+  labs <- as.character(names(attr(dend, 'distances')))
+  num_labels <- length(labs)
+  posVecs <- lapply(allPos, \(x) {
+    y <- rep(Inf, num_labels)
+    names(y) <- labs
+    return(y)
+  })
+  names(posVecs) <- allPos
+  
+  #names(pm) <- as.character(allPos)
+  rapply(dend, \(x) {
+    pos <- gsub("[^0-9]([0-9]*)[^0-9]", "\\1", attr(x, 'change'))
+    d <- attr(x,'distances')
+    n <- names(d)
+    for (pv in pos){
+      if(!(pv %in% allPos)) next
+      curv <- posVecs[[pv]]
+      locs <- curv > d
+      curv[locs] <- d[locs]
+      posVecs[[pv]] <<- curv
+    }
+    return(NULL)
+  }, how='unlist')
+  
+  for(i in seq_along(posVecs)){
+    p <- posVecs[[i]]
+    p[is.infinite(p)] <- NA_real_
+    posVecs[[i]] <- p
+  }
+  
+  return(posVecs)
+}
+
+pair_residues <- function(pm1, pm2){
+  l1 <- length(pm1)
+  l2 <- length(pm2)
+  if(l1 >= l2){
+    pmL <- pm1
+    pmS <- pm2
+  } else {
+    pmL <- pm2
+    pmS <- pm1
+    l1 <- l2
+    l2 <- length(pm1)
+  }
+  if(l2 <= 3) return(list(R=0,P=0))
+  nameoverlap <- intersect(names(pmL[[1]]), names(pmS[[2]]))
+  if(length(nameoverlap) <= 2) return(list(R=0,P=1))
+  for(i in seq_len(l1)){
+    pmL[[i]] <- pmL[[i]][nameoverlap]
+    if(i <= l2)
+      pmS[[i]] <- pmS[[i]][nameoverlap]
+  }
+  ## Greater value should always be columns
+  
+  # Max pair because residues can have one to many contacts
+  CorrVal <- PVal <- rep(-Inf, l1)
+  ns <- names(pmS)
+  for(i in seq_len(l1)){
+    vCol <- pmL[[i]]
+    minCorr <- c(Inf, -1)
+    for(j in seq_len(l2)){
+      vRow <- pmS[[j]]
+      curcorr <- .Call("fastPearsonC", vRow, vCol)
+      
+      if (curcorr[1] > CorrVal[i]){
+        CorrVal[i] <- curcorr[1]
+        # Alternative = 'greater'
+        # if it was 'either' it would be
+        # p = p < 0.5 ? 2*p : (1-p)*2
+        # I don't think 'either' makes sense
+        PVal[i] <- 1-pt(curcorr[2], curcorr[3]-2)
+      }
+      # Negative correlation is meaningless
+      # but it shouldn't count against scoring
+      if (CorrVal[i] < 0) CorrVal[i] <- 0
+    }
+  }
+  subs <- !is.na(PVal)
+  if(!sum(subs)) return(list(R=0,P=1))
+  PVal <- PVal[subs]
+  CorrVal <- CorrVal[subs]
+  # correction for zeros
+  PVal[PVal==0] <- 1e-16
+  meanP <- 1/sum(1/PVal)
+  meanR <- mean(CorrVal)
+  return(list(R=meanR, P=meanP))
 }
 ########

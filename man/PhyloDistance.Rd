@@ -8,7 +8,8 @@ Calculate Distance between Unrooted Phylogenies
 Calculates distance between two unrooted phylogenies using a variety of metrics.
 }
 \usage{
-PhyloDistance(dend1, dend2, Method="GRF", 
+PhyloDistance(dend1, dend2,
+              Method=c("CI", "RF", "KF", "JRF"), 
               RawScore=FALSE, JRFExp=2)
 }
 %- maybe also 'usage' for other objects documented here.
@@ -22,7 +23,7 @@ PhyloDistance(dend1, dend2, Method="GRF",
   tree.
 }
 \item{Method}{
-  Method to use for calculating tree distances. The following values are supported: \code{"GRF", "RF", "KF", "JRF"}. See Details for more information.
+  Method to use for calculating tree distances. The following values are supported: \code{"CI", "RF", "KF", "JRF"}. See Details for more information.
 }
 \item{RawScore}{
   If \code{FALSE}, returns distance between the two trees. If \code{TRUE}, returns the component values used to calculate the distance. This may be preferred for methods like \code{GRF}. See the pages specific to each algorithm for more information on what values are reported.
@@ -36,12 +37,12 @@ This function implements a variety of tree distances, specified by the value of 
 
 \itemize{
   \item{\code{"RF"}: \link[=RFDist]{Robinson-Foulds Distance}}
-  \item{\code{"GRF"}: \link[=GRFDist]{Generalized Information-Theoretic Robinson Foulds Distance}}
+  \item{\code{"CI"}: \link[=CIDist]{Clustering Information Distance}}
   \item{\code{"JRF"}: \link[=JRFDist]{Jaccard-Robinson-Foulds Distance}, equivalent to the Nye Distance Metric when \code{JRFVal=1}}
   \item{\code{"KF"}: \link[=KFDist]{Kuhner-Felsenstein Distance}}
 }
 
-Information on each of these algorithms, how scores are calculated, and references to literature can be found at the above links. Method \code{"GRF"} is selected by default due to recent work showing this method as the most robust tree distance metric under general conditions.
+Information on each of these algorithms, how scores are calculated, and references to literature can be found at the above links. Method \code{"CI"} is selected by default due to recent work showing this method as the most robust tree distance metric under general conditions.
 }
 \value{
 Returns a normalized distance, with 0 indicating identical trees and 1 indicating 
@@ -63,7 +64,7 @@ Labels can easily be modified using \code{\link{dendrapply}}.
 \seealso{
 \link[=RFDist]{Robinson-Foulds Distance}
 
-\link[=GRFDist]{Generalized Information-Theoretic Robinson Foulds Distance}
+\link[=CIDist]{Clustering Information Distance}
 
 \link[=JRFDist]{Jaccard-Robinson-Foulds Distance}
 
@@ -78,11 +79,11 @@ dm2 <- as.dist(matrix(runif(64, 0.5, 5), ncol=8))
 tree1 <- as.dendrogram(hclust(dm1))
 tree2 <- as.dendrogram(hclust(dm2))
 
-# Robinson-Foulds distance
+# Robinson-Foulds Distance
 PhyloDistance(tree1, tree2, Method="RF")
 
-# Generalized RF Distance
-PhyloDistance(tree1, tree2, Method="GRF")
+# Clustering Information Distance
+PhyloDistance(tree1, tree2, Method="CI")
 
 # Kuhner-Felsenstein Distance
 PhyloDistance(tree1, tree2, Method="KF")

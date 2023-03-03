@@ -30,7 +30,7 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
   pl <- length(uvals)
   
   DIM_LENGTH <- min(80L, length(attr(pw, "allOrgs")))
-  
+  alllabs <- lapply(uvals, \(x) labels(pw[[x]]))
   MTCorrection <- tolower(MTCorrection)
   useSpecCorr <- FALSE
   if ('speciestree' %in% MTCorrection){
@@ -98,6 +98,7 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
     endOfRow <- endOfRow + (pl-i)
     uval1 <- uvals[i]
     v1 <- CPs[,i]
+    l1 <- alllabs[[i]]
     sd1 <- sd(v1, na.rm=TRUE)
     # Should only be NA if there's only one entry
     if (is.na(sd1) || sd1 == 0){
@@ -111,6 +112,7 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
         entry <- max(uval1, uval2)
         if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
           v2 <- CPs[,j]
+          l2 <- alllabs[[j]]
           sd2 <- sd(v2, na.rm=TRUE)
           if (is.na(sd2) || sd2 == 0)
             val <- NA
@@ -120,7 +122,8 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
                                         method='spearman'))
             num_branch <- length(v1)
             pval <- 1 - exp(pt(val, num_branch-2, lower.tail=FALSE, log.p=TRUE))
-            val <- val*pval
+            overlap <- length(intersect(l1,l2)) / length(unique(c(l1,l2)))
+            val <- val*pval*overlap
           }
           pairscores[ctr+1] <- ifelse(is.na(val), 0, val)
         }
@@ -154,7 +157,7 @@ ContextTree.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, precalcProfs=N
 
 TreeDistance.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
                                       precalcSubset=NULL, 
-                                      TreeMethods="GRF", JRFk=4, ...){
+                                      TreeMethods="CI", JRFk=4, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
@@ -172,12 +175,17 @@ TreeDistance.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   }
   
   
-  bmn <- c("GRF", "RF", "JRF", "Nye", "KF", "RFPVal")
+  bmn <- c("CI", "RF", "JRF", "Nye", "KF", "RFPVal")
   if ('all' %in% TreeMethods){
     bitmask <- rep(TRUE, length(bmn))
   } else {
     bitmask <- rep(FALSE, length(bmn))
     bitmask <- vapply(bmn, \(x) x %in% TreeMethods, logical(1))
+  }
+  
+  if(bitmask[1]){
+    CI_DISTANCE_INTERNAL <- NULL
+    data('CIDist_NullDist', package="SynExtend", envir=environment())
   }
   
   bmn <- bmn[bitmask]
@@ -194,7 +202,7 @@ TreeDistance.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
     if (useColoc){
       tree <- rapply(tree, \(x){
         if (!is.null(attr(x, 'leaf'))){
-          attr(x, 'label') <- gsub("(.*)_.*_.*", '\\1', attr(x, 'label'))
+          attr(x, 'label') <- gsub("([^_]*)_.*", '\\1', attr(x, 'label'))
         }
         return(x)
       }, how='replace')
@@ -221,18 +229,38 @@ TreeDistance.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
       entry <- max(uval1, uval2)
       if (is.null(evalmap) || entry %in% evalmap[[accessor]]){
         interlabs <- intersect(labelsArray[[i]], labelsArray[[j]])
-        # GRF
+        # GRF/CI
         if (bitmask[1]){
-          # GRF
+          # GRF/CI
           s <- .Call("GRFInfo", p1, p2, interlabs, FALSE, 0, PACKAGE="SynExtend")
           normval <- 0.5*(s[2] + s[3])
 
           if (is.na(normval) || normval == 0){
-            pairscoresList$GRF[ctr+1] <- NA
+            pairscoresList$CI[ctr+1] <- NA
             #pairscoresList$GRF[ctr+1] <- ifelse(s[1] == 0, 0, 1)
+          } else {
+            s <- (normval - s[1]) / normval
+            s <- max(s, 0)
+            pv <- 0
+            if(!is.null(CI_DISTANCE_INTERNAL)){
+              # p-value correction using random trees
+              leninter <- length(interlabs) - 3
+              leninter <- min(leninter,197)
+              rowtocheck <- c(0, CI_DISTANCE_INTERNAL[2:10,leninter], 1)
+              pvals <- c(0,1,5,10,25,50,25,10,5,1,0)/100
+              # move score to right side
+              pvalind <- ifelse(s > 0.5, 1-s, s)
+              ploc <- which(pvalind < rowtocheck)[1]
+              if(ploc == 1){
+                pv <- 0
+              } else {
+                pv <- (s - rowtocheck[ploc-1]) / (rowtocheck[ploc] - rowtocheck[ploc-1])
+                pv <- pv * abs(pvals[ploc] - pvals[ploc-1]) + min(pvals[ploc-1], pvals[ploc])
+                pv <- pv * 2
+              }
+            }
+            pairscoresList$CI[ctr+1] <- (1-s)*(1-pv)
           }
-          else
-            pairscoresList$GRF[ctr+1] <- 1 - (normval - s[1]) / normval
         }
         # RF
         if (bitmask[2]){

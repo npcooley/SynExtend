@@ -138,3 +138,53 @@ SEXP StringToNVDT(SEXP DNASTRING, SEXP REMOVEGAPS, SEXP EXTENDED, SEXP USEDNA){
   UNPROTECT(1);
   return(retval);
 }
+
+SEXP fastPearsonC(SEXP V1, SEXP V2){
+  // assume we've already trimmed NAs
+  int l1 = LENGTH(V1);
+  int l2 = LENGTH(V2);
+  // going to the first value, ideally they'll be the same length
+  int l = l1 <= l2 ? l1 : l2;
+  double *v1 = REAL(V1);
+  double *v2 = REAL(V2);
+
+  double sumx=0, sumy=0, sumprod=0;
+  double sumxsq=0, sumysq=0;
+  double x,y,n=0;
+
+  for(int i=0; i<l; i++){
+    x = v1[i];
+    y = v2[i];
+    if(ISNA(x) || ISNA(y)) continue;
+    sumx += x;
+    sumy += y;
+    sumprod += x*y;
+    sumxsq += x*x;
+    sumysq += y*y;
+    n++;
+  }
+  double r,t;
+
+  if (n != 0){
+    // calculate Pearson's correlation
+    r = (n*sumprod - sumx*sumy) / (sqrt(n*sumxsq - sumx*sumx) * sqrt(n*sumysq - sumy*sumy));
+    t = r * sqrt((n-2) / (1-r*r));
+  } else {
+    r = 0;
+    t = 0;
+  }
+  
+  
+
+  SEXP outval = PROTECT(allocVector(REALSXP, 3));
+  REAL(outval)[0] = r;
+  REAL(outval)[1] = t;
+  REAL(outval)[2] = n;
+
+  UNPROTECT(1);
+  return(outval);
+}
+
+
+
+
