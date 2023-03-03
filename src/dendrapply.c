@@ -18,12 +18,12 @@
  * Linked list struct
  *
  * Each node of the tree is added with the following args:
- *  -   node: tree node, as a pointer to SEXPREC object
- *  -      v: location in parent node's list
- *  - remove: boolean indicating if a node should be removed from the linked list.
- *  - isLeaf: Counter encoding unmerged children. 0 if leaf or leaf-like subtree.
- *  - parent: pointer to node holding the parent node in the tree
- *  -   next: next linked list element
+ *  -       node: tree node, as a pointer to SEXPREC object
+ *  -          v: location in parent node's list
+ *  -     isLeaf: Counter encoding unmerged children. 0 if leaf or leaf-like subtree.
+ *  - origLength: original length of the node before applying function 
+ *  -     parent: pointer to node holding the parent node in the tree
+ *  -       next: next linked list element
  * 
  */
 typedef struct ll_S_dendrapply {
@@ -31,6 +31,7 @@ typedef struct ll_S_dendrapply {
   int v;
   unsigned int remove : 1;
   signed int isLeaf : 7;
+  unsigned int origLength;
   struct ll_S_dendrapply *parent;
   struct ll_S_dendrapply *next;
 } ll_S_dendrapply;
@@ -66,13 +67,14 @@ ll_S_dendrapply* alloc_link(ll_S_dendrapply* parentlink, SEXP node, int i, short
   if(travtype == 0){
     link->node = NULL;
     link->isLeaf = -1;
+    link->origLength = 0;
   } else if (travtype == 1){
     SEXP curnode;
     curnode = VECTOR_ELT(node, i);
     link->node = curnode;
     ls = getAttrib(curnode, leafSymbol);
     link->isLeaf = (isNull(ls) || (!LOGICAL(ls)[0]) )? length(curnode) : 0;
-    //link->isLeaf = isNull(getAttrib(curnode, leafSymbol)) ? length(curnode) : 0;
+    link->origLength = link->isLeaf;
   }
 
   link->next = NULL;
@@ -97,12 +99,12 @@ SEXP new_apply_dend_func(ll_S_dendrapply *head, SEXP f, SEXP env, short travtype
   SEXP node, call, newnode, leafVal;
 
   if(travtype == 0){
-    call = PROTECT(LCONS(f, LCONS(head->node, R_NilValue)));
+    call = PROTECT(lang2(f, head->node));
     REPROTECT(head->node = R_forceAndCall(call, 1, env), headprot);
     UNPROTECT(1);
   }
 
-  int n;
+  int n, nv;
   ptr = head;
   prev = head;
   while(ptr){
@@ -113,9 +115,16 @@ SEXP new_apply_dend_func(ll_S_dendrapply *head, SEXP f, SEXP env, short travtype
       newnode = VECTOR_ELT(parent->node, ptr->v);
       leafVal = getAttrib(newnode, leafSymbol);
       ptr->isLeaf = (isNull(leafVal) || (!LOGICAL(leafVal)[0])) ? length(newnode) : 0;
-      call = PROTECT(LCONS(f, LCONS(newnode, R_NilValue)));
+      ptr->origLength = ptr->isLeaf;
+      call = PROTECT(lang2(f, newnode));
       newnode = PROTECT(R_forceAndCall(call, 1, env));
-      SET_VECTOR_ELT(parent->node, ptr->v, newnode);
+      n = length(ptr->parent->node);
+      nv = ptr->v;
+      while(nv < n){
+        /* trying to replicate a weird stats::dendrapply quirk */
+        SET_VECTOR_ELT(parent->node, nv, newnode);
+        nv += ptr->parent->origLength;
+      }
       UNPROTECT(2);
 
       /* double ELT because it avoids a protect */
@@ -165,7 +174,7 @@ SEXP new_apply_dend_func(ll_S_dendrapply *head, SEXP f, SEXP env, short travtype
     } else {
       /* ptr->isLeaf != 0, so we need to add nodes */
       node = ptr->node;
-      n = length(node);
+      n = ptr->origLength;
       leafVal = getAttrib(node, leafSymbol);
       
       if(isNull(leafVal) || (!LOGICAL(leafVal)[0])){
@@ -186,7 +195,7 @@ SEXP new_apply_dend_func(ll_S_dendrapply *head, SEXP f, SEXP env, short travtype
   }
 
   if (travtype == 1){
-    call = PROTECT(LCONS(f, LCONS(head->node, R_NilValue)));
+    call = PROTECT(lang2(f, head->node));
     REPROTECT(head->node = R_forceAndCall(call, 1, env), headprot);
     UNPROTECT(1);
   }
@@ -217,6 +226,7 @@ SEXP do_dendrapply(SEXP tree, SEXP fn, SEXP env, SEXP order){
   dendrapply_ll->next = NULL;
   dendrapply_ll->parent = NULL;
   dendrapply_ll->isLeaf = length(treecopy);
+  dendrapply_ll->origLength = dendrapply_ll->isLeaf;
   dendrapply_ll->v = -1;
   dendrapply_ll->remove = 0;
 
