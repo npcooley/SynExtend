@@ -79,19 +79,18 @@ SuperTree <- function(myDendList, NAMEFUN=NULL, Verbose=TRUE, Processors=1){
     if (Verbose) setTxtProgressBar(pb, ctr)
   }
   
-  # Average result
-  posMis <- countmat==0
-  countmat[posMis] <- 1L
-  dmat <- dmat / countmat
-  dmat[posMis] <- NA_real_
-  maxval <- max(dmat, na.rm=TRUE)
-  dmatsd <- sd(dmat, na.rm=TRUE)
-  if(is.na(dmatsd)) dmatsd <- 1e-6
-  maxval <- maxval + dmatsd
-  dmat[posMis] <- maxval
-  dmat <- as.dist(dmat)
-  #dmat[posMis] <- NA_real_
-  #dmat[is.nan(dmat)] <- NA_real_
+  # Impute missing entries
+  if(Verbose) cat("\n  Done.\n")
+  posmissing <- which(countmat==0)
+  if(length(posmissing) > 0){
+    countmat[posmissing] <- 1
+    dmat <- dmat / countmat
+    dmat[posmissing] <- NA_real_
+    if(Verbose) cat('\n')
+    dmat <- as.dist(dineof(dmat, verbose=Verbose)$X)
+  } else {
+    dmat <- as.dist(dmat / countmat)
+  }
   
   # Build species tree with NJ
   if(Verbose){
@@ -104,7 +103,7 @@ SuperTree <- function(myDendList, NAMEFUN=NULL, Verbose=TRUE, Processors=1){
   
   if (Verbose){
     dt <- difftime(start, Sys.time())
-    cat("Done.\n  Time difference of", round(abs(dt), 2), attr(dt, "units"), '\n', sep=' ')
+    cat("  Done.\n  Time difference of", round(abs(dt), 2), attr(dt, "units"), '\n', sep=' ')
   }
   return(newTree)
 }
