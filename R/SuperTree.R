@@ -46,7 +46,7 @@ SuperTree <- function(myDendList, NAMEFUN=NULL, Verbose=TRUE, Processors=1){
   rownames(dmat) <- colnames(dmat) <- allspecies
   rownames(countmat) <- colnames(countmat) <- allspecies
   if (Verbose){ 
-    cat("\n  Done.\n\n  Calculating distance matrices...\n")
+    cat("\n  Done.\n\n  Constructing species-level distance matrix...\n")
     pb <- txtProgressBar(max = ctr, style=3)
   }
   ctr <- 0
@@ -79,7 +79,7 @@ SuperTree <- function(myDendList, NAMEFUN=NULL, Verbose=TRUE, Processors=1){
     if (Verbose) setTxtProgressBar(pb, ctr)
   }
   
-  # Average result
+  # Impute missing entries
   if(Verbose) cat("\n  Done.\n")
   posmissing <- which(countmat==0)
   if(length(posmissing) > 0){
@@ -93,7 +93,11 @@ SuperTree <- function(myDendList, NAMEFUN=NULL, Verbose=TRUE, Processors=1){
   }
   
   # Build species tree with NJ
-  if (Verbose) cat("\n  Building species tree...\n")
+  if(Verbose){
+    cat("\n  Done.")
+    if(length(posMis) > 0) cat("\n  NOTE: Imputing missing distances with maximum value.")
+    cat("\n\n  Building species tree...\n")
+  }
   newTree <- TreeLine(myDistMatrix=dmat, method="NJ", 
                       verbose=Verbose, processors = Processors)
   

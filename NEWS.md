@@ -1,4 +1,5 @@
 # SynExtend 1.11.7
+* Adds new optimized `dendrapply` implementation (overloads `stats::dendrapply`)
 * Adds`HungarianAlgorithm` for optimal solving of the linear assignment problem (O(n^3) complexity)
 * Adds new C code for fast computation of Pearson's R and p-value
 * Adds new `Ancestral.ProtWeaver` algorithm for calculating coevolution from correlated residue changes
