@@ -80,7 +80,17 @@ SuperTree <- function(myDendList, NAMEFUN=NULL, Verbose=TRUE, Processors=1){
   }
   
   # Average result
-  dmat <- as.dist(dmat / countmat)
+  if(Verbose) cat("\n  Done.\n")
+  posmissing <- which(countmat==0)
+  if(length(posmissing) > 0){
+    countmat[posmissing] <- 1
+    dmat <- dmat / countmat
+    dmat[posmissing] <- NA_real_
+    if(Verbose) cat('\n')
+    dmat <- as.dist(dineof(dmat, verbose=Verbose)$X)
+  } else {
+    dmat <- as.dist(dmat / countmat)
+  }
   
   # Build species tree with NJ
   if (Verbose) cat("\n  Building species tree...\n")
@@ -89,7 +99,7 @@ SuperTree <- function(myDendList, NAMEFUN=NULL, Verbose=TRUE, Processors=1){
   
   if (Verbose){
     dt <- difftime(start, Sys.time())
-    cat("Done.\n  Time difference of", round(abs(dt), 2), attr(dt, "units"), '\n', sep=' ')
+    cat("  Done.\n  Time difference of", round(abs(dt), 2), attr(dt, "units"), '\n', sep=' ')
   }
   return(newTree)
 }
