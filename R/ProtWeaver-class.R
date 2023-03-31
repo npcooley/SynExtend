@@ -121,13 +121,13 @@ validate_ProtWeaver <- function(ipt, noWarn=FALSE){
 ########
 
 #### User-Exposed S3 Methods ####
-show.ProtWeaver <- function(x, ...){
-  if (length(x) == 1){
-    cat(paste('a ProtWeaver object with', length(x),
-              'group and', length(attr(x,'allOrgs')), 'genomes.\n'))
+show.ProtWeaver <- function(object){
+  if (length(object) == 1){
+    cat(paste('a ProtWeaver object with', length(object),
+              'group and', length(attr(object,'allOrgs')), 'genomes.\n'))
   } else {
-    cat(paste('a ProtWeaver object with', length(x),
-              'groups and', length(attr(x,'allOrgs')), 'genomes.\n'))
+    cat(paste('a ProtWeaver object with', length(object),
+              'groups and', length(attr(object,'allOrgs')), 'genomes.\n'))
   }
 }
 

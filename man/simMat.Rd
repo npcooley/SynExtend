@@ -30,7 +30,7 @@ simMat(VALUE, nelem, NAMES=NULL, DIAG=FALSE)
 
 \method{as.simMat}{matrix}(x, ...)
 
-\method{print}{simMat}(x, n=10, ...)
+\method{print}{simMat}(x, ...)
 
 \method{as.matrix}{simMat}(x, ...)
 
@@ -59,7 +59,6 @@ Logical; Is the diagonal included in the data? If \code{FALSE}, the constructor
 generates 1s for the diagonal.
 }
 \item{x}{Various; for \code{print} and \code{Diag}, the \code{"simMat"} object to print. For \code{as.vector} or \code{as.matrix}, the vector or matrix (respectively). Note that \code{as.matrix} expects a symmetric matrix--providing a non-symmetric matrix will take only the upper triangle and produce a warning.}
-\item{n}{Integer (Optional); maximum number of rows to print when printing a \code{simMat} object. Default is 10 rows.}
 \item{value}{Numeric; value(s) to replace diagonal with.}
 \item{...}{Additional parameters provided for consistency with generic.}
 }
@@ -77,6 +76,9 @@ zeros as in \code{dist} objects.
 }
 
 See the examples for details on using these features.
+
+The number of elements printed when calling \code{print} or \code{show} on a 
+\code{simMat} object is determined by the \code{"SynExtend.simMat"} option.
 }
 \value{
 \code{simMat} and \code{as.simMat} return an object of class \code{"simMat"}. Internally,

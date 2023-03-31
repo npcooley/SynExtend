@@ -81,10 +81,17 @@ as.simMat.matrix <- function(x, ...){
   return(as.simMat.vector(v, NAMES=NAMES, DIAG=TRUE))
 }
 
-show.simMat <- function(object, n=10){
+show.simMat <- function(object){
+  n <- getOption("SynExtend.simMat")
+  if(is.null(n) || !is(n, 'integer')){
+    n <- 10
+    options(SynExtend.simMat=n)
+  }
+  if(n < 3){
+    n <- 3
+  }
   nr <- attr(object, 'nrow')
   CUTOFF <- FALSE
-  if (n < 3) n <- 3
   if (nr > n){
     CUTOFF <- TRUE
     
@@ -126,7 +133,7 @@ show.simMat <- function(object, n=10){
   invisible(cat(outstr))
 }
 
-print.simMat <- function(x, n=10, ...) show.simMat(x, n=10, ...)
+print.simMat <- function(x, ...) show.simMat(x)
 
 as.matrix.simMat <- function(x, ...){
   nr <- attr(x, 'nrow')
