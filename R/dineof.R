@@ -36,8 +36,7 @@ dineof <- function(X, start=1,
   rev_atu <- all_to_update - 1
   rev_atu <- (rev_atu %% n)*n + (rev_atu %/% n) + 1
   
-  # Nick Christoffersen says fill with zeros to ensure positive semidefinite
-  # Random matrix eigenvalues tightly bounded around sqrt(n)
+  # Nick Christoffersen says fill with zeros because math
   X[is.na(X)] <- 0
   
   make_sym <- function(m){
