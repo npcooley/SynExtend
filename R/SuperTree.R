@@ -94,8 +94,6 @@ SuperTree <- function(myDendList, NAMEFUN=NULL, Verbose=TRUE, Processors=1){
   
   # Build species tree with NJ
   if(Verbose){
-    cat("\n  Done.")
-    if(length(posMis) > 0) cat("\n  NOTE: Imputing missing distances with maximum value.")
     cat("\n\n  Building species tree...\n")
   }
   newTree <- TreeLine(myDistMatrix=dmat, method="NJ", 
