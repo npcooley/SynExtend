@@ -172,13 +172,13 @@ as.matrix.simMat <- function(x, ...){
     if(is(i, 'numeric') && any(i%%1 != 0))
       stop('indices must be whole numbers')
     if (is(i, 'character')){
-      i <- sapply(i, \(ii) which(ii==ns)[1])
+      i <- vapply(i, \(ii) which(ii==ns)[1], integer(1L))
     }
     if (any(is.na(i))){
       stop('Incorrect indices provided')
     }
     if (is(i, 'numeric') && all(i < 0)) {
-      i <- (1:nr)[i]
+      i <- (seq_len(nr))[i]
     }
     if (any(i > 0) && any(i < 0)){
       stop('Mixing of positive and negative indices is not supported.')
@@ -201,13 +201,13 @@ as.matrix.simMat <- function(x, ...){
     if(is(j, 'numeric') && any(j%%1 != 0))
       stop('indices must be whole numbers')
     if (is(j, 'character')){
-      j <- sapply(j, \(ji) which(j==ns)[1])
+      j <- vapply(j, \(ji) which(j==ns)[1], integer(1L))
     }
     if (any(is.na(j))){
       stop('Incorrect indices provided')
     }
     if (is(j, 'numeric') && all(j < 0)) {
-      j <- (1:nr)[j]
+      j <- (seq_len(nr))[j]
     }
     if (any(j > 0) && any(j < 0)){
       stop('Mixing of positive and negative indices is not supported.')
@@ -274,13 +274,13 @@ as.matrix.simMat <- function(x, ...){
     if(is(i, 'numeric') && any(i%%1 != 0))
       stop('indices must be whole numbers')
     if (is(i, 'character')){
-      i <- sapply(i, \(ii) which(ii==ns)[1])
+      i <- vapply(i, \(ii) which(ii==ns)[1], integer(1L))
     }
     if (any(is.na(i))){
       stop('Incorrect indices provided')
     }
     if (is(i, 'numeric') && all(i < 0)) {
-      i <- (1:nr)[i]
+      i <- (seq_len(nr))[i]
     }
     if (any(i > 0) && any(i < 0)){
       stop('Mixing of positive and negative indices is not supported.')
@@ -296,13 +296,13 @@ as.matrix.simMat <- function(x, ...){
     if(is(j, 'numeric') && any(j%%1 != 0))
       stop('indices must be whole numbers')
     if (is(j, 'character')){
-      j <- sapply(j, \(ji) which(j==ns)[1])
+      j <- vapply(j, \(ji) which(j==ns)[1], integer(1L))
     }
     if (any(is.na(j))){
       stop('Incorrect indices provided')
     }
     if (is(j, 'numeric') && all(j < 0)) {
-      j <- (1:nr)[j]
+      j <- (seq_len(nr))[j]
     }
     if (any(j > 0) && any(j < 0)){
       stop('Mixing of positive and negative indices is not supported.')

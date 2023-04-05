@@ -45,7 +45,6 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 The prior implementation of \code{dendrapply} was recursive and inefficient for dendrograms with many non-leaves. This version is no longer recursive, and thus should no longer cause issues stemming from insufficient C stack size (as mentioned in the 'Warning' in \code{\link[stats]{dendrogram}}).
 }
 
-%% ~Make other sections like Warning with \section{Warning }{....} ~
 \section{Warning}{
 \code{dendrapply} identifies leaf nodes as nodes such that \code{attr(node, 'leaf') == TRUE}, and internal nodes as nodes such that \code{attr(node, 'leaf') \%in\% c(NULL, FALSE)}. If you modify or remove this attribute, \code{dendrapply} may perform unexpectedly.
 }
