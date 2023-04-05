@@ -46,7 +46,7 @@ SuperTree <- function(myDendList, NAMEFUN=NULL, Verbose=TRUE, Processors=1){
   rownames(dmat) <- colnames(dmat) <- allspecies
   rownames(countmat) <- colnames(countmat) <- allspecies
   if (Verbose){ 
-    cat("\n  Done.\n\n  Calculating distance matrices...\n")
+    cat("\n  Done.\n\n  Constructing species-level distance matrix...\n")
     pb <- txtProgressBar(max = ctr, style=3)
   }
   ctr <- 0
@@ -79,17 +79,29 @@ SuperTree <- function(myDendList, NAMEFUN=NULL, Verbose=TRUE, Processors=1){
     if (Verbose) setTxtProgressBar(pb, ctr)
   }
   
-  # Average result
-  dmat <- as.dist(dmat / countmat)
+  # Impute missing entries
+  if(Verbose) cat("\n  Done.\n")
+  posmissing <- which(countmat==0)
+  if(length(posmissing) > 0){
+    countmat[posmissing] <- 1
+    dmat <- dmat / countmat
+    dmat[posmissing] <- NA_real_
+    if(Verbose) cat('\n')
+    dmat <- as.dist(dineof(dmat, verbose=Verbose)$X)
+  } else {
+    dmat <- as.dist(dmat / countmat)
+  }
   
   # Build species tree with NJ
-  if (Verbose) cat("\n  Building species tree...\n")
+  if(Verbose){
+    cat("\n\n  Building species tree...\n")
+  }
   newTree <- TreeLine(myDistMatrix=dmat, method="NJ", 
                       verbose=Verbose, processors = Processors)
   
   if (Verbose){
     dt <- difftime(start, Sys.time())
-    cat("Done.\n  Time difference of", round(abs(dt), 2), attr(dt, "units"), '\n', sep=' ')
+    cat("  Done.\n  Time difference of", round(abs(dt), 2), attr(dt, "units"), '\n', sep=' ')
   }
   return(newTree)
 }
