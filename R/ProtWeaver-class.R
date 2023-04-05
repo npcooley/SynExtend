@@ -23,6 +23,7 @@
 
 #### S3 Generic Definitions ####
 Ensemble <- function(pw, ...) UseMethod('Ensemble')
+SpeciesTree <- function(pw, Verbose) UseMethod('SpeciesTree')
 ########
 
 
@@ -34,11 +35,18 @@ new_ProtWeaver <- function(validatedInput){
             useColoc=validatedInput$flags$usecoloc,
             useResidue=validatedInput$flags$useresidue,
             useStrand=validatedInput$flags$strandid,
+            speciesTree=validatedInput$speciestree,
             class='ProtWeaver')
 }
 
-ProtWeaver <- function(ListOfData, NoWarn=FALSE){
+ProtWeaver <- function(ListOfData, MySpeciesTree=NULL, NoWarn=FALSE){
+  stopifnot("MySpeciesTree should be NULL or an object of type 'dendrogram'"=
+              is.null(MySpeciesTree) || is(MySpeciesTree,'dendrogram'))
   vRes <- validate_ProtWeaver(ListOfData, noWarn=NoWarn)
+  if(!is.null(MySpeciesTree) && any(!(vRes$allgenomes %in% labels(MySpeciesTree)))){
+    stop("MySpeciesTree is missing labels!")
+  }
+  vRes$speciestree <- MySpeciesTree
   new_ProtWeaver(vRes)
 }
 
@@ -68,7 +76,10 @@ validate_ProtWeaver <- function(ipt, noWarn=FALSE){
     allentries <- unique(unlist(ipt))
   } else {
     bitflags[['usemirrortree']] <- TRUE
-    allentries <- unique(unlist(lapply(ipt, labels)))
+    allentries <- character(0)
+    for(tree in ipt){
+      allentries <- unique(c(allentries, as.character(labels(tree))))
+    }
   }
   
   if (bitflags[['usemirrortree']]){
@@ -118,6 +129,7 @@ validate_ProtWeaver <- function(ipt, noWarn=FALSE){
   
   return(list(ipt=ipt, allgenomes=allentries, flags=bitflags))
 }
+
 ########
 
 #### User-Exposed S3 Methods ####
@@ -148,7 +160,8 @@ print.ProtWeaver <- function(x, ...){
 }
 
 predict.ProtWeaver <- function(object, Method='Ensemble', Subset=NULL, NumCores=1,
-                               MySpeciesTree=NULL, PretrainedModel=NULL,
+                               MySpeciesTree=SpeciesTree(object), 
+                               PretrainedModel=NULL,
                                RawZScores=FALSE, NoPrediction=FALSE, 
                                ReturnRawData=FALSE, Verbose=TRUE, ...){
   pw <- object
@@ -190,6 +203,14 @@ predict.ProtWeaver <- function(object, Method='Ensemble', Subset=NULL, NumCores=
   }
   
   invisible(rs)
+}
+
+SpeciesTree.ProtWeaver <- function(pw, Verbose=TRUE){
+  tree <- attr(pw,'speciesTree')
+  if(is.null(tree) && attr(pw, 'useMT'))
+    tree <- findSpeciesTree(pw, Verbose=Verbose)
+  
+  tree
 }
 
 ########

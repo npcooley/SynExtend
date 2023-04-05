@@ -2,6 +2,8 @@
 \alias{ProtWeaver}
 \alias{ProtWeaver-class}
 \alias{ProtWeaver-utils}
+\alias{SpeciesTree}
+\alias{SpeciesTree.ProtWeaver}
 \title{
 ProtWeaver: Predicting Protein Functional Association Networks
 }
@@ -10,7 +12,9 @@ ProtWeaver is an S3 class with methods for predicting functional association usi
 protein or gene data. ProtWeaver implements several methods utilized in the literature, with many more planned for future implementation. For details on predictions, see \code{\link{predict.ProtWeaver}}.
 }
 \usage{
-ProtWeaver(ListOfData, NoWarn=FALSE)
+ProtWeaver(ListOfData, MySpeciesTree=NULL, NoWarn=FALSE)
+
+\method{SpeciesTree}{ProtWeaver}(pw, Verbose=TRUE)
 }
 \arguments{
   \item{ListOfData}{
@@ -18,8 +22,18 @@ A list of gene data, where each entry corresponds to information on a particular
 gene. List must contain either dendrograms or vectors, and cannot contain a mixture. 
 If list is composed of dendrograms, each dendrogram is a gene tree for the corresponding entry. If list is composed of vectors, vectors should be numeric or character vectors denoting the genomes containing that gene. 
 }
+\item{MySpeciesTree}{
+An object of class \code{'dendrogram'} representing the overall species tree for
+the list provided in \code{ListOfData}.
+}
 \item{NoWarn}{
 Several algorithms depend on having certain data. When a \code{ProtWeaver} object is initialized, it automatically selects which algorithms can be used given the input data. By default, ProtWeaver will notify the user of algorithms that cannot be used with warnings. Setting \code{NoWarn=TRUE} will suppress these messages.
+}
+\item{pw}{
+An object of class \code{ProtWeaver}
+}
+\item{Verbose}{
+Should output be displayed when calculating species tree?
 }
 }
 \details{
@@ -57,6 +71,8 @@ present at each node in the form of a `state` attribute.
 Note that ALL entries must belong to the same category--a combination of character vectors and dendrograms is not allowed. 
 
 Prediction of a functional association network is done using \code{predict(ProtWeaverObject)}. See \code{\link{predict.ProtWeaver}} for more information.
+
+The \code{SpeciesTree} function takes in an object of class \code{ProtWeaver} and returns a species tree. If the object was not initialized with a species tree, it calculates one using \code{\link{SuperTree}}.
 }
 \value{
 Returns a ProtWeaver object.
@@ -67,7 +83,8 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 \seealso{
 \code{\link{predict.ProtWeaver}},
 \code{\link{ExampleStreptomycesData}},
-\code{\link{BuiltInEnsembles}}
+\code{\link{BuiltInEnsembles}}, 
+\code{\link{SuperTree}}
 }
 \examples{
 # I'm using gene to mean either a gene or protein

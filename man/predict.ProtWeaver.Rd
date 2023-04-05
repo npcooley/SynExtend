@@ -11,7 +11,8 @@ matrix with some extra S3 methods to make printing cleaner.
 \usage{
 \method{predict}{ProtWeaver}(object, Method='Ensemble',
          Subset=NULL, NumCores=1,
-         MySpeciesTree=NULL, PretrainedModel=NULL,
+         MySpeciesTree=SpeciesTree(object), 
+         PretrainedModel=NULL,
          RawZScores=FALSE, NoPrediction=FALSE,
          ReturnRawData=FALSE, Verbose=TRUE, ...)
 }
