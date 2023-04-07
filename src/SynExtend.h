@@ -34,7 +34,7 @@ SEXP calcDBrownValue(SEXP tnPtr, SEXP allLabels, SEXP iterNum, SEXP SD, SEXP STA
 
 /**** XORRand.c ****/
 SEXP pseudoRandomSample(SEXP N);
-SEXP randomProjection(SEXP VEC, SEXP NONZERO, SEXP N, SEXP OUTDIM);
+SEXP randomProjection(SEXP VEC, SEXP NONZERO, SEXP N, SEXP OUTDIM, SEXP NTHREADS);
 SEXP seededPseudoRandomSample(SEXP N, SEXP SEED);
 
 /**** MoranI.c ****/

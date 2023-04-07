@@ -23,7 +23,7 @@
 
 #### S3 Generic Definitions ####
 Ensemble <- function(pw, ...) UseMethod('Ensemble')
-SpeciesTree <- function(pw, Verbose) UseMethod('SpeciesTree')
+SpeciesTree <- function(pw, Verbose, Processors) UseMethod('SpeciesTree')
 ########
 
 
@@ -159,7 +159,7 @@ print.ProtWeaver <- function(x, ...){
   new_ProtWeaver(newv)
 }
 
-predict.ProtWeaver <- function(object, Method='Ensemble', Subset=NULL, NumCores=1,
+predict.ProtWeaver <- function(object, Method='Ensemble', Subset=NULL, Processors=1L,
                                MySpeciesTree=SpeciesTree(object), 
                                PretrainedModel=NULL,
                                RawZScores=FALSE, NoPrediction=FALSE, 
@@ -169,7 +169,7 @@ predict.ProtWeaver <- function(object, Method='Ensemble', Subset=NULL, NumCores=
   if(Verbose && !ReturnRawData) starttime <- Sys.time()
   
   preds <- func(pw, Subset=Subset, Verbose=Verbose, 
-                MySpeciesTree=MySpeciesTree, NumCores=NumCores,
+                MySpeciesTree=MySpeciesTree, Processors=Processors,
                 PretrainedModel=PretrainedModel, RawZScores=RawZScores, 
                 NoPrediction=NoPrediction, ...)
   
@@ -205,10 +205,10 @@ predict.ProtWeaver <- function(object, Method='Ensemble', Subset=NULL, NumCores=
   invisible(rs)
 }
 
-SpeciesTree.ProtWeaver <- function(pw, Verbose=TRUE){
+SpeciesTree.ProtWeaver <- function(pw, Verbose=TRUE, Processors=1L){
   tree <- attr(pw,'speciesTree')
   if(is.null(tree) && attr(pw, 'useMT'))
-    tree <- findSpeciesTree(pw, Verbose=Verbose)
+    tree <- findSpeciesTree(pw, Verbose=Verbose, Processors=Processors)
   
   tree
 }

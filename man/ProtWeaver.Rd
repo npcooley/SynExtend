@@ -14,7 +14,7 @@ protein or gene data. ProtWeaver implements several methods utilized in the lite
 \usage{
 ProtWeaver(ListOfData, MySpeciesTree=NULL, NoWarn=FALSE)
 
-\method{SpeciesTree}{ProtWeaver}(pw, Verbose=TRUE)
+\method{SpeciesTree}{ProtWeaver}(pw, Verbose=TRUE, Processors=1L)
 }
 \arguments{
   \item{ListOfData}{
@@ -34,6 +34,10 @@ An object of class \code{ProtWeaver}
 }
 \item{Verbose}{
 Should output be displayed when calculating species tree?
+}
+\item{Processors}{
+Number of processors to use. Set to \code{NULL} to automatically use the maximum
+amount of processors.
 }
 }
 \details{

@@ -10,7 +10,7 @@ matrix with some extra S3 methods to make printing cleaner.
 }
 \usage{
 \method{predict}{ProtWeaver}(object, Method='Ensemble',
-         Subset=NULL, NumCores=1,
+         Subset=NULL, Processors=1L,
          MySpeciesTree=SpeciesTree(object), 
          PretrainedModel=NULL,
          RawZScores=FALSE, NoPrediction=FALSE,
@@ -38,10 +38,10 @@ matrix with some extra S3 methods to make printing cleaner.
     \code{subset=cbind(c(1,1,2), c(2,3,3))} produces equivalent functionality to 
     \code{subset=1:3}.
   }
-  \item{NumCores}{
+  \item{Processors}{
     Number of cores to use for methods that support multithreaded execution. 
     Currently only supported for methods \code{'ProfDCA'} and \code{'Ensemble'}. Setting
-    to a negative value will use one less than the value of \code{detectCores()}, 
+    to \code{NULL} or a negative value will use the value of \code{detectCores()}, 
     or one core if the number of available cores cannot be determined. See Note
     for more information. This parameter has no effect on Windows due to reliance on
     forking via \code{mclapply}.

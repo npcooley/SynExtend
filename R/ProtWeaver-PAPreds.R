@@ -215,7 +215,7 @@ MutualInformation.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   return(pairscores)
 }
 
-ProfileDCA.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, NumCores=1,
+ProfileDCA.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, Processors=1L,
                                   precalcProfs=NULL, precalcSubset=NULL, useAbs=TRUE, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
@@ -237,7 +237,7 @@ ProfileDCA.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, NumCores=1,
     return(mat)
   }
   
-  pairscores <- DCA_logRISE(pap, Verbose=Verbose, NumCores=NumCores, ...)
+  pairscores <- DCA_logRISE(pap, Verbose=Verbose, Processors=Processors, ...)
   rownames(pairscores) <- colnames(pairscores) <- n
   pairscores <- as.simMat(pairscores)
   if (useAbs) pairscores <- abs(pairscores)
