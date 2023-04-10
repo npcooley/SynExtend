@@ -4,7 +4,9 @@ SuperTree <- function(myDendList, NAMEFUN=NULL, Verbose=TRUE, Processors=1){
       !all(vapply(myDendList, \(x) is(x, 'dendrogram') || is.null(x), FUN.VALUE=TRUE))){
     stop("SuperTree requires input to be a list of dendrograms")
   }
-  
+  if(is.null(Processors)){
+    Processors <- detectCores()
+  }
   stopifnot("'Processors' must be a positive integer"=
               (Processors >=1 && Processors == as.integer(Processors)))
   if (!is(Processors, 'integer')) Processors <- as.integer(Processors)
