@@ -1,3 +1,12 @@
+# SynExtend 1.11.8
+* Fixes various small bugs in `MoransI`
+* Adds some multiprocessing support (more will be added in the future)
+* Slight rework to species trees and their interaction with `ProtWeaver` objects
+  - `ProtWeaver` has new attribute `speciesTree`, can be initialized with a `dendrogram object`
+  - New method `SpeciesTree` to get species tree from a `ProtWeaver` object (or compute one, if it doesn't exist)
+* Various internal improvements for Bioc style consistency
+* Various documentation updates
+
 # SynExtend 1.11.7
 * Adds new optimized `dendrapply` implementation (overloads `stats::dendrapply`)
 * Adds`HungarianAlgorithm` for optimal solving of the linear assignment problem (O(n^3) complexity)

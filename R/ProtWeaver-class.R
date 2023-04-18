@@ -23,6 +23,7 @@
 
 #### S3 Generic Definitions ####
 Ensemble <- function(pw, ...) UseMethod('Ensemble')
+SpeciesTree <- function(pw, Verbose, Processors) UseMethod('SpeciesTree')
 ########
 
 
@@ -34,11 +35,18 @@ new_ProtWeaver <- function(validatedInput){
             useColoc=validatedInput$flags$usecoloc,
             useResidue=validatedInput$flags$useresidue,
             useStrand=validatedInput$flags$strandid,
+            speciesTree=validatedInput$speciestree,
             class='ProtWeaver')
 }
 
-ProtWeaver <- function(ListOfData, NoWarn=FALSE){
+ProtWeaver <- function(ListOfData, MySpeciesTree=NULL, NoWarn=FALSE){
+  stopifnot("MySpeciesTree should be NULL or an object of type 'dendrogram'"=
+              is.null(MySpeciesTree) || is(MySpeciesTree,'dendrogram'))
   vRes <- validate_ProtWeaver(ListOfData, noWarn=NoWarn)
+  if(!is.null(MySpeciesTree) && any(!(vRes$allgenomes %in% labels(MySpeciesTree)))){
+    stop("MySpeciesTree is missing labels!")
+  }
+  vRes$speciestree <- MySpeciesTree
   new_ProtWeaver(vRes)
 }
 
@@ -68,7 +76,10 @@ validate_ProtWeaver <- function(ipt, noWarn=FALSE){
     allentries <- unique(unlist(ipt))
   } else {
     bitflags[['usemirrortree']] <- TRUE
-    allentries <- unique(unlist(lapply(ipt, labels)))
+    allentries <- character(0)
+    for(tree in ipt){
+      allentries <- unique(c(allentries, as.character(labels(tree))))
+    }
   }
   
   if (bitflags[['usemirrortree']]){
@@ -118,6 +129,7 @@ validate_ProtWeaver <- function(ipt, noWarn=FALSE){
   
   return(list(ipt=ipt, allgenomes=allentries, flags=bitflags))
 }
+
 ########
 
 #### User-Exposed S3 Methods ####
@@ -147,8 +159,9 @@ print.ProtWeaver <- function(x, ...){
   new_ProtWeaver(newv)
 }
 
-predict.ProtWeaver <- function(object, Method='Ensemble', Subset=NULL, NumCores=1,
-                               MySpeciesTree=NULL, PretrainedModel=NULL,
+predict.ProtWeaver <- function(object, Method='Ensemble', Subset=NULL, Processors=1L,
+                               MySpeciesTree=SpeciesTree(object), 
+                               PretrainedModel=NULL,
                                RawZScores=FALSE, NoPrediction=FALSE, 
                                ReturnRawData=FALSE, Verbose=TRUE, ...){
   pw <- object
@@ -156,7 +169,7 @@ predict.ProtWeaver <- function(object, Method='Ensemble', Subset=NULL, NumCores=
   if(Verbose && !ReturnRawData) starttime <- Sys.time()
   
   preds <- func(pw, Subset=Subset, Verbose=Verbose, 
-                MySpeciesTree=MySpeciesTree, NumCores=NumCores,
+                MySpeciesTree=MySpeciesTree, Processors=Processors,
                 PretrainedModel=PretrainedModel, RawZScores=RawZScores, 
                 NoPrediction=NoPrediction, ...)
   
@@ -190,6 +203,14 @@ predict.ProtWeaver <- function(object, Method='Ensemble', Subset=NULL, NumCores=
   }
   
   invisible(rs)
+}
+
+SpeciesTree.ProtWeaver <- function(pw, Verbose=TRUE, Processors=1L){
+  tree <- attr(pw,'speciesTree')
+  if(is.null(tree) && attr(pw, 'useMT'))
+    tree <- findSpeciesTree(pw, Verbose=Verbose, Processors=Processors)
+  
+  tree
 }
 
 ########
