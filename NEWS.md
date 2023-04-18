@@ -1,3 +1,5 @@
+# SynExtend 1.11.8
+
 # SynExtend 1.11.7
 * Adds new optimized `dendrapply` implementation (overloads `stats::dendrapply`)
 * Adds`HungarianAlgorithm` for optimal solving of the linear assignment problem (O(n^3) complexity)
