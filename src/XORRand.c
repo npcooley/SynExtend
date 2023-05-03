@@ -8,6 +8,11 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+// for OpenMP parallel processing
+#ifdef SUPPORT_OPENMP
+#include <omp.h>
+#endif
+
 #include "SynExtend.h"
 #include "SEutils.h"
 
@@ -53,9 +58,10 @@ SEXP seededPseudoRandomSample(SEXP N, SEXP SEED){
   return outvec;
 }
 
-SEXP randomProjection(SEXP VEC, SEXP NONZERO, SEXP N, SEXP OUTDIM){
+SEXP randomProjection(SEXP VEC, SEXP NONZERO, SEXP N, SEXP OUTDIM, SEXP NTHREADS){
   int64_t m = INTEGER(OUTDIM)[0];
   double *v = REAL(VEC);
+  int threads = INTEGER(NTHREADS)[0];
   const int bitwidth = 64;
   const int remainder = m % bitwidth;
 
@@ -72,22 +78,24 @@ SEXP randomProjection(SEXP VEC, SEXP NONZERO, SEXP N, SEXP OUTDIM){
   memset(outvals, 0, m*sizeof(double));
 
   double val, invval;
-  for (int i=0; i<num_nonzero; i++){
+  int i,j,k;
+  #pragma omp parallel for private(i, j, k, val, invval) num_threads(threads)
+  for (i=0; i<num_nonzero; i++){
     loc = nzpos[i]-1;
     val = v[loc];
     invval = -1 * val;
     seedRNGState64(r, (uint64_t) loc);
     idx = 0;
-    for (int j=0; j < (m/bitwidth); j++){
+    for (j=0; j < (m/bitwidth); j++){
       randnumber = xorshift128p(r);
-      for (int k=0; k<bitwidth; k++)
+      for (k=0; k<bitwidth; k++)
         outvals[idx+k] += randnumber & (1ULL << k) ? val : invval; 
       idx += bitwidth;
     }
 
     // faster to check once than to roll another number
     randnumber = remainder==0 ? 0 : xorshift128p(r);
-    for (int k=0; k<remainder; k++)
+    for (k=0; k<remainder; k++)
         outvals[idx+k] += randnumber & (1ULL << k) ? val : invval; 
   }
 

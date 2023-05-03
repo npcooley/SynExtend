@@ -44,7 +44,7 @@ static const R_CallMethodDef callMethods[] = { // method call, pointer, num args
   CALLDEF(calcDRandValue, 4),
   CALLDEF(calcDBrownValue, 6),
   CALLDEF(pseudoRandomSample, 1),
-  CALLDEF(randomProjection, 4),
+  CALLDEF(randomProjection, 5),
   CALLDEF(seededPseudoRandomSample, 2),
   CALLDEF(MoransI, 3),
   CALLDEF(StringToNVDT, 4),

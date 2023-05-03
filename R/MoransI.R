@@ -51,7 +51,9 @@ MoransI <- function(values, weights, alternative='two.sided'){
     # or like really really close to zero (on the order of <1e-295)
     return(list(observed=0, expected=-1/(length(values)-1), sd=0, p.value=1))
   }
-  retval <- list(observed=res[1], expected=res[2], sd=sqrt(res[3]))
+  
+  # Issue with some negative values, shouldn't really matter since var is always pos
+  retval <- list(observed=res[1], expected=res[2], sd=sqrt(abs(res[3])))
   if (length(values) <= 3){
     warning('Fewer than 3 values, variance is infinite!')
     retval$sd <- Inf

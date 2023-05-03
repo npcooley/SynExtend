@@ -8,6 +8,23 @@ CophProfiles <- function(pw, ...) UseMethod('CophProfiles')
 RandCophProfiles <- function(pw, ...) UseMethod('RandCophProfiles')
 ################################
 
+NormArgProcessors <- function(Processors){
+  # Normalize argument so it always works
+  coresAvailable <- detectCores()
+  if(is(Processors, 'numeric')){
+    Processors <- as.integer(Processors)
+  }
+  if(!is(Processors, 'integer')){
+    Processors <- 1L
+  }
+  if(is.null(Processors)){
+    Processors <- coresAvailable
+  }
+  Processors <- max(1L, Processors)
+  Processors <- min(Processors, coresAvailable)
+  Processors
+}
+
 BuildSimMatInternal <- function(vecs, uvals, evalmap, l, n, FXN, ARGS, Verbose,
                                 CORRECTION=NULL, InputIsList=FALSE){
   pairscores <- rep(NA_real_, l*(l-1)/2)
@@ -142,7 +159,8 @@ CophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
 
 RandCophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE, 
                                         speciesList=NULL, outdim=-1, 
-                                        speciesCorrect=FALSE, mySpeciesTree=NULL, ...){
+                                        speciesCorrect=FALSE, mySpeciesTree=NULL, 
+                                        Processors=1L, ...){
   ## TODO: Some way to handle paralogs
   cols <- names(pw)
   ao <- attr(pw, 'allOrgs')
@@ -152,6 +170,9 @@ RandCophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
   } else {
     allOrgs <- ao
   }
+  
+  Processors <- NormArgProcessors(Processors)
+  
   useColoc <- attr(pw, 'useColoc')
   useMT <- attr(pw, 'useMT')
   
@@ -164,7 +185,6 @@ RandCophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
     locs <- unique(c(toEval))
   }
   l <- length(allOrgs)
-  num_entries <- as.integer((l * (l-1)) / 2)
   outdim <- ifelse(outdim < 1, l, outdim)
   outdim <- as.integer(outdim)
   outmat <- matrix(0, nrow=outdim, ncol=length(pw))
@@ -200,7 +220,8 @@ RandCophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
         copvec[pos] <- (copvec[pos] - specvec[pos]) / spv2[pos]
       }
       copvec <- .Call("randomProjection", copvec, 
-                      pos, length(pos), outdim, PACKAGE="SynExtend")  
+                      pos, length(pos), outdim, 
+                      Processors, PACKAGE="SynExtend")  
       copvec[copvec==0] <- NA
       outmat[,i] <- copvec
     }
@@ -450,14 +471,8 @@ DCA_gradient_minimize_fxn <- function(params, R, spins, i){
   return(grad)
 }
 
-DCA_logrise_run <- function(spins, links, regterm, printProgress=FALSE, NumCores=1){
-  if (NumCores != 1){
-    availableCores <- max(detectCores() - 1, 1) #leave an extra core just in case
-    if (is.na(availableCores)) 
-      NumCores <- 1
-    else
-      NumCores <- ifelse(NumCores < 0, availableCores, min(availableCores, NumCores))
-  }
+DCA_logrise_run <- function(spins, links, regterm, printProgress=FALSE, Processors=1L){
+  Processors <- NormArgProcessors(Processors)
   nnodes <- ncol(spins)
   if (printProgress){
     cat('  Finding topology...\n')
@@ -477,7 +492,7 @@ DCA_logrise_run <- function(spins, links, regterm, printProgress=FALSE, NumCores
                                      if (printProgress && charsvec[i]) 
                                        system2('printf', '=')
                                      return(val)
-                                   }, mc.cores=NumCores, mc.preschedule = TRUE
+                                   }, mc.cores=Processors, mc.preschedule = TRUE
   )
   )
   if (printProgress) cat('| ')
@@ -549,7 +564,7 @@ DCA_logrise_run <- function(spins, links, regterm, printProgress=FALSE, NumCores
                if (printProgress && charsvec[i]) system2('printf', '=')
                return(probs)
              }, 
-             mc.cores=NumCores, mc.preschedule=TRUE))  
+             mc.cores=Processors, mc.preschedule=TRUE))  
   if (printProgress) cat('| ')
   
   for ( i in seq_len(nrow(links)-1) ){
@@ -566,7 +581,7 @@ DCA_logrise_run <- function(spins, links, regterm, printProgress=FALSE, NumCores
 
 
 DCA_logRISE <- function(PAProfiles, niter=1, reg_const=1, 
-                        NumCores=1, zero_cutoff=0, Verbose=TRUE, ...){
+                        Processors=1L, zero_cutoff=0, Verbose=TRUE, ...){
   
   mult <- 1/niter
   intPA <- PAProfiles + 0
@@ -585,7 +600,7 @@ DCA_logRISE <- function(PAProfiles, niter=1, reg_const=1,
     #initlinks <- matrix(0, nrow=nc, ncol=nc)
     initlinks <- matrix(rnorm(nc**2), nrow=nc)
     iterlink <- DCA_logrise_run(intPA, initlinks, reg_const, 
-                                printProgress=pp, NumCores=NumCores)
+                                printProgress=pp, Processors=Processors)
     countsmat <- countsmat + (iterlink != 0)
     truelinks <- truelinks + mult * iterlink
     if(Verbose & !pp) setTxtProgressBar(pb, i)
@@ -887,13 +902,14 @@ predictWithBuiltins <- function(preds){
   }
 }
 
-findSpeciesTree <- function(pw, Verbose=TRUE, NameFun=NULL){
+findSpeciesTree <- function(pw, Verbose=TRUE, NameFun=NULL, Processors=1L){
   stopifnot("ProtWeaver object must contain dendrograms"=attr(pw, "useMT"))
   if (attr(pw, "useColoc") && is.null(NameFun)){
     NameFun <- function(x) gsub('([^_])_.*', '\\1', x)
   }
   
-  SpecTree <- SuperTree(unclass(pw), NAMEFUN=NameFun, Verbose=Verbose)
+  SpecTree <- SuperTree(unclass(pw), NAMEFUN=NameFun, 
+                        Verbose=Verbose, Processors=Processors)
   
   return(SpecTree)
 }
