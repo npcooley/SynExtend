@@ -139,6 +139,7 @@ CorrGL.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
     glvs[,i] <- glv
     if (Verbose) setTxtProgressBar(pb, i)
   }
+  if(Verbose) cat("\n")
   
   ARGS <- list(numnodes=numnodes)
   FXN <- function(v1, v2, ARGS, ii, jj) {
@@ -199,16 +200,18 @@ MutualInformation.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
     return(score)
   }
   
-  CORRECTION <- function(ps){
-    apccorr <- mean(ps, na.rm=TRUE)
-    ps <- ps - apccorr
-    ps <- abs(ps)
-    # Normalize
-    denom <- max(ps, na.rm=TRUE)
-    ps <- ps / ifelse(denom==0, 1, denom)
-  }
-  pairscores <- BuildSimMatInternal(pap, uvals, evalmap, l, n, FXN, NULL, Verbose,
-                                    CORRECTION=CORRECTION)
+  # APC Correction, removing for now
+  # CORRECTION <- function(ps){
+  #   apccorr <- mean(ps, na.rm=TRUE)
+  #   ps <- ps - apccorr
+  #   ps <- abs(ps)
+  #   # Normalize
+  #   denom <- max(ps, na.rm=TRUE)
+  #   ps <- ps / ifelse(denom==0, 1, denom)
+  # }
+  pairscores <- BuildSimMatInternal(pap, uvals, evalmap, l, n, 
+                                    FXN, NULL, Verbose)
+                                    #CORRECTION=CORRECTION)
   
   Diag(pairscores) <- 1
   #pairscores <- pairscores #because distance

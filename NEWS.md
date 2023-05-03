@@ -1,3 +1,25 @@
+# SynExtend 1.13.1
+* `SuperTree` now works directly with `dist` objects, providing better performance and scaling
+* Updates to `simMat` objects
+  * No longer throw a warning when initialized in RStudio
+  * Formatting is cleaner and supports larger object names
+* Updates to `NVDC.ProtWeaver`
+  * Now supports amino acid sequences using the `DNAseqs=FALSE` argument
+  * Now calculates a p-value-weighted score
+* Adds `MakeBlastDb` function to create a BLAST database from R, plus associated documentation updates
+* Smaller fixes to some `ProtWeaver` methods
+  * `predict.ProtWeaver` no longer returns using `invisible` (this was annoying and unneccessary)
+  * APC correction for `MutualInformation.ProtWeaver` removed to allow for parallelization
+  * `MirrorTree.ProtWeaver` now works correctly with `MTCorrection="speciestree"`
+* Many internal performance improvements
+  * `ProtWeaver` almost entirely uses `dist` objects rather than `matrix`, saving significantly on memory
+  * faster `Cophenetic` function implemented internally
+  * Copied internal `.Call('cophenetic')` from `DECIPHER` to `SynExtend` to avoid potential namespace issues
+  * Small fixes to remove some notes from `BiocCheck::BiocCheck()`
+
+# SynExtend 1.12.0
+* Official Bioconductor 3.17 release (even with SynExtend 1.11.8)
+
 # SynExtend 1.11.8
 * Fixes various small bugs in `MoransI`
 * Adds some multiprocessing support (more will be added in the future)

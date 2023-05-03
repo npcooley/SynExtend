@@ -21,7 +21,7 @@ BlastSeqs(seqs, BlastDB,
     \code{\link[Biostrings]{XStringSet}} or a path to a FASTA file.
   }
   \item{BlastDB}{
-    Path to FASTA file in a pre-built BLAST Database. These can be built using 
+    Path to FASTA file in a pre-built BLAST Database. These can be built using either \code{\link{MakeBlastDb}} from R or
     the commandline \code{makeblastdb} function from BLAST+. For more information
     on building BLAST DBs, see \href{https://www.ncbi.nlm.nih.gov/books/NBK569841/}{here}.
   }
@@ -30,7 +30,7 @@ BlastSeqs(seqs, BlastDB,
   }
   \item{extraArgs}{
     Additional arguments to be passed to the BLAST query
-    excuted on the command line. This should be a single character string.
+    executed on the command line. This should be a single character string.
   }
   \item{verbose}{
     Should output be displayed?
@@ -71,9 +71,8 @@ Input data for
 \value{
 Returns a data frame (\link[base]{data.frame}) of results of the BLAST query.
 }
-\note{
-Future release will add ability to create a BLAST database 
-from input data directly in R.
+\seealso{
+\code{\link{MakeBlastDb}}
 }
 \author{
 Aidan Lakshman \email{ahl27@pitt.edu}

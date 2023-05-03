@@ -86,6 +86,6 @@ SEXP rpdendrapply(SEXP tree, SEXP fn, SEXP env);
 
 /*** Other Functions ***/
 void genCostMatrix(double *m1, double *m2, int *nc1p, int *nc2p, int *nrp, double *costMat, int *idxLookup);
-
+void R_combineDistObj(double *d1, double *d2, int *pos2, int *n1, int *n2, double *mult);
 
 #endif

@@ -200,3 +200,48 @@ void genCostMatrix(double *m1, double *m2, int *nc1p, int *nc2p, int *nrp, doubl
 
   return;
 }
+
+void R_combineDistObj(double *d1, double *d2, int *pos2, int *n1, int *n2, double *mult){
+  // d2 is the shorter distance matrix that will be added into d1
+  const int len1 = n1[0];
+  const int len2 = n2[0];
+  const int iterlen = (len2*(len2-1)) / 2;
+
+  // remember formatting--dist objects are just vectors stored with a size attribute
+  // thus col1 is d1[1:(n-1)], col2 is d1[(n+1):(n+(n-1)-1)], etc.
+  // diagonal is always zero and is thus not stored
+
+  // current row/col INDEX in second dist
+  int col2 = 0;
+  int row2 = 1;
+  double v, w;
+  int m,M;
+  for(int i=0; i<iterlen; i++){
+    v = d2[i];
+    if(pos2[row2] < pos2[col2]){
+      m = pos2[row2];
+      M = pos2[col2];
+    } else {
+      m = pos2[col2];
+      M = pos2[row2];
+    }
+    w = mult[row2] * mult[col2];
+    v *= w;
+
+    // If the values are the same, just skip
+    if(m!=M)
+      d1[len1*(m - 1) - m*(m - 1)/2 + M - m - 1] += v;
+
+    row2++;
+    if(row2 == len2){
+      col2++;
+      row2=col2+1;
+    }
+  }
+
+  return;
+}
+
+
+
+

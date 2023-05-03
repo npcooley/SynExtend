@@ -89,7 +89,7 @@ SEXP StringToNVDT(SEXP DNASTRING, SEXP REMOVEGAPS, SEXP EXTENDED, SEXP USEDNA){
    */
   
   // Get Raw Counts
-  double *outvals = calloc(length, sizeof(double)); 
+  double *outvals = calloc(length, sizeof(double));
   const unsigned char *instring = RAW(DNASTRING);
   char *dnastring;
   if (rgaps){
@@ -103,8 +103,9 @@ SEXP StringToNVDT(SEXP DNASTRING, SEXP REMOVEGAPS, SEXP EXTENDED, SEXP USEDNA){
   
 
   int idx;
-  for(uint64_t i=0; i<sl; i++){
-    for (int j=0; j<iterlen; j++){
+  uint64_t i, j;
+  for(i=0; i<sl; i++){
+    for (j=0; j<iterlen; j++){
       if (i+j<sl){
         idx = oligotoIndex(dnastring+i, j+1, codex, codexlen);
         // increment raw count

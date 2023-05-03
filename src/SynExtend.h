@@ -36,6 +36,7 @@ SEXP calcDBrownValue(SEXP tnPtr, SEXP allLabels, SEXP iterNum, SEXP SD, SEXP STA
 SEXP pseudoRandomSample(SEXP N);
 SEXP randomProjection(SEXP VEC, SEXP NONZERO, SEXP N, SEXP OUTDIM, SEXP NTHREADS);
 SEXP seededPseudoRandomSample(SEXP N, SEXP SEED);
+SEXP se_cophenetic(SEXP Index1, SEXP Index2, SEXP N, SEXP D, SEXP H);
 
 /**** MoranI.c ****/
 SEXP MoransI(SEXP VALS, SEXP DIST, SEXP DIM);
@@ -56,5 +57,13 @@ void hungarianCleanup(void);
 /**** Dendrapply ****/
 void free_dendrapply_list(void);
 SEXP do_dendrapply(SEXP tree, SEXP fn, SEXP env, SEXP order);
+
+
+/**** NeuralNetwork ****/
+/*
+SEXP R_initNNptr(SEXP NLAYERS, SEXP LAYERSIZES, SEXP ACTIVFUNCS, SEXP INPUT_SIZE, SEXP LR, SEXP LFXN);
+SEXP R_PredictForInput(SEXP INPUTVECTOR, SEXP nnPtr);
+SEXP R_UpdateWeights(SEXP LOSSVEC, SEXP nnPtr);
+*/
 
 #endif

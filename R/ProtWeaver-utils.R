@@ -188,36 +188,47 @@ RandCophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
   outdim <- ifelse(outdim < 1, l, outdim)
   outdim <- as.integer(outdim)
   outmat <- matrix(0, nrow=outdim, ncol=length(pw))
-  dummycoph <- matrix(NA, nrow=l, ncol=l)
-  ut <- upper.tri(dummycoph, diag=FALSE)
+  #dummycoph <- matrix(NA, nrow=l, ncol=l)
+  #ut <- upper.tri(dummycoph, diag=FALSE)
+  dummycoph <- rep(0, l*(l-1)/2)
+  class(dummycoph) <- 'dist'
+  attr(dummycoph, "Size") <- l
+  attr(dummycoph, "Diag") <- TRUE
+  attr(dummycoph, "Upper") <- TRUE
+  attr(dummycoph, "Labels") <- allOrgs
   
   if (speciesCorrect && !is.null(mySpeciesTree)){
-    specvec <- c(Cophenetic(mySpeciesTree))
-    spv2 <- specvec
+    specd <- as.vector(fastCoph(mySpeciesTree))
+    #specd[specd==0] <- 1
+    spv2 <- as.vector(specd)
     spv2[spv2==0] <- 1
     #nonzeros <- which(specvec != 0)
     #specvec <- .Call("randomProjection", specvec, nonzeros, length(nonzeros), outdim)  
   }
   
-  rownames(dummycoph) <- colnames(dummycoph) <- allOrgs
+  #rownames(dummycoph) <- colnames(dummycoph) <- allOrgs
   if (Verbose) pb <- txtProgressBar(max=length(pw), style=3)
   for ( i in seq_along(pw) ){
     if ( !skip || i %in% locs ){
       dummycoph[] <- 0
       cop <- 0
       # This is occasionally throwing errors that don't affect output for some reason
-      cop <- as.matrix(Cophenetic(pw[[i]]))
-      copOrgNames <- rownames(cop)
+      #cop <- as.matrix(Cophenetic(pw[[i]]))
+      cop <- fastCoph(pw[[i]])
+      #copOrgNames <- rownames(cop)
+      copOrgNames <- attr(cop, 'Labels')
       if (useColoc){
         copOrgNames <- vapply(copOrgNames, gsub, pattern='([^_]*)_.*', 
                               replacement='\\1', FUN.VALUE=character(1))
-        rownames(cop) <- colnames(cop) <- copOrgNames
+        #rownames(cop) <- colnames(cop) <- copOrgNames
+        attr(cop, 'Labels') <- copOrgNames
       }
-      dummycoph[copOrgNames, copOrgNames] <- cop
-      copvec <- dummycoph[ut]
+      #dummycoph[copOrgNames, copOrgNames] <- cop
+      #copvec <- dummycoph[ut]
+      copvec <- combineDist(dummycoph, cop)
       pos <- which(copvec != 0)
       if (speciesCorrect){
-        copvec[pos] <- (copvec[pos] - specvec[pos]) / spv2[pos]
+        copvec[pos] <- (copvec[pos] - specd[pos]) / spv2[pos]
       }
       copvec <- .Call("randomProjection", copvec, 
                       pos, length(pos), outdim, 
@@ -1015,5 +1026,73 @@ pair_residues <- function(pm1, pm2){
   meanP <- 1/sum(1/PVal)
   meanR <- mean(CorrVal)
   return(list(R=meanR, P=meanP))
+}
+
+combineDist <- function(dist1, dist2, weightedCombine=FALSE){
+  l1 <- attr(dist1, 'Labels')
+  l2 <- attr(dist2, 'Labels')
+  if(is.null(l1)){
+    l1 <- as.character(seq_len(attr(dist1, 'Size')))
+    attr(dist1, 'Labels') <- l1
+  }
+  if(is.null(l2)){
+    l2 <- as.character(seq_len(attr(dist2, 'Size')))
+    attr(dist2, 'Labels') <- l2
+  }
+  stopifnot('dist1 must be a superset of dist2'=all(l2 %in% l1))
+  pos2 <- vapply(l2, \(x) which(x==l1)[1], integer(1L))
+  n1 <- attr(dist1, 'Size')
+  n2 <- attr(dist2, 'Size')
+  if(weightedCombine){
+    mult <- 1/table(l2)
+    mult <- mult[l2]
+  } else {
+    mult <- rep(1.0, length(l2))
+  }
+  .C('R_combineDistObj', dist1, dist2, pos2, n1, n2, mult)[[1]]
+}
+
+fastCoph <- function(dend){
+  # DECIPHER:::Cophenetic, but uses new dendrapply for a performance boost
+  n <- attr(dend, "members")
+  d <- numeric(n*(n - 1)/2)
+  u <- unlist(dend)
+  o <- order(u)
+  u <- u[o]
+  labs <- labels(dend)[o]
+  
+  # Move unlist() labels into 1:n space
+  dend <- rapply(dend,
+                 function(y) {
+                   y[] <- match(y[1L], u)
+                   y
+                 },
+                 how="replace")
+  
+  dendrapply(dend, function(x){
+    if(is.leaf(x)) return(x)
+    for(k in seq_along(x)){
+      h <- attr(x, "height") - attr(x[[k]], "height")
+      I <- unlist(x[[k]])
+      J <- seq_len(n)[-I]
+      d <<- .Call("se_cophenetic", 
+                I,
+                J,
+                n,
+                d,
+                h,
+                PACKAGE="SynExtend")
+      
+    }
+    x
+  }, how='post.order')
+  
+  class(d) <- "dist"
+  attr(d, "Size") <- n
+  attr(d, "Diag") <- TRUE
+  attr(d, "Upper") <- TRUE
+  attr(d, "Labels") <- labs
+  
+  return(d)
 }
 ########

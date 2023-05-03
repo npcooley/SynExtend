@@ -103,8 +103,8 @@ NucleotideOverlap <- function(SyntenyObject,
       
       if (any(is.na(match(x = names(ContigNames[[m1]]),
                           table = SynNames[[m1]])))) {
-        stop (paste0("Contig names imply inorrectly matched objects at diag position ",
-                     names(GeneCalls)[m1]))
+        stop ("Contig names imply inorrectly matched objects at diag position ",
+                     names(GeneCalls)[m1])
       }
       
       TypePlaceHolder <- as.character(GeneCalls[[m1]]$type)
@@ -348,8 +348,8 @@ NucleotideOverlap <- function(SyntenyObject,
     for (m1 in seq_along(ContigNames)) {
       if (any(is.na(match(x = names(ContigNames[[m1]]),
                           table = SynNames[[m1]])))) {
-        stop (paste0("Contig names imply incorrectly matched objects at diag position ",
-                     names(GeneCalls)[m1]))
+        stop ("Contig names imply incorrectly matched objects at diag position ",
+                     names(GeneCalls)[m1])
       } else {
         ph <- unname(SyntenyObject[[m1, m1]])
         # ph <- seq(length(ContigNames[[m1]]))
