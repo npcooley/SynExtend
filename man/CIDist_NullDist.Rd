@@ -8,7 +8,7 @@ Simulated Null Distributions for CI Distance
 Simulated values of \link[=PhyloDistance-CI]{Clustering Information Distance} for random trees with 4 to 200 shared leaves.
 }
 \usage{data("CIDist_NullDist")}
-\format{
+\value{
   A matrix \code{CI_DISTANCE_INTERNAL} with 197 columns and 13 rows.
 }
 \details{

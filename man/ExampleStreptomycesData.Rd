@@ -8,7 +8,7 @@ Example ProtWeaver Input Data from \emph{Streptomyces} Species
 Data from {Streptomyces} species to test \code{\link{ProtWeaver}} functionality.
 }
 \usage{data("ExampleStreptomycesData")}
-\format{
+\value{
   The data contain two elements, \code{Genes} and \code{Tree}. \code{Genes} is 
   a list of presence/absence vectors in the input required for \code{\link{ProtWeaver}}.
   \code{Tree} is a species tree used for additional input.

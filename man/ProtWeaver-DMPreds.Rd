@@ -62,6 +62,10 @@ value of 4, but this can be specified further if necessary using the \code{JRFk}
 distance, but these have a negligible impact on performance so use of the default parameter is encouraged for simplicity.
 }
 
+\value{
+  None.
+}
+
 \author{
 Aidan Lakshman \email{ahl27@pitt.edu}
 }

@@ -8,7 +8,7 @@ Model for predicting PID based on k-mer statistics
 Though the function PairSummaries provides an argument allowing users to ask for alignments, given the time consuming nature of that process on large data, models are provided for predicting PIDs of pairs based on k-mer statistics without performing alignments.
 }
 \usage{data("Generic")}
-\format{
+\value{
   The format is an object of class ``glm''.
 }
 \details{

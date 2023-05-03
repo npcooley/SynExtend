@@ -17,6 +17,7 @@
   * faster `Cophenetic` function implemented internally
   * Copied internal `.Call('cophenetic')` from `DECIPHER` to `SynExtend` to avoid potential namespace issues
   * Small fixes to remove some notes from `BiocCheck::BiocCheck()`
+* Variety of small updates to pass `BiocCheck`
 
 # SynExtend 1.12.0
 

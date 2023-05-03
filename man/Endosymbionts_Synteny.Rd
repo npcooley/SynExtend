@@ -8,7 +8,7 @@ A synteny object
 An object of class \code{Synteny}.
 }
 \usage{data("Endosymbionts_Synteny")}
-\format{
+\value{
 An object of class \code{Synteny}.
 }
 \details{

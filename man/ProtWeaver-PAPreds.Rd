@@ -62,6 +62,10 @@ a species tree as input. If the \code{ProtWeaver} object is initialized with \co
 \code{GainLoss}, then uses a Pearson's correlation coefficient weighted by p-value to infer similarity.
 }
 
+\value{
+  None.
+}
+
 \author{
 Aidan Lakshman \email{ahl27@pitt.edu}
 }
