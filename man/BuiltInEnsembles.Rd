@@ -20,9 +20,6 @@ See the examples for how to train your own ensemble model.
   The data contain a list of objects of class \code{\link[stats]{glm}}.
 }
 
-\value{
-A list of objects of class \code{\link[stats]{glm}}
-}
 \examples{
 ## Training own ensemble method to avoid 
 ## using built-ins
