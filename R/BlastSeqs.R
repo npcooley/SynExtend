@@ -5,17 +5,15 @@
 BlastSeqs <- function(seqs, BlastDB, 
                       blastType=c('blastn', 'blastp', 'tblastn', 'blastx', 'tblastx'),
                       extraArgs='', verbose=TRUE){
-  if (length(blastType) > 1) blastType <- blastType[1]
+  blastType <- match.arg(blastType)
   stopifnot("'seqs' must be XStringSet or path to a .fasta file"=
               any(is(seqs, 'DNAStringSet'),  
                 is(seqs, 'AAStringSet'),
                 is(seqs, 'XStringSet'),
                 is(seqs, 'character')))
   
-  stopifnot("'BlastDB' file does not exist"=file.exists(BlastDB))
+  #stopifnot("'BlastDB' file does not exist"=file.exists(BlastDB))
   
-  stopifnot('blastType must be a single string'=all(is(blastType, 'character'), length(blastType)==1))
-  stopifnot('Undefined blast type'=(blastType %in% c('blastn', 'blastp', 'tblastn', 'blastx', 'tblastx')))
   bcheck <- pipe(paste0('which ', blastType))
   stopifnot('Requested blast not found. Check if the BLAST commandline tool is installed!'=
               length(readLines(bcheck)) > 0)
@@ -32,7 +30,7 @@ BlastSeqs <- function(seqs, BlastDB,
     writeXStringSet(seqs, filepath=f, format='FASTA')
   } else {
     stopifnot('File does not exist'=file.exists(seqs))
-    stopifnot(readBStringSet(seqs, format='fasta', nrec=1)) #error message never shows but works correctly
+    stopifnot(length(readBStringSet(seqs, format='fasta', nrec=1))==1L) #error message never shows but works correctly
     if (verbose) cat('Input file located...\n\n')
     f <- seqs
   }
@@ -61,4 +59,77 @@ BlastSeqs <- function(seqs, BlastDB,
   
   if (!is.null(blastResults)) return(blastResults)
   else invisible(blastResults)
+}
+
+MakeBlastDb <- function(seqs, dbtype=c('prot', 'nucl'), 
+                        dbname=NULL, dbpath=NULL,
+                        extraArgs='', createDirectory=FALSE, 
+                        verbose=TRUE){
+  dbtype <- match.arg(dbtype)
+  stopifnot("'seqs' must be XStringSet or path to a .fasta file"=
+              any(is(seqs, 'DNAStringSet'),  
+                  is(seqs, 'AAStringSet'),
+                  is(seqs, 'XStringSet'),
+                  is(seqs, 'character')))
+  bcheck <- pipe('which makeblastdb')
+  stopifnot('Could not make BLAST database. Check if the BLAST commandline tool is installed!'=
+              length(readLines(bcheck)) > 0)
+  close(bcheck)
+  if (verbose) cat('BLAST installation verified...\n\n')
+  
+  if(is.null(dbname)){
+    dbname <- paste0('blastdb_', paste0(sample(0:9, 10, replace=TRUE), collapse=''))
+  }
+  
+  if (!is(seqs, 'character')){
+    f <- tempfile()
+    writeXStringSet(seqs, filepath=f, format='FASTA')
+  } else {
+    seqs <- normalizePath(seqs, mustWork=TRUE)
+    stopifnot('File does not exist'=file.exists(seqs))
+    stopifnot(length(readBStringSet(seqs, format='fasta', nrec=1))==1) #error message never shows but works correctly
+    if (verbose) cat('Input file located...\n\n')
+    f <- seqs
+  }
+  
+  if(is.null(dbpath))
+    blastdbdir <- tempdir(check=TRUE)
+  else 
+    blastdbdir <- dbpath
+  
+  direxists <- dir.exists(blastdbdir)
+  if(createDirectory & !direxists){
+    dir.create(blastdbdir)
+  } else if(!direxists){
+    stop("Directory dbpath does not exist.", 
+    " Did you mean to set createDirectory=TRUE?")
+  }
+  
+  cmdlineArgs <- paste('-in', f,
+                       '-input_type fasta',
+                       '-dbtype', dbtype, 
+                       '-out', file.path(blastdbdir, dbname),
+                       extraArgs)
+  
+  if (verbose) {
+    cat('Running query:\n', paste('makeblastdb', paste(cmdlineArgs, collapse='')), '\n\n', sep='')
+    t0 <- Sys.time()
+  }
+
+  errs <- system2('makeblastdb', args=cmdlineArgs,
+            stdout=TRUE, wait=TRUE, stderr=TRUE)
+  if(length(errs) > 0 && any(grepl("ERROR", errs))){
+    stop(errs)
+  }
+  
+  retVal <- c(blastdbdir, dbname)
+  names(retVal) <- c("Path", "DbName")
+  
+  if (verbose) {
+    cat('Success!\n') 
+    print(difftime(Sys.time(), t0))
+    cat('\n')
+  }
+  
+  return(retVal)
 }

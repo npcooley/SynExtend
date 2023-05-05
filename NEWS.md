@@ -1,4 +1,31 @@
+# SynExtend 1.13.1
+
+* `SuperTree` now works directly with `dist` objects, providing better performance and scaling
+* Updates to `simMat` objects
+  * No longer throw a warning when initialized in RStudio
+  * Formatting is cleaner and supports larger object names
+* Updates to `NVDC.ProtWeaver`
+  * Now supports amino acid sequences using the `DNAseqs=FALSE` argument
+  * Now calculates a p-value-weighted score
+* Adds `MakeBlastDb` function to create a BLAST database from R, plus associated documentation updates
+* Smaller fixes to some `ProtWeaver` methods
+  * `predict.ProtWeaver` no longer returns using `invisible` (this was annoying and unneccessary)
+  * APC correction for `MutualInformation.ProtWeaver` removed to allow for parallelization
+  * `MirrorTree.ProtWeaver` now works correctly with `MTCorrection="speciestree"`
+  * `CorrGL.ProtWeaver` now uses Fisher's Exact Test for p-values rather than the R value of spearman correlation
+* Many internal performance improvements
+  * `ProtWeaver` almost entirely uses `dist` objects rather than `matrix`, saving significantly on memory
+  * faster `Cophenetic` function implemented internally
+  * Copied internal `.Call('cophenetic')` from `DECIPHER` to `SynExtend` to avoid potential namespace issues
+  * Small fixes to remove some notes from `BiocCheck::BiocCheck()`
+* Variety of small updates to pass `BiocCheck`
+
+# SynExtend 1.12.0
+
+* Official Bioconductor 3.17 release (even with SynExtend 1.11.8)
+
 # SynExtend 1.11.8
+
 * Fixes various small bugs in `MoransI`
 * Adds some multiprocessing support (more will be added in the future)
 * Slight rework to species trees and their interaction with `ProtWeaver` objects
@@ -8,6 +35,7 @@
 * Various documentation updates
 
 # SynExtend 1.11.7
+
 * Adds new optimized `dendrapply` implementation (overloads `stats::dendrapply`)
 * Adds`HungarianAlgorithm` for optimal solving of the linear assignment problem (O(n^3) complexity)
 * Adds new C code for fast computation of Pearson's R and p-value
@@ -19,12 +47,14 @@
 * `Method="CI"` in `PhyloDistance` now calculates an approximate p-value using simulated data from Smith (2020)
 
 # SynExtend 1.11.6
+
 * Adds new Residue method `NVDT` using gene sequence **N**atural **V**ector with **D**inucleotide and **T**rinucleotide frequency
 * Adds some new C methods to speed up calculation of NVDT
 * Fixes `.Call()` not using `PACKAGE="SynExtend"`
 * Updates to documentation
 
 # SynExtend 1.11.5
+
 * Adds new colocalization algorithm `ColocMoran`, uses `Coloc` with `MoransI` to correct for phylogenetic signal
 * Adds new colocalization algorithm `TranscripMI`, uses mutual information of transcriptional direction
 * Adds new corrections/checks to allow for transcriptional direction to be in labels
@@ -33,11 +63,13 @@
 * Adds new function `MoransI` to calculate Moran's *I* for a set of spatially distributed signals
 
 # SynExtend 1.11.4
+
 * Internal code refactor
 * `ShuffleC` now supports reproducibility using R's `set.seed`
 * `ShuffleC` now support sampling with replacement, performance is around 2.25x faster than `sample`
 
 # SynExtend 1.11.3
+
 * Internal bugfixes for JRF Distance--previous commit was incorrectly calculating values
 * Adds new `TreeDistance` predictor for `ProtWeaver`, incorporating all tree distance metrics; these metrics are bundled due to some backend optimizations that improve performance
 * Bugfixes for `PhyloDistance`
@@ -50,6 +82,7 @@
 * Updates to documentation files
 
 # SynExtend 1.11.2
+
 * Adds KF Distance for trees
 * Adds Jaccard Robinson Foulds Distance for trees
 * Reworks tree distances into `PhyloDistance` function
@@ -57,34 +90,41 @@
 * Updates internal functions to use `rapply` instead of `dendrapply` to avoid stack overflow issues due to R recursion
 
 # SynExtend 1.11.1
+
 * Minor bugfix to RF distance
 * updates gitignore for workflows
 
 # SynExtend 1.10.1
+
 * Memory leak bugfix
 
 # SynExtend 1.9.21
+
 * Adds new `RFDist` function to calculate Robinson-Foulds Distance
 * Adds normalization for `GeneralizedRF` to make the distance between 0 and 1
 * Minor bugfixes
 * Documentation for new functions
 
 # SynExtend 1.9.20
+
 * Adds new `GeneralizedRF` function to calculated information-theoretic Generalized Robinson-Foulds distance between two dendrograms.
 * Documentation for new function 
 * New ProtWeaver predictor based off of `GeneralizedRF` metric
 * New internal C source code for `GeneralizedRF`
 
 # SynExtend 1.9.19
+
 * Adds new `DPhyloStatistic` function to calculate the D-statistic for a binary state against a phylogeny following Fritz and Purvis (2009).
 * Documentation for new function
 * new internal C source code for `DPhyloStatistic`
 * new internal C source code for random utility functions, currently only has functions to generate random numbers
 
 # SynExtend 1.9.18
+
 * Various internal improvements to presence/absence profile methods
 
 # SynExtend 1.9.17
+
 * Adds new prediction algorithm `GainLoss`
 * Adds new internal C implementation of dendrograms, significantly faster than R dendrograms
 * `ProtWeaver` methods `Behdenna` and `GainLoss` can now infer a species tree when possible
@@ -94,31 +134,38 @@
 * Updates to various `man` pages
 
 # SynExtend 1.9.16
+
 * Removes `flatdendrapply`, function was already included in SynExtend
 * minor bugfixes to `ProtWeaver`
 
 # SynExtend 1.9.15
+
 * Edits to `SelectByK`, function can work as intended, but is still too conservative at false positive removal.
 
 # SynExtend 1.9.14
+
 * Adds new function `flatdendrapply` for more options to apply functions to dendrograms. Function is used in `SuperTree`.
 * Adds new function `SuperTree` to construct a species tree from a set of gene trees.
 * Adds new dataset `SuperTreeEx` for `SuperTree` and `flatdendrapply` examples.
 
 # SynExtend 1.9.13
+
 * `SelectByK` function argument `ClusterSelect` switched to `ClusterScalar`. Cluster number selection now performed by fitting sum of total within cluster sum of squares to a right hyperbola and taking the ceiling of the half-max. Scalar allows a user to pick different tolerances to select more, or less clusters. Plotting behavior updated.
 
 # SynExtend 1.9.12
+
 * `simMat` class now supports empty indexing (`s[]`)
 * `simMat` class now supports logical accession (`s[c(T,F,T),]`)
 
 # SynExtend 1.9.11
+
 * Added the function `SelectByK` that allows for quick removal of false positive predicted pairs based on a relatively simple k-means approach. Function is currently designed for use on the single genome-to-genome pairwise comparison, and not on an all-vs-all many genomes scale, though it may provide acceptable results on that scale.
 
 # SynExtend 1.9.10
+
 * New `simMat` class for `dist`-like similarity matrices that can be manipulated like base matrices
 * Major update to `ProtWeaver` internals
-  * All internal calls use `simMat` objects whenever possible to decrease memory footprint
+* All internal calls use `simMat` objects whenever possible to decrease memory footprint
   * Note `ContextTree` and `ProfDCA` require matrices internally
 * `ProtWeb` objects now inherit from `simMat`
   * `ProtWeb.show` and `ProtWeb.print` now display predictions in a more natural way
@@ -128,38 +175,47 @@
 * Fixes new bug in `Method='Hamming'` introduced in SynExtend 1.9.9
 
 # SynExtend 1.9.9
+
 * Fixes minor bug in `Method='Hamming'`
 * Moves some code around
 
 # SynExtend 1.9.8
+
 * Major refactor to file structure of `ProtWeaver` to make individual files more manageable
 * Adds new documentation files for individual prediction streams of `predict.ProtWeaver`
 
 # SynExtend 1.9.7
+
 * `BlockReconciliation` now returns a an object of class `PairSummaries`.
 
 # SynExtend 1.9.6
+
 * Fixes an error where warnings were mistakenly output to the user
 
 # SynExtend 1.9.5
+
 * Moves platform-specific files in `src/` (originally added by mistake)
 
 # SynExtend 1.9.4
+
 * Lots of bugfixes to `ResidueMI.ProtWeaver`
 * `predict.ProtWeaver` now correctly labels rows/columns with gene names, not numbers
 * `predict.ProtWeaver` now correctly handles `Subset` arguments
 * `predict.ProtWeaver(..., Subset=3)` will correctly predict for all pairs involving gene `3` (or for any gene `x`, as long as `Subset` is a length 1 character or integer vector).
 
 # SynExtend 1.9.2
+
 * Adds residue MI method to `ProtWeaver`
 * Various bugfixes for `ProtWeaver`
 
 # SynExtend 1.7.14
+
 * Various improvements for `GenRearrScen`, improves consistency and output formatting
 * Major bugfix for `ProtWeaver` methods using dendrogram objects
 * `ProtWeaver` now correctly guards against non-bifurcating dendrograms in methods that expect it
 
 # SynExtend 1.7.13
+
 * Introduces new `ProtWeaver` class to predict functional association of genes from COGs or gene trees. This implements many algorithms commonly used in the literature, such as MirrorTree and Inverse Potts Models.
 * `predict(ProtWeaverObject)` returns a `ProtWeb` class with information on predicted associations. 
 * Adds `BlastSeqs` to run BLAST queries on sequences stored as an `XStringSet` or `FASTA` file.

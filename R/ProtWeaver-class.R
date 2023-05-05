@@ -46,6 +46,8 @@ ProtWeaver <- function(ListOfData, MySpeciesTree=NULL, NoWarn=FALSE){
   if(!is.null(MySpeciesTree) && any(!(vRes$allgenomes %in% labels(MySpeciesTree)))){
     stop("MySpeciesTree is missing labels!")
   }
+  if(!is.null(MySpeciesTree))
+    vRes$allgenomes <- labels(MySpeciesTree)
   vRes$speciestree <- MySpeciesTree
   new_ProtWeaver(vRes)
 }
@@ -84,9 +86,15 @@ validate_ProtWeaver <- function(ipt, noWarn=FALSE){
   
   if (bitflags[['usemirrortree']]){
     useResidueMI <- TRUE
-    for ( tree in ipt){
-      if (any(unlist(flatdendrapply(tree, \(x) is.null(attr(x, 'state')))))){
-        useResidueMI <- FALSE
+    for ( tree in ipt ){
+      useResidueMI <- dendrapply(tree, 
+                                 \(x){
+                                      sv <- !is.null(attr(x,'state'))
+                                      if(is.leaf(x)) 
+                                        return(sv)
+                                      return(all(sv, unlist(x)))
+                                    }, how='post.order')
+      if (!useResidueMI){
         if (!noWarn) message('Disabling Residue methods. Input dendrograms must',
                              ' include ancenstral state reconstruction for residue',
                              ' methods. Consult the documentation for more info.\n')
@@ -202,7 +210,7 @@ predict.ProtWeaver <- function(object, Method='Ensemble', Subset=NULL, Processor
                     class=c('ProtWeb', 'simMat'))
   }
   
-  invisible(rs)
+  rs
 }
 
 SpeciesTree.ProtWeaver <- function(pw, Verbose=TRUE, Processors=1L){

@@ -103,3 +103,31 @@ SEXP randomProjection(SEXP VEC, SEXP NONZERO, SEXP N, SEXP OUTDIM, SEXP NTHREADS
   UNPROTECT(1);
   return outvec;
 }
+
+// in-place addition of cophenetic distances
+// This is an exact replica of DECIPHER code, just including for namespacing and ease
+// code is short enough to include explicitly
+SEXP se_cophenetic(SEXP Index1, SEXP Index2, SEXP N, SEXP D, SEXP H)
+{
+  int i, j, val;
+  int *I = INTEGER(Index1);
+  int *J = INTEGER(Index2);
+  int l1 = length(Index1);
+  int l2 = length(Index2);
+  int n = asInteger(N);
+  double *d = REAL(D);
+  double h = asReal(H);
+  
+  for (i = 0; i < l1; i++) {
+    for (j = 0; j < l2; j++) {
+      if (I[i] < J[j]) {
+        val = n*(I[i] - 1) - I[i]*(I[i] - 1)/2 + J[j] - I[i] - 1;
+      } else {
+        val = n*(J[j] - 1) - J[j]*(J[j] - 1)/2 + I[i] - J[j] - 1;
+      }
+      d[val] += h;
+    }
+  }
+  
+  return D;
+}

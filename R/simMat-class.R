@@ -83,6 +83,7 @@ as.simMat.matrix <- function(x, ...){
 
 show.simMat <- function(object){
   n <- getOption("SynExtend.simMat")
+  NAMEWIDTH <- 8L
   if(is.null(n) || !is(n, 'integer')){
     n <- 10
     options(SynExtend.simMat=n)
@@ -97,13 +98,26 @@ show.simMat <- function(object){
     
   }
   ns <- attr(object, 'NAMES')
+  NAMEWIDTH <- min(NAMEWIDTH, max(nchar(ns)))
+  # need at least 5 characters to print values
+  NAMEWIDTH <- max(NAMEWIDTH, 5L)
+  if(max(nchar(ns)) > NAMEWIDTH){
+    ns <- vapply(ns, \(x){
+      if(nchar(x) > NAMEWIDTH){
+        x <- paste0(substring(x, 1L, NAMEWIDTH-1L), '\u2026')
+      }
+      x
+    }, character(1L))
+  }
   object <- unclass(object)
-  format_vals <- function(x) paste0(format(x, justify='right', width=6L), collapse='')
+  format_vals <- function(x, j='right') paste(format(x, justify=j, 
+                                                     width=NAMEWIDTH+1L), 
+                                              collapse='')
   nstr <- ns
   if (CUTOFF){
     nstr <- c(ns[seq_len(n-1)], '', ns[nr]) 
   }
-  outstr <- c(format_vals(c(' ', nstr)), '\n')
+  outstr <- c(format_vals(c('  ', nstr), j='centre'), '\n')
   ctr <- 1L
   for ( i in seq_len(nr) ){
     if (!CUTOFF || i < (n-1) || i == nr){
@@ -127,8 +141,8 @@ show.simMat <- function(object){
     }
     outstr <- c(outstr, format_vals(linestr), '\n')
   }
-  statusstr <- paste0('\n     Similarity matrix with ', nr, ' members.\n')
-  outstr <- c(outstr, statusstr)
+  statusstr <- paste0('\n  Similarity matrix with ', nr, ' members.\n')
+  outstr <- c(' ', outstr, statusstr)
   # invisible to quietly return NULL
   invisible(cat(outstr))
 }
@@ -149,22 +163,29 @@ as.matrix.simMat <- function(x, ...){
 }
 
 `[.simMat` <- function(x, i, j){
+  hasi <- !missing(i)
+  hasj <- !missing(j)
   nr <- attr(x, 'nrow')
   ns <- attr(x, 'NAMES')
   svals <- c(0, cumsum(nr:1)) + 1
-  hasi <- !missing(i)
-  hasj <- !missing(j)
   COLOUT <- FALSE
   if (!hasi && !hasj)
     return(x)
   
   class(x) <- 'vector'
+  # These are in to quash a warning
+  # I can't figure out how to differentiate x[i,] from x[i]
+  if(hasi && !hasj && length(i) == length(x))
+    return(x[i])
+  if(hasj && !hasi && length(j) == length(x))
+    return(x[j])
   if (hasi){
     stopifnot("indices must be character or numeric"=
                 is(i, 'character') || is(i, 'numeric') || is(i, 'logical'))
     if(is(i, 'logical')){
-      if(nr %% length(i) != 0) 
+      if(nr %% length(i) != 0){
         warning("T/F positions specified not multiple of number of rows.")
+      }
       stopifnot("No rows specified!"=any(i))
       i <- rep(i, length.out=nr)
       i <- which(i, useNames = FALSE)

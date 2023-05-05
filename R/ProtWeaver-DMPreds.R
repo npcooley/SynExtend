@@ -281,7 +281,7 @@ TreeDistance.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
         # JRF
         if (bitmask[3]){
           s <- .Call("GRFInfo", p1, p2, interlabs, TRUE, JRFk, PACKAGE="SynExtend")
-          normval <- (s[2] + s[3])
+          normval <- 2*(s[2] + s[3])
           if (is.na(normval) || normval == 0)
             pairscoresList$JRF[ctr+1] <- NA
             #pairscoresList$JRF[ctr+1] <- ifelse(s[1] == 0, 0, 1)

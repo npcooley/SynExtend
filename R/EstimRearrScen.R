@@ -56,7 +56,7 @@ EstimRearrScen <- function(SyntenyObject,
       
       if(EarlyOutput)
         return(c(0, 0, ins_del_trans))
-      rearrangements = c('Original: 1')
+      rearrangements <- c('Original: 1')
       block_key <- matrix(c(1,1,1,SyntenyObject[[1,1]], 1), nrow=1)
       colnames(block_key) <- c('start1', 'start2', 'length', 'rel_direction_on_2', 'index1')
       

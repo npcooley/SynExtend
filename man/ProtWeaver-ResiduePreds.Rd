@@ -47,6 +47,10 @@ Here \eqn{n_X} is the raw total count of nucleotide \eqn{X} (or di/trinucleotide
 
 The \code{Ancestral} method calculates coevolution by looking at correlation of residue mutations near the leaves of each respective gene tree. 
 }
+
+\value{
+  None.
+}
 \author{
 Aidan Lakshman \email{ahl27@pitt.edu}
 }

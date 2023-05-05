@@ -101,7 +101,7 @@ PhyloDistance <- function(dend1, dend2, Method=c("CI", "RF", "KF", "JRF"), RawSc
   }
   incommonLabs <- intersect(labels(dend1), labels(dend2))
   if (length(incommonLabs) == 0){ 
-    val = c(0, NA, NA)
+    val <- c(0, NA, NA)
   } else {
     tree1ptr <- .Call("initCDend", dend1, PACKAGE="SynExtend")
     on.exit(rm(tree1ptr))

@@ -52,6 +52,10 @@ static const R_CallMethodDef callMethods[] = { // method call, pointer, num args
   CALLDEF(HungarianAssignment, 2),
   CALLDEF(fastPearsonC, 2),
   CALLDEF(do_dendrapply, 4),
+  CALLDEF(se_cophenetic, 5),
+  //CALLDEF(R_initNNptr, 6),
+  //CALLDEF(R_PredictForInput, 2),
+  //CALLDEF(R_UpdateWeights, 2),
   {NULL, NULL, 0}
 };
 
@@ -65,6 +69,7 @@ static const R_CMethodDef cMethods[] = {
   C_DEF(hungarianCleanup, 0),
   C_DEF(genCostMatrix, 7),
   C_DEF(free_dendrapply_list, 0),
+  C_DEF(R_combineDistObj, 6),
   {NULL, NULL, 0}
 };
 
