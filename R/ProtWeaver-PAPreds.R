@@ -144,7 +144,8 @@ CorrGL.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   ARGS <- list(numnodes=numnodes)
   FXN <- function(v1, v2, ARGS, ii, jj) {
     val <- cor(v1, v2)
-    pval <- 1 - pt(val, ARGS$numnodes - 2, lower.tail=FALSE)
+    #pval <- 1 - pt(val, ARGS$numnodes - 2, lower.tail=FALSE)
+    pval <- 1-fisher.test(v1, v2, simulate.p.value=TRUE)$p.value
     return(pval*val)
   }
   pairscores <- BuildSimMatInternal(glvs, uvals, evalmap, l, n, FXN, ARGS, Verbose)

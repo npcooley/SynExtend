@@ -12,6 +12,7 @@
   * `predict.ProtWeaver` no longer returns using `invisible` (this was annoying and unneccessary)
   * APC correction for `MutualInformation.ProtWeaver` removed to allow for parallelization
   * `MirrorTree.ProtWeaver` now works correctly with `MTCorrection="speciestree"`
+  * `CorrGL.ProtWeaver` now uses Fisher's Exact Test for p-values rather than the R value of spearman correlation
 * Many internal performance improvements
   * `ProtWeaver` almost entirely uses `dist` objects rather than `matrix`, saving significantly on memory
   * faster `Cophenetic` function implemented internally
