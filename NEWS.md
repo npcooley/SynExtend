@@ -1,3 +1,7 @@
+# SynExtend 1.13.2
+
+* `FastQFromSRR` function added as a convenience wrapper for the SRAtoolkit function `fastq-dump`.
+
 # SynExtend 1.13.1
 
 * `SuperTree` now works directly with `dist` objects, providing better performance and scaling
