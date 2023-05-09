@@ -46,27 +46,27 @@ BLAST implements multiple types of search. Available types are the following:
       \code{blastp}: Protein sequences against database of protein sequences
     }
     \item{
-      \code{tblastn}: Translates nucleotide sequences to protein sequences, then 
-                      queries against database of protein sequences
+      \code{tblastn}: Protein sequences against translated database of nucleotide sequences
     }
     \item{
-      \code{blastx}: Queries protein sequences against database of nucleotides 
-                    translated into protein sequences
+      \code{blastx}: Translated nucleotide sequences against database of protein sequences
     }
     \item{
-      \code{tblastx}: Translates nucleotide sequences to protein sequences, then 
-                      queries against database of nucleotides translated into
-                      protein sequences
+      \code{tblastx}: Translated nucleotide sequences against translated database of nucleotide sequences
     }
 }
 Different BLAST queries require different inputs. The function will throw an error
 if the input data does not match expected input for the requested query type.
 
-Input data for \code{blastn},
-\code{tblastn}, and \code{tblastx} should be nucleotide data.
+Input sequences for \code{blastn},
+\code{blastx}, and \code{tblastx} should be nucleotide data.
 
-Input data for
-\code{blastp} and \code{blastx} should be amino acid data.
+Input sequences for
+\code{blastp} and \code{tblastn} should be amino acid data.
+
+Database for \code{blastn}, \code{tblastn}, \code{tblastx} should be nucleotide data.
+
+Database for \code{blastp} and \code{blastx} should be amino acid data.
 }
 \value{
 Returns a data frame (\link[base]{data.frame}) of results of the BLAST query.
