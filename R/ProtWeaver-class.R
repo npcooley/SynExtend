@@ -173,44 +173,62 @@ predict.ProtWeaver <- function(object, Method='Ensemble', Subset=NULL, Processor
                                NoPrediction=FALSE, 
                                ReturnRawData=FALSE, Verbose=TRUE, ...){
   pw <- object
-  func <- getS3method(Method, 'ProtWeaver')
-  if(Verbose && !ReturnRawData) starttime <- Sys.time()
-  
-  preds <- func(pw, Subset=Subset, Verbose=Verbose, 
-                MySpeciesTree=MySpeciesTree, Processors=Processors,
-                PretrainedModel=PretrainedModel, 
-                NoPrediction=NoPrediction, ...)
-  
-  if (Verbose && !ReturnRawData){
-    cat('Done.\n\nTime difference of', 
-        round(difftime(Sys.time(), starttime, units = 'secs'), 2),
-        'seconds.\n')
-  } 
-  if (is(preds, 'list') && !is.null(preds$noPostFormatting))
-    return(invisible(preds$res))
-  if (ReturnRawData)
-    return(invisible(preds))
-  
-  pc <- ProcessSubset(pw, Subset)
-  n <- names(pw)[pc$uvals]
-  if (Method=='TreeDistance'){
-    pnames <- names(preds)
-    for (i in seq_along(pnames)){
-      names(preds[[i]]) <- n
-      preds[[i]] <- structure(preds[[i]],
-                              method=pnames[i],
-                              class=c('ProtWeb', 'simMat'))
+  multiplepredictors <- length(Method)!=1
+  methodnames <- character(0L)
+  lst <- list()
+  ctr <- 1L
+  for(methodtype in Method){
+    func <- getS3method(methodtype, 'ProtWeaver')
+    if(Verbose && !ReturnRawData) starttime <- Sys.time()
+    
+    preds <- func(pw, Subset=Subset, Verbose=Verbose, 
+                  MySpeciesTree=MySpeciesTree, Processors=Processors,
+                  PretrainedModel=PretrainedModel, 
+                  NoPrediction=NoPrediction, ...)
+    
+    if (Verbose && !ReturnRawData){
+      cat('Done.\n\nTime difference of', 
+          round(difftime(Sys.time(), starttime, units = 'secs'), 2),
+          'seconds.\n')
+    } 
+    if (is(preds, 'list') && !is.null(preds$noPostFormatting))
+      return(invisible(preds$res))
+    if (ReturnRawData)
+      return(invisible(preds))
+    
+    pc <- ProcessSubset(pw, Subset)
+    n <- names(pw)[pc$uvals]
+    if (methodtype=='TreeDistance'){
+      pnames <- names(preds)
+      for (i in seq_along(pnames)){
+        names(preds[[i]]) <- n
+        preds[[i]] <- structure(preds[[i]],
+                                method=pnames[i],
+                                class=c('ProtWeb', 'simMat'))
+      }
+      rs <- preds
+      for(treemethod in pnames){
+        lst[[ctr]] <- rs[[treemethod]]
+        ctr <- ctr + 1L
+      }
+      if (length(rs) == 1) rs <- rs[[1]]
+      methodnames <- c(methodnames, pnames)
+    } else {
+      names(preds) <- n
+      rs <- structure(preds,
+                      method=methodtype,
+                      class=c('ProtWeb', 'simMat'))
+      methodnames <- c(methodnames, methodtype)
+      lst[[ctr]] <- rs
+      ctr <- ctr + 1L
     }
-    rs <- preds
-    if (length(rs) == 1) rs <- rs[[1]]
-  } else {
-    names(preds) <- n
-    rs <- structure(preds,
-                    method=Method,
-                    class=c('ProtWeb', 'simMat'))
+    if(!multiplepredictors){
+      return(rs)
+    }
+    
   }
-  
-  rs
+  names(lst) <- methodnames
+  lst
 }
 
 SpeciesTree.ProtWeaver <- function(pw, Verbose=TRUE, Processors=1L){

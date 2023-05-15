@@ -21,7 +21,7 @@ matrix with some extra S3 methods to make printing cleaner.
     A ProtWeaver object
   }
   \item{Method}{
-    Method to use for prediction. See 'Details'.
+    Method(s) to use for prediction. This can be a character vector with multiple entries for predicting using multiple methods. See 'Details' for more information.
   }
   \item{Subset}{
     Subset of data to predict on. This can either be a vector or a \code{2xN} matrix.
@@ -134,8 +134,6 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 }
 
 \note{
-  Using multiple methods for prediction is not currently supported, but will be implemented in the near future.
-
   \code{NumCores} uses 1 less core than is detected, or 1 core if \code{detectCores()}
   cannot detect the number of available cores. This is because of a recurring issue
   on my machine where the R session takes all available cores and is then locked
