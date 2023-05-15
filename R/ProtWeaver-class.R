@@ -170,7 +170,7 @@ print.ProtWeaver <- function(x, ...){
 predict.ProtWeaver <- function(object, Method='Ensemble', Subset=NULL, Processors=1L,
                                MySpeciesTree=SpeciesTree(object), 
                                PretrainedModel=NULL,
-                               RawZScores=FALSE, NoPrediction=FALSE, 
+                               NoPrediction=FALSE, 
                                ReturnRawData=FALSE, Verbose=TRUE, ...){
   pw <- object
   func <- getS3method(Method, 'ProtWeaver')
@@ -178,7 +178,7 @@ predict.ProtWeaver <- function(object, Method='Ensemble', Subset=NULL, Processor
   
   preds <- func(pw, Subset=Subset, Verbose=Verbose, 
                 MySpeciesTree=MySpeciesTree, Processors=Processors,
-                PretrainedModel=PretrainedModel, RawZScores=RawZScores, 
+                PretrainedModel=PretrainedModel, 
                 NoPrediction=NoPrediction, ...)
   
   if (Verbose && !ReturnRawData){

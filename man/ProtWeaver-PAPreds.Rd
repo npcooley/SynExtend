@@ -48,7 +48,7 @@ positive information, and \eqn{10} and \eqn{01} give negative information.
 Weigt et al. (2005) to determine direct information between PA profiles.
 This approach has been validated on PA profiles in Fukunaga and Iwasaki (2022),
 though the implementation in \code{ProtWeaver} forsakes the persistent contrasive divergence method in favor of the the algorithm from
-Lokhov et al. (2018) for increased speed and exact solutions.
+Lokhov et al. (2018) for increased speed and exact solutions. Note that this algorithm is still extremely slow relative to the other methods despite the aforementioned runtime improvements.
 
 \code{Behdenna} implements the method detailed in Behdenna et al. (2016) to
 find statistically significant interactions using co-occurence of gain/loss 
