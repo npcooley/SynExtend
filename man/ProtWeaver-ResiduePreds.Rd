@@ -43,7 +43,7 @@ The \code{NVDT} method uses the natural vector encoding method introduced in Zha
               \qquad\qquad\qquad n_{AA},n_{AC},\dots,n_{TT},\\
               \qquad\qquad\qquad\quad\;\; n_{AAA},n_{AAC},\dots,n_{TTT})}
 
-Here \eqn{n_X} is the raw total count of nucleotide \eqn{X} (or di/trinucleotide). For single nucleotides, we also calculate \eqn{\mu_X}, the mean location of nucleotide \eqn{X}, and \eqn{D_2^X}, the second moment of the location of nucleotide \eqn{X}. The overall natural vector for a COG is calculated as the normalized mean vector from the natural vectors of all component gene sequences. Interaction scores are computed using Pearson's R between each COG's natural vector.
+Here \eqn{n_X} is the raw total count of nucleotide \eqn{X} (or di/trinucleotide). For single nucleotides, we also calculate \eqn{\mu_X}, the mean location of nucleotide \eqn{X}, and \eqn{D_2^X}, the second moment of the location of nucleotide \eqn{X}. The overall natural vector for a COG is calculated as the normalized mean vector from the natural vectors of all component gene sequences. Interaction scores are computed using Pearson's R between each COG's natural vector. These di/trinucleotide counts can be excluded using the \code{extended=FALSE} argument. Using the extended counts has shown minimal increased accuracy at the cost of slower runtime in benchmarking.
 
 The \code{Ancestral} method calculates coevolution by looking at correlation of residue mutations near the leaves of each respective gene tree. 
 }

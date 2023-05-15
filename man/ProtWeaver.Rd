@@ -9,7 +9,7 @@ ProtWeaver: Predicting Protein Functional Association Networks
 }
 \description{
 ProtWeaver is an S3 class with methods for predicting functional association using
-protein or gene data. ProtWeaver implements several methods utilized in the literature, with many more planned for future implementation. For details on predictions, see \code{\link{predict.ProtWeaver}}.
+protein or gene data. ProtWeaver implements multiple algorithms for analyzing coevolutionary signal between genes, which are combined into overall predictions on functional association. For details on predictions, see \code{\link{predict.ProtWeaver}}.
 }
 \usage{
 ProtWeaver(ListOfData, MySpeciesTree=NULL, NoWarn=FALSE)
@@ -69,14 +69,13 @@ Case (3) expects gene trees for each gene, with labeled leaves corresponding to 
 \emph{Whenever possible, provide a full set of \code{dendrogram} objects with leaf labels in form (2b). This will allow the most optimal algorithms to run. What follows is a more detailed description of which inputs allow which algorithms.}
 
 ProtWeaver requires input of scenario (3) to use distance matrix methods, and requires input of scenario (2) (or (3) with leaves labeled according to (2)) for co-localization analyses. Transcriptional direction analysis requires input of scenario (2b).
-Residue covariation methods require dendrograms with ancestral state reconstructions 
-present at each node in the form of a `state` attribute.
+Residue covariation methods require dendrograms with sequence information included as the \code{state} attribute in each leaf node.
 
 Note that ALL entries must belong to the same category--a combination of character vectors and dendrograms is not allowed. 
 
 Prediction of a functional association network is done using \code{predict(ProtWeaverObject)}. See \code{\link{predict.ProtWeaver}} for more information.
 
-The \code{SpeciesTree} function takes in an object of class \code{ProtWeaver} and returns a species tree. If the object was not initialized with a species tree, it calculates one using \code{\link{SuperTree}}.
+The \code{SpeciesTree} function takes in an object of class \code{ProtWeaver} and returns a species tree. If the object was not initialized with a species tree, it calculates one using \code{\link{SuperTree}}. The species tree for a ProtWeaver object can be set with \code{attr(pw, 'speciesTree') <- ...}.
 }
 \value{
 Returns a ProtWeaver object.

@@ -4,8 +4,8 @@
 Make predictions with ProtWeaver objects
 }
 \description{
-This S3 method predicts a functional association network from a ProtWeaver object.
-This returns an object of type \code{ProtWeb}, which is essentially an adjacency
+This S3 method predicts pairwise functional associations between gene groups encoded in a \code{\link{ProtWeaver}} object.
+This returns an object of type \code{\link{ProtWeb}}, which is essentially an adjacency
 matrix with some extra S3 methods to make printing cleaner.
 }
 \usage{
@@ -13,7 +13,7 @@ matrix with some extra S3 methods to make printing cleaner.
          Subset=NULL, Processors=1L,
          MySpeciesTree=SpeciesTree(object), 
          PretrainedModel=NULL,
-         RawZScores=FALSE, NoPrediction=FALSE,
+         NoPrediction=FALSE,
          ReturnRawData=FALSE, Verbose=TRUE, ...)
 }
 \arguments{
@@ -21,7 +21,7 @@ matrix with some extra S3 methods to make printing cleaner.
     A ProtWeaver object
   }
   \item{Method}{
-    Method to use for prediction. See 'Details'.
+    Method(s) to use for prediction. This can be a character vector with multiple entries for predicting using multiple methods. See 'Details' for more information.
   }
   \item{Subset}{
     Subset of data to predict on. This can either be a vector or a \code{2xN} matrix.
@@ -40,7 +40,7 @@ matrix with some extra S3 methods to make printing cleaner.
   }
   \item{Processors}{
     Number of cores to use for methods that support multithreaded execution. 
-    Currently only supported for methods \code{'ProfDCA'} and \code{'Ensemble'}. Setting
+    Currently only supported for methods \code{'ProfDCA'}, \code{'MirrorTree'} and \code{'Ensemble'}. Setting
     to \code{NULL} or a negative value will use the value of \code{detectCores()}, 
     or one core if the number of available cores cannot be determined. See Note
     for more information. This parameter has no effect on Windows due to reliance on
@@ -59,16 +59,10 @@ matrix with some extra S3 methods to make printing cleaner.
     
     Has no effect if \code{Method != 'Ensemble'}.
   }
-  \item{RawZScores}{
-    For methods that return z-scores, should raw scores be returned? If FALSE, instead
-    returns normalized absolute value of predictions. These tend to be better predictions.
-    
-    Currently, only \code{Method='Behdenna'} uses this parameter.
-  }
   \item{NoPrediction}{
     For \code{Method='Ensemble'}, should data be returned prior to making predictions?
     
-    If \code{TRUE}, this will instead return a dataframe (\link[base]{data.frame})
+    If \code{TRUE}, this will instead return a \link[base]{data.frame} object
     with predictions from each algorithm for each pair. This dataframe is typically
     used to train an ensemble model. 
     
@@ -76,9 +70,7 @@ matrix with some extra S3 methods to make printing cleaner.
     if provided or a built-in otherwise).
   }
   \item{ReturnRawData}{
-      Internal parameter used for ensemble predictions. If TRUE, returns predictions
-      without formatting them into a ProtWeb object. Users should specify 
-      \code{NoPrediction=TRUE} rather than use this parameter (see Details).
+      Internal parameter used for ensemble predictions. Should not be set by the user.
   }
   \item{Verbose}{
     Logical indicating whether to print progress bars and messages. Defaults to \code{TRUE}.
@@ -92,19 +84,23 @@ matrix with some extra S3 methods to make printing cleaner.
 \code{predict.ProtWeaver} wraps several methods to create an easy interface for multiple prediction types. \code{Method='Ensemble'} is the default value, but the following values of \code{Method} are also supported: 
 
 \itemize{
-  \item \code{'Ensemble'}: Prediction combining below predictors.
-  \item \code{'Jaccard'}: Jaccard distance of P/A profiles
+  \item \code{'Ensemble'}: Ensemble prediction combining individual coevolutionary predictors.
+  \item \code{'Jaccard'}: Jaccard distance of Presence/Absence (P/A) profiles
   \item \code{'Hamming'}: Hamming distance of P/A profiles
   \item \code{'MutualInformation'}: MI of P/A profiles
   \item \code{'ProfDCA'}: Direct Coupling Analysis of P/A profiles
   \item \code{'Behdenna'}: Analysis of Gain/Loss events following Behdenna et al. (2016) 
-  \item \code{'HammingGL'}: Hamming distance of ancestral states
-  \item \code{'GainLoss'}: Score-based method based on distance between inferred ancestral evolutionary events
+  \item \code{'CorrGL'}: Correlation of ancestral Gain/Loss events
+  \item \code{'GainLoss'}: Score-based method based on distance between inferred ancestral Gain/Loss events
+  \item \code{'MirrorTree'}: MirrorTree using Random Projection for dimensionality reduction
+  \item \code{'ContextTree'}: MirrorTree with Random Projection correcting for species tree and P/A conservation
   \item \code{'Coloc'}: Co-localization analysis
-  \item \code{'MirrorTree'}: MirrorTree
-  \item \code{'ContextTree'}: ContextTree
-  \item \code{'ResidueMI'}: Mutual Information of sequence-level residues
+  \item \code{'ColocMoran'}: Co-localization analysis using   \link[=MoransI]{Moran's I} for phylogenetic correction and significance
+  \item \code{'TranscripMI'}: Mutual Information of Transcriptional Direction
+  \item \code{'NVDT'}: Correlation of distribution of sequence level residues following Zhao et al. (2022)
 }
+
+The best performing individual predictors are \code{c('CorrGL', 'GainLoss', 'MirrorTree', 'Jaccard')}. Users interesting in running quick analyses should use \code{c('CorrGL', 'GainLoss', 'Jaccard')}.  
 
 Additional information and references for each prediction algorithm can be found at the 
 following pages:
@@ -151,8 +147,6 @@ Aidan Lakshman \email{ahl27@pitt.edu}
   \itemize{
     \item Random Forests for Ensemble predictions
     \item XGBoost for Ensemble predictions
-    \item Normalized Phylogenetic Profiles
-    \item SVDPhy
   }
   
   Feel free to contact me regarding other models you would like to see added.
