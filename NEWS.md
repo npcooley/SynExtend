@@ -1,3 +1,7 @@
+# SynExtend 1.13.3
+* `predict.ProtWeaver` now supports multiple algorithms at once (ex. `predict(pw, Method=c("Jaccard", "Hamming"))`)
+* Documentation for `ProtWeaver` and associated methods has been updated to match recent updates.
+
 # SynExtend 1.13.2
 
 * `FastQFromSRR` function added as a convenience wrapper for the SRAtoolkit function `fastq-dump`.
