@@ -17,12 +17,13 @@ methods and algorithms. Presence/Absence (PA) methods examine conservation
 of gain/loss events within orthology groups using phylogenetic profiles
 constructed from presence/absence patterns.
 
-\code{predict.ProtWeaver} currently supports six PA methods:
+\code{predict.ProtWeaver} currently supports seven PA methods:
 \itemize{
   \item \code{'Jaccard'}
   \item \code{'Hamming'}
-  \item \code{'CorrGL'}
   \item \code{'MutualInformation'}
+  \item \code{'PAPV'}
+  \item \code{'CorrGL'}
   \item \code{'ProfDCA'}
   \item \code{'Behdenna'}
   \item \code{'GainLoss'}
@@ -43,6 +44,8 @@ Methods \code{Hamming} and \code{Jaccard} use Hamming and Jaccard distance
 \code{MutualInformation} uses mutual information of PA profiels to determine
 score, employing a weighting scheme such that \eqn{11} and \eqn{00} give
 positive information, and \eqn{10} and \eqn{01} give negative information. 
+
+\code{PAPV} calculates a p-value for PA profiles using Fisher's Exact Test. The returned score is provided as \code{1-p_value} so that larger scores indicate more significance, and smaller scores indicate less significance. This rescaling is consistent with the other similarity metrics in \code{ProtWeaver}. This can be used with \code{Jaccard}, \code{Hamming}, or \code{MutualInformation} to weight raw scores by statistical significance.
 
 \code{ProfDCA} uses the direct coupling analysis algorithm introduced by
 Weigt et al. (2005) to determine direct information between PA profiles.

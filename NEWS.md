@@ -1,3 +1,8 @@
+# SynExtend 1.13.4
+* New predictor `PAPV.ProtWeaver` to calculate p-values for presence/absence profiles. 
+* `ContextTree` now uses `MirrorTree` with species tree correction and p/a overlap correction
+* Updates to documentation
+
 # SynExtend 1.13.3
 * `predict.ProtWeaver` now supports multiple algorithms at once (ex. `predict(pw, Method=c("Jaccard", "Hamming"))`)
 * Documentation for `ProtWeaver` and associated methods has been updated to match recent updates.
