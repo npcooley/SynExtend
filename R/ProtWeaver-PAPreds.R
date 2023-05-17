@@ -49,7 +49,9 @@ Jaccard.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   pap[] <- as.integer(pap) 
   ARGS <- list(nr=nr)
   FXN <- function(v1, v2, ARGS, ii, jj) {
-    return(.Call("calcScoreJaccard", v1, v2, ARGS$nr, PACKAGE="SynExtend"))
+    score <- .Call("calcScoreJaccard", v1, v2, ARGS$nr, PACKAGE="SynExtend")
+    pval <- fisher.test(v1, v2, simulate.p.value=TRUE)
+    return(score * (1-pval))
   }
   pairscores <- BuildSimMatInternal(pap, uvals, evalmap, l, n, FXN, ARGS, Verbose)
 

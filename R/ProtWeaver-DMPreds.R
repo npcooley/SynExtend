@@ -90,6 +90,7 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
     if (Verbose) cat('\n')
   }
   
+  useOverlap <- ('paoverlap' %in% MTCorrection)
   pairscores <- rep(NA_real_, pl*(pl-1) / 2)
   ctr <- 0
   endOfRow <- 0
@@ -122,7 +123,9 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
                                         method='spearman'))
             num_branch <- length(v1)
             pval <- 1 - exp(pt(val, num_branch-2, lower.tail=FALSE, log.p=TRUE))
-            overlap <- length(intersect(l1,l2)) / length(unique(c(l1,l2)))
+            overlap <- 1L
+            if(useOverlap)
+              overlap <- length(intersect(l1,l2)) / length(unique(c(l1,l2)))
             val <- val*pval*overlap
           }
           pairscores[ctr+1] <- ifelse(is.na(val), 0, val)
@@ -147,7 +150,7 @@ ContextTree.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, precalcProfs=N
   }
   
   #MTCorrection <- c('speciestree', 'normalize', 'partialcorrelation')
-  MTCorrection <- c('speciestree', 'satoaverage')
+  MTCorrection <- c('speciestree', 'paoverlap')
   
   return(MirrorTree(pw, MTCorrection=MTCorrection,
                     Verbose=Verbose, 
