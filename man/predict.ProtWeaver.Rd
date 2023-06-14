@@ -88,6 +88,7 @@ matrix with some extra S3 methods to make printing cleaner.
   \item \code{'Jaccard'}: Jaccard distance of Presence/Absence (P/A) profiles
   \item \code{'Hamming'}: Hamming distance of P/A profiles
   \item \code{'MutualInformation'}: MI of P/A profiles
+  \item \code{'PAPV'}: \code{1-p_value} of P/A profiles
   \item \code{'ProfDCA'}: Direct Coupling Analysis of P/A profiles
   \item \code{'Behdenna'}: Analysis of Gain/Loss events following Behdenna et al. (2016) 
   \item \code{'CorrGL'}: Correlation of ancestral Gain/Loss events

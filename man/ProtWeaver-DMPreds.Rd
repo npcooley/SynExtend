@@ -43,9 +43,7 @@ multiple ways to improve predictions from the initial \code{MirrorTree} method.
 These methods incorporate additional phylogenetic context, and are thus
 called \code{ContextTree} methods. These improvements include correcting
 for overall evolutionary rate using a species tree and/or using projection vectors.
-The built-in \code{ContextTree} method implements these corrections, which can perform
-better on sets of genomes with high similarity (low evolutionary divergence). 
-Note that the projection vector correction is not compatible with parallel implementation.
+The built-in \code{ContextTree} method implements a species tree correction, and weights the resulting score by the normalized Hamming distance of the presence/absence profiles. This can correct for gene trees with low overlap that achieve spuriously high scores via random projection. Additional correction measures are implemented in the \code{MTCorrection} argument.
 
 The \code{TreeDistance} method uses phylogenetic tree distance to quantify differences between gene trees. This method implements a number of metrics and groups them together to improve overall runtime. Individual methods can be specified using the \code{TreeMethods} argument, which expects a character vector containing one or more of the following:
 \itemize{

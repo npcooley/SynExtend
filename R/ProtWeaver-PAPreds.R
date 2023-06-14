@@ -20,6 +20,7 @@ MutualInformation <- function(pw, ...) UseMethod('MutualInformation')
 ProfileDCA <- function(pw, ...) UseMethod('ProfileDCA')
 Behdenna <- function(pw, ...) UseMethod('Behdenna')
 GainLoss <- function(pw, ...) UseMethod('GainLoss')
+PAPV <- function(pw, ...) UseMethod('PAPV')
 ################################
 
 Jaccard.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
@@ -423,5 +424,39 @@ GainLoss.ProtWeaver <- function(pw, Subset=NULL,
   pairscores <- BuildSimMatInternal(glvs, uvals, evalmap, l, names(pw), 
                                     FXN, ARGS, Verbose)
 
+  return(pairscores)
+}
+
+PAPV.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
+                               precalcProfs=NULL, precalcSubset=NULL, ...){
+  
+  if (!is.null(precalcSubset))
+    subs <- precalcSubset
+  else
+    subs <- ProcessSubset(pw, Subset)
+  uvals <- subs$uvals
+  evalmap <- subs$evalmap
+  
+  if ( is.null(precalcProfs) ){
+    if (Verbose) cat('Calculating PA Profiles...\n')
+    pap <- PAProfiles(pw, uvals, Verbose=Verbose)
+  } else {
+    pap <- precalcProfs
+  }
+  l <- length(uvals)
+  n <- names(pw)
+  if ( l == 1 ){
+    mat <- matrix(1, nrow=1, ncol=1)
+    rownames(mat) <- colnames(mat) <- n
+    return(mat)
+  }
+  nr <- nrow(pap)
+  pap[] <- as.integer(pap) 
+  ARGS <- list(nr=nr)
+  FXN <- function(v1, v2, ARGS, ii, jj) {
+    return(1-fisher.test(v1, v2, simulate.p.value=TRUE)$p.value)
+  }
+  pairscores <- BuildSimMatInternal(pap, uvals, evalmap, l, n, FXN, ARGS, Verbose)
+  
   return(pairscores)
 }
