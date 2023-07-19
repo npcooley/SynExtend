@@ -7,11 +7,11 @@ subset.dendrogram <- function(x, subset, invert=FALSE, ...){
   }
   if(length(subset) == 0L){
     warning("Subsetting resulted in no leaves")
-    x <- list()
-    class(x) <- class(x)
-    attr(x, 'members') <- 0L
-    attr(x, 'height') <- 0.0
-    return(x)
+    tmp <- list()
+    class(tmp) <- class(x)
+    attr(tmp, 'members') <- 0L
+    attr(tmp, 'height') <- 0.0
+    return(tmp)
   }
   
   dendrapply(x, \(y){
