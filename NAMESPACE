@@ -32,6 +32,7 @@ export(PhyloDistance)
 export(MoransI)
 export(dendrapply)
 export(FastQFromSRR)
+export(FitchParsimony)
 
 S3method(subset, 'dendrogram')
 
