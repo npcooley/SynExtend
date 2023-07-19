@@ -30,10 +30,23 @@ subset.dendrogram <- function(x, subset, invert=FALSE, ...){
     } else if(length(nonNull) == 1L){
       return(y[[nonNull]]) 
     } else {
-      nmemb <- sum(vapply(y, attr, which='members', integer(1L)))
-      attr(y, 'members') <- nmemb
-      attr(y, 'midpoint') <- (nmemb-1) / 2
+      nmemb <- vapply(y, attr, which='members', integer(1L))
+      attr(y, 'members') <- sum(nmemb)
+      
+      l <- length(y)
+      if(is.leaf(y[[1]]) && is.leaf(y[[l]])){
+        mp <- (sum(nmemb) - 1) / 2 
+      } else if(is.leaf(y[[1]])){
+        mp <- (sum(nmemb[-l]) + attr(y[[l]], 'midpoint')) / 2
+      } else if(is.leaf(y[[l]])){
+        mp <- (attr(y[[1]], 'midpoint') + sum(nmemb[-1])) / 2
+      } else {
+        mp <- (sum(nmemb[-l]) + attr(y[[1]], 'midpoint') + attr(y[[l]], 'midpoint')) / 2
+      }
+      attr(y, 'midpoint') <- mp
+      
       return(y)
     }
   }, how='post.order')
 }
+
