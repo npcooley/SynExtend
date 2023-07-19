@@ -1,6 +1,6 @@
 \name{subset.dendrogram}
 \alias{subset.dendrogram}
-%- Also NEED an '\alias' for EACH other topic documented here.
+
 \title{
 Subsetting dendrogram objects
 }
@@ -12,7 +12,7 @@ NOTE: This man page is specifically for \code{subset.dendogram}, see \code{?base
 \usage{
 \method{subset}{dendrogram}(x, subset, invert=FALSE, ...)
 }
-%- maybe also 'usage' for other objects documented here.
+
 \arguments{
   \item{x}{
   An object of class \code{'dendogram'}
@@ -23,14 +23,15 @@ NOTE: This man page is specifically for \code{subset.dendogram}, see \code{?base
 \item{invert}{
   If set to \code{TRUE}, subset to only the leaves \emph{not} in \code{subset}.
 }
+\item{...}{
+Additional arguments for consistency with generic.
+}
 }
 
 \value{
 An object of class \code{'dendrogram'} corresponding to the subsetted tree.
 }
-\references{
-%% ~put references to the literature/web site here ~
-}
+
 \author{
 Aidan Lakshman \email{ahl27@pitt.edu}
 }
@@ -38,10 +39,8 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 If none of the labels specified in the \code{subset} argument appear in the tree (or if all do when \code{invert=TRUE}), a warning is thrown and an empty object of class \code{'dendrogram'} is returned.
 }
 
-%% ~Make other sections like Warning with \section{Warning }{....} ~
-
 \seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
+\code{\link[base]{subset}}
 }
 \examples{
 d <- as.dendrogram(hclust(dist(USArrests), "ave"))
@@ -57,12 +56,4 @@ plot(d1)
 d2 <- subset(d1, labels(d1)[1:2], invert=TRUE)
 plot(d2)
 }
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory (show via RShowDoc("KEYWORDS")):
-% \keyword{ ~kwd1 }
-% \keyword{ ~kwd2 }
-% Use only one keyword per line.
-% For non-standard keywords, use \concept instead of \keyword:
-% \concept{ ~cpt1 }
-% \concept{ ~cpt2 }
-% Use only one concept per line.
+
