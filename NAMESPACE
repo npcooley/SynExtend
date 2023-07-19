@@ -33,6 +33,8 @@ export(MoransI)
 export(dendrapply)
 export(FastQFromSRR)
 
+S3method(subset, 'dendrogram')
+
 S3method(`[`, "LinkedPairs")
 S3method(print, "LinkedPairs")
 
