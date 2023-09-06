@@ -736,6 +736,39 @@ ResidueMIDend <- function(dend1, dend2, cutoff=0.9, comppct=0.25, useColoc, ...)
   return(res)
 }
 
+ResidueMISeqs <- function(seqs1, seqs2, lookup, Processors, ...){
+  if(ncol(seqs1) * ncol(seqs2) == 0){
+    return(0)
+  }
+  completeSet <- intersect(rownames(seqs1), rownames(seqs2))
+  if (length(completeSet) == 0){
+    return(0)
+  }
+  s1 <- seqs1[completeSet,,drop=FALSE]
+  s2 <- seqs2[completeSet,,drop=FALSE]
+  nseqs <- length(completeSet)
+  # add gap character
+  baseval <- length(lookup)+1L
+  
+  AllMIs <- .Call("MIForSequenceSets", s1, s2, nseqs, 
+                  baseval, baseval, baseval+0.0, Processors)
+  AllMIs <- matrix(AllMIs, ncol=ncol(s1))
+  if(ncol(AllMIs) > nrow(AllMIs))
+    AllMIs <- t(AllMIs)
+  meanEnt <- mean(AllMIs)
+  sdEnt <- sd(AllMIs)
+  maxVals <- vapply(seq_len(ncol(AllMIs)), \(cn) max(AllMIs[,cn]),
+                    numeric(1L), USE.NAMES = FALSE)
+  
+  pvals <- pnorm(maxVals, mean=meanEnt, sd=sdEnt, lower.tail=FALSE)
+  # Fisher's Method to combine p values
+  testStat <- -2 * sum(log(pvals))
+  totalP <- pchisq(testStat, df=2*length(pvals), lower.tail=FALSE)
+  
+  return(mean(maxVals) * (1-totalP))
+}
+
+
 MISeqLevel <- function(seqSet1, seqSet2, compressionpct=0.25){
   stopifnot('seqSets must be XStringSets'=is(seqSet1, 'XStringSet') && is(seqSet2, 'XStringSet'))
   stopifnot('seqSetq sequences have differing lengths. Ensure you are using an aligned sequence set.'=

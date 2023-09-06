@@ -49,6 +49,7 @@ void shuffleRRepl(int *v, int *l);
 /**** NucleotideCounts.c ****/
 SEXP StringToNVDT(SEXP DNASTRING, SEXP REMOVEGAPS, SEXP EXTENDED, SEXP USEDNA);
 SEXP fastPearsonC(SEXP V1, SEXP V2);
+SEXP MIForSequenceSets(SEXP M1, SEXP M2, SEXP NSEQS, SEXP U1, SEXP U2, SEXP BASE, SEXP NTHREADS);
 
 /**** HungarianAlgo.c ****/
 SEXP HungarianAssignment(SEXP MATVEC, SEXP DIM);
