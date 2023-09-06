@@ -1,3 +1,6 @@
+# SynExtend 1.13.5
+* Minor changes to `SelectByK` and vignette
+
 # SynExtend 1.13.4
 * New predictor `PAPV.ProtWeaver` to calculate p-values for presence/absence profiles. 
 * `ContextTree` now uses `MirrorTree` with species tree correction and p/a overlap correction

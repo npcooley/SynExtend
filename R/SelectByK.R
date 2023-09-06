@@ -5,7 +5,7 @@
 # so you will retain pairs whose PID is below that centroid, but appear closer in distance
 # to the lowest acceptable centroid than to the highest unacceptable centroid
 # users can also move the ClusterScalar argument, this adjusts the decision making for
-# how many clusters are going to be selected
+# how many clusters are going to be used for selection
 # cluster number selection if performed by fitting the total within-cluster sum of squares
 # to a right hyperbola / one-site binding isotherm, the half-max / Kd becomes the target of
 # the scalar argument, when it is left with the default of 1, ceiling(Kd) selects the clustering regime to be used
@@ -59,10 +59,10 @@ SelectByK <- function(Pairs,
   dat1 <- data.frame("RelativeMatch" = Pairs$ExactMatch * 2L / (Pairs$p1FeatureLength + Pairs$p2FeatureLength),
                      "Consensus" = Pairs$Consensus,
                      "PID" = Pairs$PID,
-                     "SCORE" = s1,
                      # "SCORE" = Pairs$SCORE,
-                     "TetDist" = Pairs$TetDist,
-                     "SeqDiff" = abs(Pairs$p1FeatureLength - Pairs$p2FeatureLength))
+                     # "TetDist" = Pairs$TetDist,
+                     # "SeqDiff" = abs(Pairs$p1FeatureLength - Pairs$p2FeatureLength),
+                     "SCORE" = s1)
   
   # cluster out to user specified total clusters
   NClust <- 2:MaxClusters

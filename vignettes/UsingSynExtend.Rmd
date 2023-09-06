@@ -3,7 +3,7 @@ title: "Using SynExtend"
 author: "Nicholas Cooley"
 date: "`r Sys.Date()`"
 output: 
-  BiocStyle::pdf_document
+  BiocStyle::html_document
 vignette: >
   %\VignetteIndexEntry{UsingSynExtend}
   %\VignetteEngine{knitr::rmarkdown}
@@ -39,7 +39,7 @@ BiocManager::install("SynExtend")
 
 # Usage
 
-Using the `FindSynteny` function in `DECIPHER` build an object of class `Synteny`. In this tutorial, a prebuilt `DECIPHER` database is used. For database construction see `?Seqs2DB` in `DECIPHER`. This example starts with a database containing three endosymbiont genomes that were chosen to keep package data to a minimum.
+Using the `FindSynteny` function in `DECIPHER` builds an object of class `Synteny`. In this tutorial, a prebuilt `DECIPHER` database is used. For database construction see `?Seqs2DB` in `DECIPHER`. This example starts with a database containing three endosymbiont genomes that were chosen to keep package data to a minimum.
 
 ```{r, build_synteny_object}
 library(SynExtend)
