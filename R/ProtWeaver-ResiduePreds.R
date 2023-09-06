@@ -89,7 +89,6 @@ ResidueMI.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
     ResidueSets[[i]] <- seqs
     if(Verbose) setTxtProgressBar(pb, i)
   }
-  save(ResidueSets, uvals, evalmap, lookup, useColoc, file='~/Desktop/ResiduePreprocessed.RData')
   
   pairscores <- rep(NA_real_, l*(l-1)/2)
   ctr <- 0
