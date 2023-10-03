@@ -1,4 +1,4 @@
-##### -- ProtWeaver Class to find clusters of functionally linked genes -------
+##### -- EvoWeaver Class to find clusters of functionally linked genes -------
 # author: Aidan Lakshman
 # contact: ahl27@pitt.edu
 
@@ -13,11 +13,11 @@
 
 #### IMPORTS ####
 # Relies on functions in the following files:
-#   - ProtWeaver-DMPreds.R          ( Distance Matrix Predictors )
-#   - ProtWeaver-PAPreds.R          ( Pres/Abs Predictors)
-#   - ProtWeaver-ColocPreds.R       ( Colocalization Predictors )
-#   - ProtWeaver-ResiduePreds.R     ( Residue level Predictors )
-#   - ProtWeaver-utils.R            ( Helper functions )
+#   - EvoWeaver-DMPreds.R          ( Distance Matrix Predictors )
+#   - EvoWeaver-PAPreds.R          ( Pres/Abs Predictors)
+#   - EvoWeaver-ColocPreds.R       ( Colocalization Predictors )
+#   - EvoWeaver-ResiduePreds.R     ( Residue level Predictors )
+#   - EvoWeaver-utils.R            ( Helper functions )
 #################
 
 
@@ -28,7 +28,7 @@ SpeciesTree <- function(pw, Verbose, Processors) UseMethod('SpeciesTree')
 
 
 #### Class Constructor ####
-new_ProtWeaver <- function(validatedInput){
+new_EvoWeaver <- function(validatedInput){
   structure(validatedInput$ipt,
             allOrgs=validatedInput$allgenomes,
             useMT=validatedInput$flags$usemirrortree,
@@ -36,25 +36,25 @@ new_ProtWeaver <- function(validatedInput){
             useResidue=validatedInput$flags$useresidue,
             useStrand=validatedInput$flags$strandid,
             speciesTree=validatedInput$speciestree,
-            class='ProtWeaver')
+            class='EvoWeaver')
 }
 
-ProtWeaver <- function(ListOfData, MySpeciesTree=NULL, NoWarn=FALSE){
+EvoWeaver <- function(ListOfData, MySpeciesTree=NULL, NoWarn=FALSE){
   stopifnot("MySpeciesTree should be NULL or an object of type 'dendrogram'"=
               is.null(MySpeciesTree) || is(MySpeciesTree,'dendrogram'))
-  vRes <- validate_ProtWeaver(ListOfData, noWarn=NoWarn)
+  vRes <- validate_EvoWeaver(ListOfData, noWarn=NoWarn)
   if(!is.null(MySpeciesTree) && any(!(vRes$allgenomes %in% labels(MySpeciesTree)))){
     stop("MySpeciesTree is missing labels!")
   }
   if(!is.null(MySpeciesTree))
     vRes$allgenomes <- labels(MySpeciesTree)
   vRes$speciestree <- MySpeciesTree
-  new_ProtWeaver(vRes)
+  new_EvoWeaver(vRes)
 }
 
-validate_ProtWeaver <- function(ipt, noWarn=FALSE){
+validate_EvoWeaver <- function(ipt, noWarn=FALSE){
   bitflags <- list(usecoloc=FALSE, usemirrortree=FALSE, useresidue=FALSE)
-  stopifnot('ProtWeaver expects a list of dendrograms or character vectors as input.'=
+  stopifnot('EvoWeaver expects a list of dendrograms or character vectors as input.'=
               is(ipt, 'list'))
   
   ipt <- ipt[!vapply(ipt, is.null, TRUE)]
@@ -141,33 +141,33 @@ validate_ProtWeaver <- function(ipt, noWarn=FALSE){
 ########
 
 #### User-Exposed S3 Methods ####
-show.ProtWeaver <- function(object){
+show.EvoWeaver <- function(object){
   if (length(object) == 1){
-    cat(paste('a ProtWeaver object with', length(object),
+    cat(paste('a EvoWeaver object with', length(object),
               'group and', length(attr(object,'allOrgs')), 'genomes.\n'))
   } else {
-    cat(paste('a ProtWeaver object with', length(object),
+    cat(paste('a EvoWeaver object with', length(object),
               'groups and', length(attr(object,'allOrgs')), 'genomes.\n'))
   }
 }
 
-print.ProtWeaver <- function(x, ...){
+print.EvoWeaver <- function(x, ...){
   if (length(x) == 1){
-    cat(paste('a ProtWeaver object with', length(x),
+    cat(paste('a EvoWeaver object with', length(x),
               'group and', length(attr(x,'allOrgs')), 'genomes.\n'))
   } else {
-    cat(paste('a ProtWeaver object with', length(x),
+    cat(paste('a EvoWeaver object with', length(x),
               'groups and', length(attr(x,'allOrgs')), 'genomes.\n'))
   }
 }
 
-`[.ProtWeaver` <- function(x, i){
+`[.EvoWeaver` <- function(x, i){
   y <- unclass(x)
-  newv <- validate_ProtWeaver(y[i], noWarn=TRUE)
-  new_ProtWeaver(newv)
+  newv <- validate_EvoWeaver(y[i], noWarn=TRUE)
+  new_EvoWeaver(newv)
 }
 
-predict.ProtWeaver <- function(object, Method='Ensemble', Subset=NULL, Processors=1L,
+predict.EvoWeaver <- function(object, Method='Ensemble', Subset=NULL, Processors=1L,
                                MySpeciesTree=SpeciesTree(object), 
                                PretrainedModel=NULL,
                                NoPrediction=FALSE, 
@@ -178,7 +178,7 @@ predict.ProtWeaver <- function(object, Method='Ensemble', Subset=NULL, Processor
   lst <- list()
   ctr <- 1L
   for(methodtype in Method){
-    func <- getS3method(methodtype, 'ProtWeaver')
+    func <- getS3method(methodtype, 'EvoWeaver')
     if(Verbose && !ReturnRawData) starttime <- Sys.time()
     
     preds <- func(pw, Subset=Subset, Verbose=Verbose, 
@@ -204,7 +204,7 @@ predict.ProtWeaver <- function(object, Method='Ensemble', Subset=NULL, Processor
         names(preds[[i]]) <- n
         preds[[i]] <- structure(preds[[i]],
                                 method=pnames[i],
-                                class=c('ProtWeb', 'simMat'))
+                                class=c('EvoWeb', 'simMat'))
       }
       rs <- preds
       for(treemethod in pnames){
@@ -217,7 +217,7 @@ predict.ProtWeaver <- function(object, Method='Ensemble', Subset=NULL, Processor
       names(preds) <- n
       rs <- structure(preds,
                       method=methodtype,
-                      class=c('ProtWeb', 'simMat'))
+                      class=c('EvoWeb', 'simMat'))
       methodnames <- c(methodnames, methodtype)
       lst[[ctr]] <- rs
       ctr <- ctr + 1L
@@ -231,7 +231,7 @@ predict.ProtWeaver <- function(object, Method='Ensemble', Subset=NULL, Processor
   lst
 }
 
-SpeciesTree.ProtWeaver <- function(pw, Verbose=TRUE, Processors=1L){
+SpeciesTree.EvoWeaver <- function(pw, Verbose=TRUE, Processors=1L){
   tree <- attr(pw,'speciesTree')
   if(is.null(tree) && attr(pw, 'useMT'))
     tree <- findSpeciesTree(pw, Verbose=Verbose, Processors=Processors)
@@ -243,7 +243,7 @@ SpeciesTree.ProtWeaver <- function(pw, Verbose=TRUE, Processors=1L){
 
 #### Internal S3 Methods ####
 
-Ensemble.ProtWeaver <- function(pw,
+Ensemble.EvoWeaver <- function(pw,
                                 Subset=NULL, Verbose=TRUE, MySpeciesTree=NULL,
                                 PretrainedModel=NULL,
                                 NoPrediction=FALSE, ...){

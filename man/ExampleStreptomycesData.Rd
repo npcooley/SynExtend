@@ -2,20 +2,20 @@
 \alias{ExampleStreptomycesData}
 \docType{data}
 \title{
-Example ProtWeaver Input Data from \emph{Streptomyces} Species
+Example EvoWeaver Input Data from \emph{Streptomyces} Species
 }
 \description{
-Data from {Streptomyces} species to test \code{\link{ProtWeaver}} functionality.
+Data from {Streptomyces} species to test \code{\link{EvoWeaver}} functionality.
 }
 \usage{data("ExampleStreptomycesData")}
 \value{
   The data contain two elements, \code{Genes} and \code{Tree}. \code{Genes} is 
-  a list of presence/absence vectors in the input required for \code{\link{ProtWeaver}}.
+  a list of presence/absence vectors in the input required for \code{\link{EvoWeaver}}.
   \code{Tree} is a species tree used for additional input.
 }
 \details{
 This dataset contains a number of Clusters of Orthologous Genes (COGs) and a species
-tree for use with ProtWeaver. This dataset showcases an example of using ProtWeaver with
+tree for use with EvoWeaver. This dataset showcases an example of using EvoWeaver with
 a list of vectors. Entries in each vector are formatted correctly for use with
 co-localization prediction. Each COG \code{i} contains entries of the form 
 \code{a_b_c}, indicating that the gene was found in genome \code{a} on chromosome
@@ -23,11 +23,11 @@ co-localization prediction. Each COG \code{i} contains entries of the form
 of 301 unique genomes.
 }
 \seealso{
-\code{\link{ProtWeaver}}
+\code{\link{EvoWeaver}}
 }
 \examples{
 exData <- get(data("ExampleStreptomycesData"))
-pw <- ProtWeaver(exData$Genes)
+pw <- EvoWeaver(exData$Genes)
 # Subset isn't necessary but is faster for a working example
 predict(pw, Subset=1:10, MySpeciesTree=exData$Tree)
 }

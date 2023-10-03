@@ -1,18 +1,18 @@
-\name{ProtWeaver-DMPreds}
-\alias{ProtWeaver-DMPreds}
-\alias{MirrorTree.ProtWeaver}
-\alias{ContextTree.ProtWeaver}
+\name{EvoWeaver-DMPreds}
+\alias{EvoWeaver-DMPreds}
+\alias{MirrorTree.EvoWeaver}
+\alias{ContextTree.EvoWeaver}
 \docType{data}
 \title{
-Distance Matrix Predictions for ProtWeaver
+Distance Matrix Predictions for EvoWeaver
 }
 \description{
-\code{ProtWeaver} incorporates four classes of prediction, each with multiple 
+\code{EvoWeaver} incorporates four classes of prediction, each with multiple 
 methods and algorithms. Distance Matrix (DM) methods examine conservation 
 of overall evolutionary rates within orthology groups using distance matrices
 constructed from each gene tree.
 
-\code{predict.ProtWeaver} currently supports three DM methods:
+\code{predict.EvoWeaver} currently supports three DM methods:
 \itemize{
   \item \code{'MirrorTree'}
   \item \code{'ContextTree'}
@@ -21,8 +21,8 @@ constructed from each gene tree.
 }
 
 \details{
-All distance matrix methods require a \code{ProtWeaver} object initialized
-with \code{dendrogram} objects. See \code{\link{ProtWeaver}} for more information on input data types.
+All distance matrix methods require a \code{EvoWeaver} object initialized
+with \code{dendrogram} objects. See \code{\link{EvoWeaver}} for more information on input data types.
 
 The \code{MirrorTree} method was introduced by Pazos et al. (2001). This method
 builds distance matrices using a nucleotide substitution model, and then
@@ -33,7 +33,7 @@ Experimental analysis has shown data in the upper triangle is heavily
 redundant and rapidly overwhelms available system memory. Previous work
 has incorporated dimensionality reduction such as SVD to reduce the dimensionality
 of the data, but this prevents parallelization of the data and doesn't solve memory
-issues (since SVD takes as input the entire matrix with columns corresponding to upper triangle values). \code{ProtWeaver} instead uses a seeded random projection
+issues (since SVD takes as input the entire matrix with columns corresponding to upper triangle values). \code{EvoWeaver} instead uses a seeded random projection
 following Achlioptas (2001) to reduce the dimensionality of the data in a 
 reproducible and parallel-compatible way. We also utilize Spearman's \eqn{\rho},
 which has demonstrated better performance than Pearson's \eqn{r}.
@@ -83,15 +83,15 @@ Sato, T., et al., \emph{Partial correlation coefficient between distance matrice
 
 \seealso{
 
-\code{\link{ProtWeaver}}
+\code{\link{EvoWeaver}}
 
-\code{\link{predict.ProtWeaver}}
+\code{\link{predict.EvoWeaver}}
 
-\link[=ProtWeaver-PAPreds]{ProtWeaver Presence/Absence Predictors}
+\link[=EvoWeaver-PAPreds]{EvoWeaver Presence/Absence Predictors}
 
-\link[=ProtWeaver-ColocPreds]{ProtWeaver Co-localization Predictors}
+\link[=EvoWeaver-ColocPreds]{EvoWeaver Co-localization Predictors}
 
-\link[=ProtWeaver-ResiduePreds]{ProtWeaver Residue Level Predictors}
+\link[=EvoWeaver-ResiduePreds]{EvoWeaver Residue Level Predictors}
 
 \code{\link{PhyloDistance}}
 }

@@ -1,4 +1,4 @@
-###### Residue Methods for ProtWeaver #####
+###### Residue Methods for EvoWeaver #####
 # author: Aidan Lakshman
 # contact: ahl27@pitt.edu
 
@@ -13,7 +13,7 @@ NVDT <- function(pw, ...) UseMethod('NVDT')
 Ancestral <- function(pw, ...) UseMethod('Ancestral')
 ################################
 
-ResidueMI.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
+ResidueMI.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
                                  precalcSubset=NULL, gapCutoff=0.5, 
                                  useDNA=FALSE, Processors=1L, useWeights=TRUE, ...){
   useResidue <- attr(pw, 'useResidue')
@@ -21,9 +21,9 @@ ResidueMI.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   useColoc <- attr(pw, 'useColoc')
   Processors <- NormArgProcessors(Processors)
   
-  stopifnot('ProtWeaver object must be initialized with dendrograms to run Residue methods'=
+  stopifnot('EvoWeaver object must be initialized with dendrograms to run Residue methods'=
               useMT)
-  stopifnot('ProtWeaver dendrograms must have ancestral states to run Residue methods'=
+  stopifnot('EvoWeaver dendrograms must have ancestral states to run Residue methods'=
               useResidue)
   
   if (!is.null(precalcSubset))
@@ -124,7 +124,7 @@ ResidueMI.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   return(pairscores)
 }
 
-NVDT.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
+NVDT.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
                             precalcSubset=NULL, extended=TRUE, 
                             DNAseqs=TRUE, centerObservations=FALSE,
                             sqrtCorrelation=TRUE, ...){
@@ -132,9 +132,9 @@ NVDT.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   useResidue <- attr(pw, 'useResidue')
   useMT <- attr(pw, 'useMT')
   
-  stopifnot('ProtWeaver object must be initialized with dendrograms to run Residue methods'=
+  stopifnot('EvoWeaver object must be initialized with dendrograms to run Residue methods'=
               useMT)
-  stopifnot('ProtWeaver dendrograms must have ancestral states to run Residue methods'=
+  stopifnot('EvoWeaver dendrograms must have ancestral states to run Residue methods'=
               useResidue)
   
   if (!is.null(precalcSubset))
@@ -260,15 +260,15 @@ NVDT.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   
 }
 
-Ancestral.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
+Ancestral.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
                                  precalcSubset=NULL, ...){
   useResidue <- attr(pw, 'useResidue')
   useMT <- attr(pw, 'useMT')
   useColoc <- attr(pw, 'useColoc')
   
-  stopifnot('ProtWeaver object must be initialized with dendrograms to run Residue methods'=
+  stopifnot('EvoWeaver object must be initialized with dendrograms to run Residue methods'=
               useMT)
-  stopifnot('ProtWeaver dendrograms must have ancestral states to run Residue methods'=
+  stopifnot('EvoWeaver dendrograms must have ancestral states to run Residue methods'=
               useResidue)
   
   if (!is.null(precalcSubset))

@@ -1,20 +1,20 @@
-\name{ProtWeaver}
-\alias{ProtWeaver}
-\alias{ProtWeaver-class}
-\alias{ProtWeaver-utils}
+\name{EvoWeaver}
+\alias{EvoWeaver}
+\alias{EvoWeaver-class}
+\alias{EvoWeaver-utils}
 \alias{SpeciesTree}
-\alias{SpeciesTree.ProtWeaver}
+\alias{SpeciesTree.EvoWeaver}
 \title{
-ProtWeaver: Predicting Protein Functional Association Networks
+EvoWeaver: Predicting Protein Functional Association Networks
 }
 \description{
-ProtWeaver is an S3 class with methods for predicting functional association using
-protein or gene data. ProtWeaver implements multiple algorithms for analyzing coevolutionary signal between genes, which are combined into overall predictions on functional association. For details on predictions, see \code{\link{predict.ProtWeaver}}.
+EvoWeaver is an S3 class with methods for predicting functional association using
+protein or gene data. EvoWeaver implements multiple algorithms for analyzing coevolutionary signal between genes, which are combined into overall predictions on functional association. For details on predictions, see \code{\link{predict.EvoWeaver}}.
 }
 \usage{
-ProtWeaver(ListOfData, MySpeciesTree=NULL, NoWarn=FALSE)
+EvoWeaver(ListOfData, MySpeciesTree=NULL, NoWarn=FALSE)
 
-\method{SpeciesTree}{ProtWeaver}(pw, Verbose=TRUE, Processors=1L)
+\method{SpeciesTree}{EvoWeaver}(pw, Verbose=TRUE, Processors=1L)
 }
 \arguments{
   \item{ListOfData}{
@@ -27,10 +27,10 @@ An object of class \code{'dendrogram'} representing the overall species tree for
 the list provided in \code{ListOfData}.
 }
 \item{NoWarn}{
-Several algorithms depend on having certain data. When a \code{ProtWeaver} object is initialized, it automatically selects which algorithms can be used given the input data. By default, ProtWeaver will notify the user of algorithms that cannot be used with warnings. Setting \code{NoWarn=TRUE} will suppress these messages.
+Several algorithms depend on having certain data. When a \code{EvoWeaver} object is initialized, it automatically selects which algorithms can be used given the input data. By default, EvoWeaver will notify the user of algorithms that cannot be used with warnings. Setting \code{NoWarn=TRUE} will suppress these messages.
 }
 \item{pw}{
-An object of class \code{ProtWeaver}
+An object of class \code{EvoWeaver}
 }
 \item{Verbose}{
 Should output be displayed when calculating species tree?
@@ -41,7 +41,7 @@ amount of processors.
 }
 }
 \details{
-ProtWeaver expects input data to be a list. All entries must be one of the following:
+EvoWeaver expects input data to be a list. All entries must be one of the following:
 \enumerate{
   \item{
     \code{ListOfData[[i]] = c('ID#1', 'ID#2', ..., 'ID#k')}
@@ -68,23 +68,23 @@ Case (3) expects gene trees for each gene, with labeled leaves corresponding to 
 
 \emph{Whenever possible, provide a full set of \code{dendrogram} objects with leaf labels in form (2b). This will allow the most optimal algorithms to run. What follows is a more detailed description of which inputs allow which algorithms.}
 
-ProtWeaver requires input of scenario (3) to use distance matrix methods, and requires input of scenario (2) (or (3) with leaves labeled according to (2)) for co-localization analyses. Transcriptional direction analysis requires input of scenario (2b).
+EvoWeaver requires input of scenario (3) to use distance matrix methods, and requires input of scenario (2) (or (3) with leaves labeled according to (2)) for co-localization analyses. Transcriptional direction analysis requires input of scenario (2b).
 Residue covariation methods require dendrograms with sequence information included as the \code{state} attribute in each leaf node.
 
 Note that ALL entries must belong to the same category--a combination of character vectors and dendrograms is not allowed. 
 
-Prediction of a functional association network is done using \code{predict(ProtWeaverObject)}. See \code{\link{predict.ProtWeaver}} for more information.
+Prediction of a functional association network is done using \code{predict(EvoWeaverObject)}. See \code{\link{predict.EvoWeaver}} for more information.
 
-The \code{SpeciesTree} function takes in an object of class \code{ProtWeaver} and returns a species tree. If the object was not initialized with a species tree, it calculates one using \code{\link{SuperTree}}. The species tree for a ProtWeaver object can be set with \code{attr(pw, 'speciesTree') <- ...}.
+The \code{SpeciesTree} function takes in an object of class \code{EvoWeaver} and returns a species tree. If the object was not initialized with a species tree, it calculates one using \code{\link{SuperTree}}. The species tree for a EvoWeaver object can be set with \code{attr(pw, 'speciesTree') <- ...}.
 }
 \value{
-Returns a ProtWeaver object.
+Returns a EvoWeaver object.
 }
 \author{
 Aidan Lakshman \email{ahl27@pitt.edu}
 }
 \seealso{
-\code{\link{predict.ProtWeaver}},
+\code{\link{predict.EvoWeaver}},
 \code{\link{ExampleStreptomycesData}},
 \code{\link{BuiltInEnsembles}}, 
 \code{\link{SuperTree}}
@@ -106,7 +106,7 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 ##    d is present in genomes 1, 2
 ##    e is present in genomes 2, 3, 4
 
-## Constructing a ProtWeaver object according to (1):
+## Constructing a EvoWeaver object according to (1):
 l <- list()
 l[['a']] <- c('1', '3', '4') 
 l[['b']] <- c('1', '3') 
@@ -116,9 +116,9 @@ l[['e']] <- c('2', '3', '4')
 
 ## Each value of the list corresponds to a gene
 ## The associated vector shows which genomes have that gene
-pwCase1 <- ProtWeaver(l)
+pwCase1 <- EvoWeaver(l)
 
-## Constructing a ProtWeaver object according to (2):
+## Constructing a EvoWeaver object according to (2):
 ##  Here we need to add in the chromosome and the position
 ##  As we only have one chromosome, 
 ##  we can just set that to 1 for all.
@@ -133,7 +133,7 @@ l[['c']] <- c('1_1_3', '2_1_2')
 l[['d']] <- c('1_1_4', '2_1_1') 
 l[['e']] <- c('2_1_3', '3_1_3', '4_1_2') 
 
-pwCase2a <- ProtWeaver(l)
+pwCase2a <- EvoWeaver(l)
 
 ## If we want transcriptional information, we need an 
 ## value corresponding to the strand of each gene

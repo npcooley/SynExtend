@@ -1,17 +1,17 @@
-\name{ProtWeaver-ColocPreds}
-\alias{ProtWeaver-ColocPreds}
-\alias{Coloc.ProtWeaver}
+\name{EvoWeaver-ColocPreds}
+\alias{EvoWeaver-ColocPreds}
+\alias{Coloc.EvoWeaver}
 \docType{data}
 \title{
-Co-localization Predictions for ProtWeaver
+Co-localization Predictions for EvoWeaver
 }
 \description{
-\code{ProtWeaver} incorporates four classes of prediction, each with multiple 
+\code{EvoWeaver} incorporates four classes of prediction, each with multiple 
 methods and algorithms. Co-localization (Coloc) methods examine
 conservation of relative location and transcriptional direction of genetic
 regions within the genome.
 
-\code{predict.ProtWeaver} currently supports three Coloc methods:
+\code{predict.EvoWeaver} currently supports three Coloc methods:
 \itemize{
   \item \code{'Coloc'}
   \item \code{'ColocMoran'}
@@ -20,8 +20,8 @@ regions within the genome.
 }
 
 \details{
-All distance matrix methods require a \code{ProtWeaver} object initialized
-with gene locations using the a three or four number code. See \code{\link{ProtWeaver}} for more information on input data types.
+All distance matrix methods require a \code{EvoWeaver} object initialized
+with gene locations using the a three or four number code. See \code{\link{EvoWeaver}} for more information on input data types.
 
 The built-in \code{Coloc} examines relative location of genes within genomes
 as evidence of interaction. For a given pair of genes, the score is given by
@@ -31,7 +31,7 @@ instead of number of base pairs avoids bias introduced by gene and genome length
 
 \code{ColocMoran} improves upon \code{Coloc} by taking into account the underlying phylogenetic signal of the data. This function uses the same initial scoring scheme as \code{Coloc}, but can handle paralogs. The raw scores are passed into \code{\link{MoransI}} to calculate spatial autocorrelation. "Space" is taken as \eqn{e^{-C}}, where \eqn{C} is the Cophenetic distance matrix calculated from the species tree of the inputs. As such, this method requires a species tree as input, which can be calculated from a set of gene trees using \code{\link{SuperTree}}.
 
-\code{TranscripMI} uses mutual information of the transcriptional direction of each pair of genes. Conservation of relative transcriptional direction between gene pairs has been shown to imply functional association in prior work. This algorithm requires that the \code{ProtWeaver} object is initialized with a four number code, with the third number either \code{0} or \code{1}, denoting whether the gene is on the forward or reverse strand. The mutual information is calculated as: 
+\code{TranscripMI} uses mutual information of the transcriptional direction of each pair of genes. Conservation of relative transcriptional direction between gene pairs has been shown to imply functional association in prior work. This algorithm requires that the \code{EvoWeaver} object is initialized with a four number code, with the third number either \code{0} or \code{1}, denoting whether the gene is on the forward or reverse strand. The mutual information is calculated as: 
 
 \deqn{\sum_{x \in X}\sum_{y \in Y}(-1)^{(x!=y)}P_{(X,Y)}(x,y)\; \log\left(\frac{P_{(X,Y)}(x,y)}{P_X(x)P_Y(y)}\right)}
 
@@ -56,13 +56,13 @@ Moran, P. A. P., \emph{Notes on Continuous Stochastic Phenomena}. Biometrika, 19
 
 \seealso{
 
-\code{\link{ProtWeaver}}
+\code{\link{EvoWeaver}}
 
-\code{\link{predict.ProtWeaver}}
+\code{\link{predict.EvoWeaver}}
 
-\link[=ProtWeaver-PAPreds]{ProtWeaver Presence/Absence Predictors}
+\link[=EvoWeaver-PAPreds]{EvoWeaver Presence/Absence Predictors}
 
-\link[=ProtWeaver-DMPreds]{ProtWeaver Distance Matrix Predictors}
+\link[=EvoWeaver-DMPreds]{EvoWeaver Distance Matrix Predictors}
 
-\link[=ProtWeaver-ResiduePreds]{ProtWeaver Residue Level Predictors}
+\link[=EvoWeaver-ResiduePreds]{EvoWeaver Residue Level Predictors}
 }

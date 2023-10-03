@@ -16,7 +16,7 @@ SEXP initCDend(SEXP dend);
 SEXP hashString(SEXP label);
 SEXP printTree(SEXP tnPtr);
 
-// scoring functions for ProtWeaver
+// scoring functions for EvoWeaver
 SEXP calcGainLoss(SEXP tnPtr, SEXP occVec, SEXP convertToGL);
 SEXP calcScoreGL(SEXP tnPtr, SEXP glv1, SEXP glv2);
 SEXP calcScoreJaccard(SEXP ov1, SEXP ov2, SEXP NN);

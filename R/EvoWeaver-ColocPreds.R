@@ -1,4 +1,4 @@
-###### Co-localization Methods for ProtWeaver #####
+###### Co-localization Methods for EvoWeaver #####
 # author: Aidan Lakshman
 # contact: ahl27@pitt.edu
 
@@ -12,7 +12,7 @@ ColocMoran <- function(pw, ...) UseMethod('ColocMoran')
 TranscripMI <- function(pw, ...) UseMethod('TranscripMI')
 ################################
 
-Coloc.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
+Coloc.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
                              precalcProfs=NULL, precalcSubset=NULL, 
                              minimumGenomeSize=2500, ...){
   if (!is.null(precalcSubset))
@@ -73,7 +73,7 @@ Coloc.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   return(pairscores)
 }
 
-ColocMoran.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
+ColocMoran.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
                                   MySpeciesTree=NULL,
                                   precalcProfs=NULL, precalcSubset=NULL, ...){
   if (!is.null(precalcSubset))
@@ -149,7 +149,7 @@ ColocMoran.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   return(pairscores)
 }
 
-TranscripMI.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
+TranscripMI.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
                                           precalcProfs=NULL, precalcSubset=NULL, ...){
   stopifnot('Some labels are missing strand identifiers!'=attr(pw, 'useStrand'))
   if (!is.null(precalcSubset))

@@ -1,4 +1,4 @@
-#### Helper Functions for ProtWeaver class ####
+#### Helper Functions for EvoWeaver class ####
 # author: Aidan Lakshman
 # contact: ahl27@pitt.edu
 
@@ -63,7 +63,7 @@ BuildSimMatInternal <- function(vecs, uvals, evalmap, l, n, FXN, ARGS, Verbose,
   return(pairscores)
 }
 
-PAProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
+PAProfiles.EvoWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
                                   speciesList=NULL, ...){
   cols <- names(pw)
   ao <- attr(pw, 'allOrgs')
@@ -100,7 +100,7 @@ PAProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
   return(profiles)
 }
 
-CophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
+CophProfiles.EvoWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
                                     speciesList=NULL, ...){
   ## TODO: Some way to handle paralogs
   cols <- names(pw)
@@ -114,7 +114,7 @@ CophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
   useColoc <- attr(pw, 'useColoc')
   useMT <- attr(pw, 'useMT')
 
-  stopifnot('ProtWeaver object must be initialized with dendrograms to run MirrorTree methods'=
+  stopifnot('EvoWeaver object must be initialized with dendrograms to run MirrorTree methods'=
               useMT)
 
   skip <- FALSE
@@ -157,7 +157,7 @@ CophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
   return(outmat)
 }
 
-RandCophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
+RandCophProfiles.EvoWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
                                         speciesList=NULL, outdim=-1,
                                         speciesCorrect=FALSE, mySpeciesTree=NULL,
                                         Processors=1L, ...){
@@ -176,7 +176,7 @@ RandCophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
   useColoc <- attr(pw, 'useColoc')
   useMT <- attr(pw, 'useMT')
 
-  stopifnot('ProtWeaver object must be initialized with dendrograms to run MirrorTree methods'=
+  stopifnot('EvoWeaver object must be initialized with dendrograms to run MirrorTree methods'=
               useMT)
 
   skip <- FALSE
@@ -954,7 +954,7 @@ predictWithBuiltins <- function(preds){
 }
 
 findSpeciesTree <- function(pw, Verbose=TRUE, NameFun=NULL, Processors=1L){
-  stopifnot("ProtWeaver object must contain dendrograms"=attr(pw, "useMT"))
+  stopifnot("EvoWeaver object must contain dendrograms"=attr(pw, "useMT"))
   if (attr(pw, "useColoc") && is.null(NameFun)){
     NameFun <- function(x) gsub('([^_])_.*', '\\1', x)
   }

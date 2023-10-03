@@ -156,13 +156,13 @@ A more self-contained example is maintained in this package's Bioconductor vigne
 
 ### Creating Functional Association Networks
 
-SynExtend also allows for prediction of functional association networks from evidence of correlated selective pressures between of pairs of clusters of orthologous genes (COGs). Given a list of gene trees or presence/absence data, the `ProtWeaver` class in SynExtend uses multiple algorithms to compute likelihood of pairwise functional association. This list can be generated with `DisjointSet(...)`, or can be created by the user. 
+SynExtend also allows for prediction of functional association networks from evidence of correlated selective pressures between of pairs of clusters of orthologous genes (COGs). Given a list of gene trees or presence/absence data, the `EvoWeaver` class in SynExtend uses multiple algorithms to compute likelihood of pairwise functional association. This list can be generated with `DisjointSet(...)`, or can be created by the user. 
 
-An example of using `ProtWeaver` can be done using the built-in example *Streptomyces* dataset. This will predict functional association of 200 genes from 301 genomes. 
+An example of using `EvoWeaver` can be done using the built-in example *Streptomyces* dataset. This will predict functional association of 200 genes from 301 genomes. 
 
 ```r
 exData <- get(data("ExampleStreptomycesData"))
-pw <- ProtWeaver(exData$Genes)
+pw <- EvoWeaver(exData$Genes)
 
 # For faster runtime, set subset as follows:
 # predictions <- predict(pw, mySpeciesTree=exData$Tree, subset=1:20)
@@ -180,7 +180,7 @@ as.data.frame(predictions)
 plot(predictions)
 ```
 
-Current algorithms used for prediction are Jaccard distance, Hamming distance, Mutual Information, Direct Coupling Analysis, Phylogenetic Gain/Loss events, Co-localization, MirrorTree, and ContextTree. See `?ProtWeaver` for more details.
+Current algorithms used for prediction are Jaccard distance, Hamming distance, Mutual Information, Direct Coupling Analysis, Phylogenetic Gain/Loss events, Co-localization, MirrorTree, and ContextTree. See `?EvoWeaver` for more details.
 
 ### Planned Updates
 
@@ -192,4 +192,4 @@ If users have specific requests I would love to incorporate them.
 
 ## Reporting Bugs and Errors
 
-Feel free to email me at npc19@pitt.edu or submit issues here on GitHub. Questions related to `ProtWeaver` can be sent to ahl27@pitt.edu or submitted similarly on GitHub.
+Feel free to email me at npc19@pitt.edu or submit issues here on GitHub. Questions related to `EvoWeaver` can be sent to ahl27@pitt.edu or submitted similarly on GitHub.
