@@ -127,7 +127,7 @@ SEXP StringToNVDT(SEXP DNASTRING, SEXP REMOVEGAPS, SEXP EXTENDED, SEXP USEDNA){
           if (j==0)
             outvals[idx+codexlen] += (i+1.0);
         }
-      } 
+      }
       else break;
     }
   }
@@ -231,7 +231,6 @@ static double calc_mi_colpair(int* col1, int* col2, int collen, double addVal, i
   double jEnt = 0;
 
   for(int i=0; i<collen; i++){
-    //if(col1[i]*col2[i])
       contTable[col1[i]*u2+col2[i]]+=addVal;
   }
 
@@ -296,9 +295,8 @@ SEXP MIForSequenceSets(SEXP M1, SEXP M2, SEXP NSEQS, SEXP U1, SEXP U2, SEXP BASE
       jointEnt[i*c2+j] = calc_mi_colpair(m1+nseqs*i, m2+nseqs*j, nseqs, addVal, u1, u2, logBase);
 
   for(int i=0; i<c1; i++)
-    for(int j=0; j<c2; j++){
+    for(int j=0; j<c2; j++)
       jointEnt[i*c2+j] = jointEnt[i*c2+j] ? (ent1[i] + ent2[j] - jointEnt[i*c2+j]) / jointEnt[i*c2+j] : 0;
-    }
 
   SEXP rval = PROTECT(allocVector(REALSXP, c1*c2));
   memcpy(REAL(rval), jointEnt, sizeof(double)*c1*c2);

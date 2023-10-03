@@ -15,7 +15,7 @@ Ancestral <- function(pw, ...) UseMethod('Ancestral')
 
 ResidueMI.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
                                  precalcSubset=NULL, gapCutoff=0.5, 
-                                 useDNA=FALSE, Processors=1L, ...){
+                                 useDNA=FALSE, Processors=1L, useWeights=TRUE, ...){
   useResidue <- attr(pw, 'useResidue')
   useMT <- attr(pw, 'useMT')
   useColoc <- attr(pw, 'useColoc')
@@ -68,7 +68,7 @@ ResidueMI.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
       maskPos <- which(!MaskAlignment(DNAStringSet(seqs), 
                                       type='values', includeTerminalGaps = TRUE)[,3])
     } else {
-      maskPos <- which(!MaskAlignment(AAStringSet(seqs), 
+      maskPos <- which(!MaskAlignment(AAStringSet(seqs), threshold=0.3,
                                       type='values', includeTerminalGaps = TRUE)[,3])
     }
     
@@ -108,8 +108,9 @@ ResidueMI.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
         #tree2 <- pw[[uval2]]
         seqs2 <- ResidueSets[[j]]
         #pairscores[ctr+1] <- ResidueMIDend(tree1, tree2, useColoc=useColoc, ...)
-        pairscores[ctr+1] <- ResidueMISeqs(seqs1, seqs2, lookup=lookup, 
-                                           useColoc=useColoc, Processors=Processors, ...)
+        score <- ResidueMISeqs(seqs1, seqs2, lookup=lookup, 
+                                useColoc=useColoc, Processors=Processors, ...)
+        pairscores[ctr+1] <- ifelse(is.na(score), 0L, score)
       }
       ctr <- ctr + 1
       if (Verbose) setTxtProgressBar(pb, ctr)

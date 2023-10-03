@@ -94,7 +94,7 @@ SEXP calcScoreGL(SEXP tnPtr, SEXP glv1, SEXP glv2){
 
   free(nodeScores);
   SEXP retval = PROTECT(allocVector(REALSXP, 1));
-  REAL(retval)[0] = r; 
+  REAL(retval)[0] = r;
   UNPROTECT(1);
   return retval;
 }
@@ -133,7 +133,7 @@ SEXP calcScoreHamming(SEXP ov1, SEXP ov2, SEXP NN, SEXP norm){
     //outval += pow((v1[i] - v2[i]), 2);
   }
   outval = 1 - (outval / v1len);
-  
+
   SEXP retval = PROTECT(allocVector(REALSXP, 1));
   REAL(retval)[0] = outval;
   UNPROTECT(1);
@@ -187,15 +187,15 @@ SEXP GRFInfo(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels, SEXP shouldUseJRF, SEXP J
 
   double RFscore, entropy1, entropy2;
   if (useJRF){
-    RFscore = scoreJaccardRFDist(part1, part2, t1pln, t2pln, numLabels, jaccardExp); 
+    RFscore = scoreJaccardRFDist(part1, part2, t1pln, t2pln, numLabels, jaccardExp);
     entropy1 = t1pln;
     entropy2 = t2pln;
   } else {
-    RFscore = scorePMs(part1, part2, t1pln, t2pln, numLabels); 
+    RFscore = scorePMs(part1, part2, t1pln, t2pln, numLabels);
     entropy1 = calcEntropy(part1, numLabels, t1pln);
-    entropy2 = calcEntropy(part2, numLabels, t2pln); 
+    entropy2 = calcEntropy(part2, numLabels, t2pln);
   }
-  
+
   // cleanup
   for (int i=0; i<=t1pl; i++)
     free(part1[i]);
@@ -252,7 +252,7 @@ SEXP RFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
   }
 
   PutRNGstate();
-  
+
   RFHashMap(tree1, ht1, keyvals, allHashed, numLabels, t1pl);
   RFHashMap(tree2, ht2, keyvals, allHashed, numLabels, t2pl);
   Free(allHashed);
@@ -308,8 +308,8 @@ SEXP RFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
       }
     }
     if (!found) num_unique++;
-  }  
-  
+  }
+
   // cleanup
   Free(ht1);
   Free(ht2);
@@ -363,7 +363,7 @@ SEXP KFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
   }
 
   PutRNGstate();
-  
+
   KFHashMap(tree1, ht1, dists1, keyvals, allHashed, numLabels, t1pl);
   KFHashMap(tree2, ht2, dists2, keyvals, allHashed, numLabels, t2pl);
   Free(allHashed);
@@ -436,8 +436,8 @@ SEXP KFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
       }
     }
     if (!found) score += pow(curh, 2);
-  }  
-  
+  } 
+
   // cleanup
   Free(ht1);
   Free(ht2);
@@ -633,7 +633,7 @@ double scoreSisterClades(treeNode *node, double *scores){
   // add children
   retval += scoreSisterClades(node->left, scores);
   retval += scoreSisterClades(node->right, scores);
-  
+
   double curscore = scores[node->value];
   // add current node
   retval += fabsl(curscore - scores[node->left->value]);
@@ -685,11 +685,11 @@ void internalPartitionMap(treeNode *node, bool **pSets, unsigned int *hvs, int l
       }
     }
   } else {
-    int lv=0, rv=0; 
+    int lv=0, rv=0;
     if (node->left){
       internalPartitionMap(node->left, pSets, hvs, lh, rootv);
       lv = node->left->value;
-    } 
+    }
     if (node->right){
       internalPartitionMap(node->right, pSets, hvs, lh, rootv);
       rv = node->right->value;
@@ -878,6 +878,7 @@ double scoreJaccardRFDist(bool **pm1, bool **pm2, int pm1l, int pm2l, int lh, do
   // note that B1 = !A1, B2 = !A2
   int counts[8];
   for (int i=0; i<shortl; i++){
+    R_CheckUserInterrupt();
     minval = 1;
     curS = shortPm[i];
     found = false;
@@ -913,7 +914,7 @@ double calcJaccardPairingScore(bool *v1, bool *v2, int lh, double expv){
   /****
    * We have two sets, A and B.
    * A = (A, A'); B = (B, B')
-   * 
+   *
    * Memory Map:
    * vals[0]: A  &&  B
    * vals[1]: A' &&  B

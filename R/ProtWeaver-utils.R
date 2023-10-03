@@ -54,7 +54,7 @@ BuildSimMatInternal <- function(vecs, uvals, evalmap, l, n, FXN, ARGS, Verbose,
     }
   }
   if (Verbose) cat('\n')
-  
+
   n <- n[uvals]
   if (!is.null(CORRECTION)){
     pairscores <- CORRECTION(pairscores)
@@ -63,7 +63,7 @@ BuildSimMatInternal <- function(vecs, uvals, evalmap, l, n, FXN, ARGS, Verbose,
   return(pairscores)
 }
 
-PAProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE, 
+PAProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
                                   speciesList=NULL, ...){
   cols <- names(pw)
   ao <- attr(pw, 'allOrgs')
@@ -79,7 +79,7 @@ PAProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
     pw <- lapply(pw, labels)
   if (useColoc)
     pw <- lapply(pw, gsub, pattern='([^_]*)_.*', replacement='\\1')
-  
+
   skip <- FALSE
   if ( !is.null(toEval) ){
     skip <- TRUE
@@ -100,7 +100,7 @@ PAProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
   return(profiles)
 }
 
-CophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE, 
+CophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
                                     speciesList=NULL, ...){
   ## TODO: Some way to handle paralogs
   cols <- names(pw)
@@ -113,10 +113,10 @@ CophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
   }
   useColoc <- attr(pw, 'useColoc')
   useMT <- attr(pw, 'useMT')
-  
+
   stopifnot('ProtWeaver object must be initialized with dendrograms to run MirrorTree methods'=
               useMT)
-  
+
   skip <- FALSE
   if ( !is.null(toEval) ){
     skip <- TRUE
@@ -137,7 +137,7 @@ CophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
       cop <- as.matrix(Cophenetic(pw[[i]]))
       copOrgNames <- rownames(cop)
       if (useColoc){
-        copOrgNames <- vapply(copOrgNames, gsub, pattern='(.+)_.+_[0-9]+', 
+        copOrgNames <- vapply(copOrgNames, gsub, pattern='(.+)_.+_[0-9]+',
                               replacement='\\1', FUN.VALUE=character(1))
         rownames(cop) <- colnames(cop) <- copOrgNames
       }
@@ -157,9 +157,9 @@ CophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
   return(outmat)
 }
 
-RandCophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE, 
-                                        speciesList=NULL, outdim=-1, 
-                                        speciesCorrect=FALSE, mySpeciesTree=NULL, 
+RandCophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
+                                        speciesList=NULL, outdim=-1,
+                                        speciesCorrect=FALSE, mySpeciesTree=NULL,
                                         Processors=1L, ...){
   ## TODO: Some way to handle paralogs
   cols <- names(pw)
@@ -170,15 +170,15 @@ RandCophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
   } else {
     allOrgs <- ao
   }
-  
+
   Processors <- NormArgProcessors(Processors)
-  
+
   useColoc <- attr(pw, 'useColoc')
   useMT <- attr(pw, 'useMT')
-  
+
   stopifnot('ProtWeaver object must be initialized with dendrograms to run MirrorTree methods'=
               useMT)
-  
+
   skip <- FALSE
   if ( !is.null(toEval) ){
     skip <- TRUE
@@ -196,16 +196,16 @@ RandCophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
   attr(dummycoph, "Diag") <- TRUE
   attr(dummycoph, "Upper") <- TRUE
   attr(dummycoph, "Labels") <- allOrgs
-  
+
   if (speciesCorrect && !is.null(mySpeciesTree)){
     specd <- as.vector(fastCoph(mySpeciesTree))
     #specd[specd==0] <- 1
     spv2 <- as.vector(specd)
     spv2[spv2==0] <- 1
     #nonzeros <- which(specvec != 0)
-    #specvec <- .Call("randomProjection", specvec, nonzeros, length(nonzeros), outdim)  
+    #specvec <- .Call("randomProjection", specvec, nonzeros, length(nonzeros), outdim)
   }
-  
+
   #rownames(dummycoph) <- colnames(dummycoph) <- allOrgs
   if (Verbose) pb <- txtProgressBar(max=length(pw), style=3)
   for ( i in seq_along(pw) ){
@@ -218,7 +218,7 @@ RandCophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
       #copOrgNames <- rownames(cop)
       copOrgNames <- attr(cop, 'Labels')
       if (useColoc){
-        copOrgNames <- vapply(copOrgNames, gsub, pattern='([^_]*)_.*', 
+        copOrgNames <- vapply(copOrgNames, gsub, pattern='([^_]*)_.*',
                               replacement='\\1', FUN.VALUE=character(1))
         #rownames(cop) <- colnames(cop) <- copOrgNames
         attr(cop, 'Labels') <- copOrgNames
@@ -230,9 +230,9 @@ RandCophProfiles.ProtWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
       if (speciesCorrect){
         copvec[pos] <- (copvec[pos] - specd[pos]) / spv2[pos]
       }
-      copvec <- .Call("randomProjection", copvec, 
-                      pos, length(pos), outdim, 
-                      Processors, PACKAGE="SynExtend")  
+      copvec <- .Call("randomProjection", copvec,
+                      pos, length(pos), outdim,
+                      Processors, PACKAGE="SynExtend")
       copvec[copvec==0] <- NA
       outmat[,i] <- copvec
     }
@@ -269,7 +269,7 @@ ProcessSubset <- function(pw, Subset=NULL){
           val <- ifelse(length(val) == 0, -1, val[1])
         }, 0), ncol=2)
         excise <- (Subset[,1] < 0) | (Subset[,2] < 0)
-        if (sum(excise) > 0) 
+        if (sum(excise) > 0)
           Subset <- Subset[!excise,]
       }
       for ( i in seq_len(nrow(Subset))){
@@ -289,7 +289,7 @@ ProcessSubset <- function(pw, Subset=NULL){
         } else {
           evalmap <- list()
         }
-        
+
         if (entry < length(n)){
           evalmap[[entry]] <- seq(entry+1, length(n))
         }
@@ -302,18 +302,18 @@ ProcessSubset <- function(pw, Subset=NULL){
       }
     }
   }
-  
+
   return(list(evalmap=evalmap, uvals=uvals))
 }
 
-flatdendrapply <- function(dend, NODEFUN=NULL, LEAFFUN=NODEFUN, 
+flatdendrapply <- function(dend, NODEFUN=NULL, LEAFFUN=NODEFUN,
                            INCLUDEROOT=TRUE, ...){
   stopifnot("flatdendrapply only works on objects of class 'dendrogram'"=
               is(dend, 'dendrogram'))
   if (!is(NODEFUN, 'function') && !is(LEAFFUN, 'function'))
     stop("At least one of NODEFUN and LEAFFUN must be a function!")
-  
-  val <- lapply(dend, 
+
+  val <- lapply(dend,
                 \(x){
                   if (is.null(attr(x, 'leaf'))){
                     if (!is(NODEFUN, 'function'))
@@ -322,23 +322,23 @@ flatdendrapply <- function(dend, NODEFUN=NULL, LEAFFUN=NODEFUN,
                       v <- list(NODEFUN(x, ...))
                     for ( child in x ) v <- c(v, Recall(child))
                     return(v)
-                  } 
+                  }
                   else if (!is(LEAFFUN, 'function'))
                     return(list())
-                  else 
+                  else
                     return(list(LEAFFUN(x, ...)))
                 }
   )
   retval <- unlist(val, recursive=FALSE)
   if (!INCLUDEROOT)
     retval[[1]] <- NULL
-  
+
   lens <- vapply(retval, length, FUN.VALUE=0L)
   atom <- vapply(retval, is.atomic, FUN.VALUE=TRUE)
-  
+
   if(all(lens == 1L) && all(atom))
     retval <- unlist(retval)
-  
+
   return(retval)
 }
 
@@ -358,14 +358,14 @@ find_dend_distances <- function(dend, useColoc=FALSE){
   leafh <- rapply(dend, \(x) c(attr(x, 'label'), attr(x, 'height')))
   leafheights <- as.numeric(leafh[seq(2, length(leafh)+1, 2)])
   names(leafheights) <- leafh[seq(1, length(leafh), 2)]
-  
+
   roothvec <- rep(attr(dend, 'height'), length(leafheights))
   roothvec <- roothvec - leafheights
   names(roothvec) <- names(leafheights)
   roothvec <- roothvec[order(unlist(dend))]
   attr(dend, 'distances') <- roothvec
   attr(dend, 'branchlen') <- 0
-  
+
   finddistvec <- function(node, parent){
     curv <- attr(parent, 'distances')
     branchlen <- attr(parent, 'height') - attr(node, 'height')
@@ -381,7 +381,7 @@ find_dend_distances <- function(dend, useColoc=FALSE){
     attr(node, 'branchlen') <- branchlen
     return(node)
   }
-  
+
   dend <- recursive_parentdendrapply(dend, finddistvec)
   return(dend)
 }
@@ -408,7 +408,7 @@ AdjMatToDf <- function(preds, Verbose=TRUE){
     if (Verbose) setTxtProgressBar(pb, i)
   }
   cat('\n')
-  
+
   nc <- ncol(AdjDf)
   rtk <- vapply(seq_len(nrow(AdjDf)), function(x) sum(is.na(AdjDf[x,3:nc])) < (nc/2 - 1),
                 FUN.VALUE=TRUE)
@@ -421,7 +421,7 @@ PAStats <- function(predDf, paps){
   l <- nrow(paps)
   ocv1 <- vapply(predDf[,1], function(x) sum(paps[,x]) / l, 0)
   ocv2 <- vapply(predDf[,2], function(x) sum(paps[,x]) / l, 0)
-  
+
   d <- abs(ocv1 - ocv2)
   av <- (ocv1 + ocv2) / 2
   return(list(avg=av, diff=d))
@@ -442,12 +442,12 @@ DCA_minimize_fxn <- function(params, R, spins, i){
   sigj <- spins[,-i]
   Hi <- params[i]
   Jij <- params[-i]
-  
+
   sigprods <- sigi * sigj
   firstterm <- colSums(Jij * t(sigprods))
   secondterm <- Hi * sigi
   Si <- mean(exp( -1 * (firstterm + secondterm)))
-  
+
   regularizer <- R * sum(abs(Jij))
   retval <- log(Si + regularizer)
   if (is.infinite(retval)){
@@ -458,12 +458,12 @@ DCA_minimize_fxn <- function(params, R, spins, i){
 
 DCA_gradient_minimize_fxn <- function(params, R, spins, i){
   grad <- numeric(length(params))
-  
+
   sigi <- spins[,i]
   sigj <- spins[,-i]
   Hi <- params[i]
   Jij <- params[-i]
-  
+
   #Calculate gradient
   sigprods <- sigi * sigj
   firstterm <- colSums(Jij * t(sigprods))
@@ -490,17 +490,17 @@ DCA_logrise_run <- function(spins, links, regterm, printProgress=FALSE, Processo
     charsperline <- 73
     charsvec <- diff(floor(seq(0, charsperline, by=charsperline/nnodes))) == 1
   }
-  
+
   if (printProgress) cat('  |')
-  links <- simplify2array(mclapply(seq_len(nnodes), 
+  links <- simplify2array(mclapply(seq_len(nnodes),
                                    function(i){
                                      probs <- links[,i]
-                                     val <- optim(probs, DCA_minimize_fxn, 
+                                     val <- optim(probs, DCA_minimize_fxn,
                                                   gr=DCA_gradient_minimize_fxn,
                                                   method='BFGS',
                                                   control=list(reltol=1e-6),
                                                   R=regterm, spins=spins, i=i)$par
-                                     if (printProgress && charsvec[i]) 
+                                     if (printProgress && charsvec[i])
                                        system2('printf', '=')
                                      return(val)
                                    }, mc.cores=Processors, mc.preschedule = TRUE
@@ -512,7 +512,7 @@ DCA_logrise_run <- function(spins, links, regterm, printProgress=FALSE, Processo
       links[i,j] <- links[j,i] <- mean(links[i,j], links[j,i])
     }
   }
-  
+
   if (printProgress) cat('\n  Done.\n  Eliminating edges close to zero (may take a moment)...\n')
   # Shrink close to zero to zero
   vals <- links[upper.tri(links)]
@@ -526,7 +526,7 @@ DCA_logrise_run <- function(spins, links, regterm, printProgress=FALSE, Processo
     double_up <- which(up[-length(up)] & up[-1])
     double_down <- which(down[-length(down)] & down[-1])
     safeguards <- quantile(vals, c(0.15,0.85))
-    
+
     if ( length(double_up) == 0 ){
       tmp <- which(up)
       double_up <- ifelse(length(tmp) != 0, which(up)[1], NA)
@@ -534,7 +534,7 @@ DCA_logrise_run <- function(spins, links, regterm, printProgress=FALSE, Processo
       double_up <- double_up[1]
     }
     uthresh <- ifelse(is.na(double_up), safeguards[2], min(h$breaks[bin0+double_up+1], safeguards[2]))
-    
+
     if ( length(double_down) == 0 ){
       tmp <- which(down)
       double_down <- ifelse(length(tmp) != 0, which(down)[1], NA)
@@ -542,48 +542,48 @@ DCA_logrise_run <- function(spins, links, regterm, printProgress=FALSE, Processo
       double_down <- double_down[1]
     }
     lthresh <- ifelse(is.na(double_down), safeguards[1], max(h$breaks[bin0-double_down-1], safeguards[1]))
-    
+
     d <- diag(links)
     links[(links < uthresh & links > 0) | (links > lthresh & links < 0)] <- 0
     diag(links) <- d
-  } 
-  
+  }
+
   max_degree <- max(rowSums(links != 0))
   max_val <- max(links) * 2 #conservative estimate on link strength
   bounding <- exp(max_degree * max_val)
   if (printProgress) cat('  Refining edge weights...\n')
-  
+
   if (printProgress) cat('  |')
   links <- simplify2array(
-    mclapply(seq_len(nnodes), 
+    mclapply(seq_len(nnodes),
              function(i) {
                probs <- links[,i]
                mask <- seq_len(nnodes) == i
                nonzeros <- (probs != 0) | mask #have to include the self val
                adjustment <- ifelse(i==1, 0, sum(!nonzeros[seq_len(i-1)]))
-               
+
                if ( sum(nonzeros) > 1 ){
                  pspins <- spins[,nonzeros]
                  pprobs <- probs[nonzeros]
-                 val <- optim(pprobs, DCA_minimize_fxn, 
+                 val <- optim(pprobs, DCA_minimize_fxn,
                               gr=DCA_gradient_minimize_fxn,
-                              method='L-BFGS-B', 
+                              method='L-BFGS-B',
                               lower=-bounding, upper=bounding,
                               R=0, spins=pspins, i=(i-adjustment))$par
                  probs[nonzeros] <- val
                }
                if (printProgress && charsvec[i]) system2('printf', '=')
                return(probs)
-             }, 
-             mc.cores=Processors, mc.preschedule=TRUE))  
+             },
+             mc.cores=Processors, mc.preschedule=TRUE))
   if (printProgress) cat('| ')
-  
+
   for ( i in seq_len(nrow(links)-1) ){
     for ( j in (i+1):ncol(links)){
       links[i,j] <- links[j,i] <- mean(links[i,j], links[j,i])
     }
   }
-  
+
   if (max(abs(links)) != 0)
     links <- links / max(abs(links))
   if (printProgress) cat('\n  Done.\n')
@@ -591,40 +591,40 @@ DCA_logrise_run <- function(spins, links, regterm, printProgress=FALSE, Processo
 }
 
 
-DCA_logRISE <- function(PAProfiles, niter=1, reg_const=1, 
+DCA_logRISE <- function(PAProfiles, niter=1, reg_const=1,
                         Processors=1L, zero_cutoff=0, Verbose=TRUE, ...){
-  
+
   mult <- 1/niter
   intPA <- PAProfiles + 0
   intPA[intPA==0] <- -1
   nc <- ncol(intPA)
   pp <- FALSE
-  
-  if (Verbose & niter==1) pp <- TRUE  
+
+  if (Verbose & niter==1) pp <- TRUE
   else if (Verbose){
     cat('Running DCA with', niter, 'iterations:\n')
     pb <- txtProgressBar(max=niter, style=3)
-  } 
-  
+  }
+
   truelinks <- countsmat <- matrix(0, nrow=nc, ncol=nc)
   for ( i in seq_len(niter) ){
     #initlinks <- matrix(0, nrow=nc, ncol=nc)
     initlinks <- matrix(rnorm(nc**2), nrow=nc)
-    iterlink <- DCA_logrise_run(intPA, initlinks, reg_const, 
+    iterlink <- DCA_logrise_run(intPA, initlinks, reg_const,
                                 printProgress=pp, Processors=Processors)
     countsmat <- countsmat + (iterlink != 0)
     truelinks <- truelinks + mult * iterlink
     if(Verbose & !pp) setTxtProgressBar(pb, i)
   }
   if(Verbose & !pp) cat('\n')
-  
+
   if (zero_cutoff > 0) {
     cutoff <- ifelse(zero_cutoff > 1, zero_cutoff, zero_cutoff * niter)
     countsmat[countsmat < cutoff] <- 0
     countsmat[countsmat > 0] <- 1
     truelinks <- truelinks * countsmat
-  } 
-  
+  }
+
   return(truelinks)
 }
 
@@ -642,9 +642,9 @@ CorrComp_C <- function(fm, fsp, ssp, nv, nr){
   stopifnot(nr == as.integer(nr))
   stopifnot(all(fsp == as.integer(fsp)))
   stopifnot(all(ssp == as.integer(ssp)))
-  
-  a <- .Call('trimCovar', fm, as.integer(fsp), 
-             as.integer(ssp), as.integer(nv), 
+
+  a <- .Call('trimCovar', fm, as.integer(fsp),
+             as.integer(ssp), as.integer(nv),
              as.integer(nr), PACKAGE="SynExtend")
   return(a)
 }
@@ -661,17 +661,17 @@ ResidueMIDend <- function(dend1, dend2, cutoff=0.9, comppct=0.25, useColoc, ...)
   if (length(completeSet) == 0){
     return(0)
   }
-  
-  edges1 <- flatdendrapply(dend1, 
-                           \(x) list(vals=as.character(unlist(x)), 
-                                     state=attr(x, 'state')), 
+
+  edges1 <- flatdendrapply(dend1,
+                           \(x) list(vals=as.character(unlist(x)),
+                                     state=attr(x, 'state')),
                            NULL)
-  edges2 <- flatdendrapply(dend2, 
-                           \(x) list(vals=as.character(unlist(x)), 
-                                     state=attr(x, 'state')), 
+  edges2 <- flatdendrapply(dend2,
+                           \(x) list(vals=as.character(unlist(x)),
+                                     state=attr(x, 'state')),
                            NULL)
-  
-  
+
+
   jsscore <- matrix(Inf, nrow=length(edges1), ncol=length(edges2))
   for ( i in seq_along(edges1) ){
     v1 <- intersect(edges1[[i]]$vals, completeSet)
@@ -681,7 +681,7 @@ ResidueMIDend <- function(dend1, dend2, cutoff=0.9, comppct=0.25, useColoc, ...)
       jsscore[i,j] <- ifelse(is.nan(s), 1, s)
     }
   }
-  
+
   nr <- nrow(jsscore)
   nc <- ncol(jsscore)
   if (nr < nc){
@@ -694,10 +694,10 @@ ResidueMIDend <- function(dend1, dend2, cutoff=0.9, comppct=0.25, useColoc, ...)
     nr <- tm
   }
   #now guaranteed to have the larger dimension be nrow
-  
+
   rownames(jsscore) <- as.character(seq_len(nr))
   colnames(jsscore) <- as.character(seq_len(nc))
-  
+
   # I'm just using a greedy matching here, couldn't figure out Hungarian
   # and this also scales much better
   pairings <- rep(NA, nc)
@@ -715,8 +715,8 @@ ResidueMIDend <- function(dend1, dend2, cutoff=0.9, comppct=0.25, useColoc, ...)
     possible <- allvals[!(allvals %in% pairings)]
     pairings[is.na(pairings)] <- sample(possible, checksum)
   }
-  names(pairings) <- colnames(jsscore) 
-  
+  names(pairings) <- colnames(jsscore)
+
   seqset1 <- seqset2 <- NULL
   n <- names(pairings)
   for ( i in seq_along(pairings) ){
@@ -730,7 +730,7 @@ ResidueMIDend <- function(dend1, dend2, cutoff=0.9, comppct=0.25, useColoc, ...)
       seqset2 <- append(seqset2, edges2[[a2]]$state)
     }
   }
-  
+
   names(seqset1) <- names(seqset2) <- seq_len(length(pairings))
   res <- MISeqLevel(seqset1, seqset2, compressionpct=comppct)
   return(res)
@@ -747,24 +747,31 @@ ResidueMISeqs <- function(seqs1, seqs2, lookup, Processors, ...){
   s1 <- seqs1[completeSet,,drop=FALSE]
   s2 <- seqs2[completeSet,,drop=FALSE]
   nseqs <- length(completeSet)
+  if(nseqs == 1){
+    return(0)
+  }
   # add gap character
   baseval <- length(lookup)+1L
-  
-  AllMIs <- .Call("MIForSequenceSets", s1, s2, nseqs, 
+
+  AllMIs <- .Call("MIForSequenceSets", s1, s2, nseqs,
                   baseval, baseval, baseval+0.0, Processors)
   AllMIs <- matrix(AllMIs, ncol=ncol(s1))
+  APCm <- matrix(0, nrow=nrow(AllMIs), ncol=ncol(AllMIs))
+  APCm[] <- rowMeans(AllMIs)
+  APCm <- t(t(APCm)*colMeans(AllMIs))
+  AllMIs <- AllMIs - (APCm) / mean(AllMIs)
   if(ncol(AllMIs) > nrow(AllMIs))
     AllMIs <- t(AllMIs)
   meanEnt <- mean(AllMIs)
   sdEnt <- sd(AllMIs)
   maxVals <- vapply(seq_len(ncol(AllMIs)), \(cn) max(AllMIs[,cn]),
                     numeric(1L), USE.NAMES = FALSE)
-  
+
   pvals <- pnorm(maxVals, mean=meanEnt, sd=sdEnt, lower.tail=FALSE)
   # Fisher's Method to combine p values
   testStat <- -2 * sum(log(pvals))
   totalP <- pchisq(testStat, df=2*length(pvals), lower.tail=FALSE)
-  
+
   return(mean(maxVals) * (1-totalP))
 }
 
@@ -787,7 +794,7 @@ MISeqLevel <- function(seqSet1, seqSet2, compressionpct=0.25){
     #warning('No sequences shared. Check seqSet names!')
     return(0)
   }
-  
+
   v <- CorrCompressSeqs(cali, start2, mvalpct=compressionpct)
   if (!is.null(v$warn)){
     #warning('Sequences identical.')
@@ -797,21 +804,21 @@ MISeqLevel <- function(seqSet1, seqSet2, compressionpct=0.25){
   pos <- v$pos
   newstart2 <- which.max(pos >= start2)
   miscore <- CalcMIReduced(compali, newstart2)
-  
+
   # APC correction
   nr <- nrow(miscore)
   nc <- ncol(miscore)
   if (nr == 0 || nc == 0){
     return(0)
   }
-  APC_corr <- matrix(colMeans(miscore), nr, nc, byrow = TRUE) * 
+  APC_corr <- matrix(colMeans(miscore), nr, nc, byrow = TRUE) *
     matrix(rowMeans(miscore), nr, nc, byrow = FALSE) / mean(miscore)
   miscore <- miscore - APC_corr
-  
+
   # scoring
   miscore <- apply(abs(miscore), 2, max)
   retval <- mean(miscore)
-  if (is.nan(retval)) 
+  if (is.nan(retval))
     retval <- 0
   return(retval)
 }
@@ -823,27 +830,27 @@ ConcatSeqs <- function(seqSet1, seqSet2){
   return(concatAli)
 }
 
-CorrCompressSeqs <- function(myStringSet, start2, pseudocount=2, mvalpct=0.5, 
+CorrCompressSeqs <- function(myStringSet, start2, pseudocount=2, mvalpct=0.5,
                              gapLetters=c('-', '.'),
                              uncertainty_cutoff=0.158, MAF_cutoff=0.15){
   freqMat <- consensusMatrix(myStringSet, as.prob=FALSE)
   freqMat <- freqMat[rowSums(freqMat) != 0,]
   freqMat <- freqMat + pseudocount
-  
+
   freqMat <- t(t(freqMat) / colSums(freqMat))
-  
-  
+
+
   to_keep <- rep(FALSE, ncol(freqMat))
   nongaploc <- !(rownames(freqMat) %in% gapLetters)
   for ( i in seq_along(to_keep) ){
     pos <- freqMat[,i]
     pos_no_gap <- pos[nongaploc]
-    
+
     missing_prob <- sum(pos[gapLetters], na.rm=TRUE)
     vals <- sort(pos_no_gap, decreasing=TRUE)
-    
+
     MAF <- ifelse(vals[1] == 0, 0, vals[2] / (vals[1] + vals[2]))
-    
+
     to_keep[i] <- missing_prob < uncertainty_cutoff && MAF > MAF_cutoff
   }
   # Need a guard case here
@@ -853,10 +860,10 @@ CorrCompressSeqs <- function(myStringSet, start2, pseudocount=2, mvalpct=0.5,
   trimmedFreqMat <- freqMat[,to_keep]
   colnames(trimmedFreqMat) <- which(to_keep)
   fm <- unique(trimmedFreqMat, MARGIN=2)
-  
+
   nc <- ncol(fm)
-  num_vals <- ceiling(mvalpct * nc) 
-  
+  num_vals <- ceiling(mvalpct * nc)
+
   isInSecondSeq <- as.integer(colnames(fm)) >= start2
   s2 <- which.max(isInSecondSeq)
   firstSeqPos <- seq_len(s2-1)
@@ -887,7 +894,7 @@ CalcMIReduced <- function(trimmedXStringSet, start2,
   matxss <- as.matrix(trimmedXStringSet)
   group1 <- seq_len(start2-1)
   group2 <- seq_len(width(trimmedXStringSet[1]) - start2) + start2
-  
+
   u <- unique(c(matxss))
   converter <- seq_len(length(u)) - 1L
   names(converter) <- u
@@ -901,7 +908,7 @@ CalcMIReduced <- function(trimmedXStringSet, start2,
     subsetloc <- p1 != gapnum
     for ( j in seq_along(group2) ){
       p2 <- umat[,group2[j]]
-      
+
       fullsub <- subsetloc & (p2 != gapnum)
       p1p <- p1[fullsub]
       p2p <- p2[fullsub]
@@ -930,7 +937,7 @@ predictWithBuiltins <- function(preds){
     rcn <- relevant_cnames[i]
     if (rcn %in% pred_cnames){
       idxs <- !is.na(preds[,rcn])
-      modelsToUse[idxs] <- modelsToUse[idxs] + (2**(i-1)) 
+      modelsToUse[idxs] <- modelsToUse[idxs] + (2**(i-1))
     }
   }
   builtins <- get(data('BuiltInEnsembles', envir=environment()))
@@ -951,10 +958,10 @@ findSpeciesTree <- function(pw, Verbose=TRUE, NameFun=NULL, Processors=1L){
   if (attr(pw, "useColoc") && is.null(NameFun)){
     NameFun <- function(x) gsub('([^_])_.*', '\\1', x)
   }
-  
-  SpecTree <- SuperTree(unclass(pw), NAMEFUN=NameFun, 
+
+  SpecTree <- SuperTree(unclass(pw), NAMEFUN=NameFun,
                         Verbose=Verbose, Processors=Processors)
-  
+
   return(SpecTree)
 }
 
@@ -966,11 +973,11 @@ find_dists_pos <- function(dend, useColoc=FALSE){
   allPos <- names(sort(table(rapply(dend, \(x){
     as.integer(gsub("[^0-9]([0-9]*)[^0-9]", "\\1", attr(x, 'change')))
   }, how='unlist')), decreasing = TRUE))
-  
+
   if(length(allPos) > cutoff){
     allPos <- allPos[seq_len(cutoff)]
   }
-  
+
   # ensure they're always characters
   labs <- as.character(names(attr(dend, 'distances')))
   num_labels <- length(labs)
@@ -980,7 +987,7 @@ find_dists_pos <- function(dend, useColoc=FALSE){
     return(y)
   })
   names(posVecs) <- allPos
-  
+
   #names(pm) <- as.character(allPos)
   rapply(dend, \(x) {
     pos <- gsub("[^0-9]([0-9]*)[^0-9]", "\\1", attr(x, 'change'))
@@ -995,13 +1002,13 @@ find_dists_pos <- function(dend, useColoc=FALSE){
     }
     return(NULL)
   }, how='unlist')
-  
+
   for(i in seq_along(posVecs)){
     p <- posVecs[[i]]
     p[is.infinite(p)] <- NA_real_
     posVecs[[i]] <- p
   }
-  
+
   return(posVecs)
 }
 
@@ -1026,7 +1033,7 @@ pair_residues <- function(pm1, pm2){
       pmS[[i]] <- pmS[[i]][nameoverlap]
   }
   ## Greater value should always be columns
-  
+
   # Max pair because residues can have one to many contacts
   CorrVal <- PVal <- rep(-Inf, l1)
   ns <- names(pmS)
@@ -1036,7 +1043,7 @@ pair_residues <- function(pm1, pm2){
     for(j in seq_len(l2)){
       vRow <- pmS[[j]]
       curcorr <- .Call("fastPearsonC", vRow, vCol)
-      
+
       if (curcorr[1] > CorrVal[i]){
         CorrVal[i] <- curcorr[1]
         # Alternative = 'greater'
@@ -1093,7 +1100,7 @@ fastCoph <- function(dend){
   o <- order(u)
   u <- u[o]
   labs <- labels(dend)[o]
-  
+
   # Move unlist() labels into 1:n space
   dend <- rapply(dend,
                  function(y) {
@@ -1101,31 +1108,99 @@ fastCoph <- function(dend){
                    y
                  },
                  how="replace")
-  
+
   dendrapply(dend, function(x){
     if(is.leaf(x)) return(x)
     for(k in seq_along(x)){
       h <- attr(x, "height") - attr(x[[k]], "height")
       I <- unlist(x[[k]])
       J <- seq_len(n)[-I]
-      d <<- .Call("se_cophenetic", 
+      d <<- .Call("se_cophenetic",
                 I,
                 J,
                 n,
                 d,
                 h,
                 PACKAGE="SynExtend")
-      
+
     }
     x
   }, how='post.order')
-  
+
   class(d) <- "dist"
   attr(d, "Size") <- n
   attr(d, "Diag") <- TRUE
   attr(d, "Upper") <- TRUE
   attr(d, "Labels") <- labs
-  
+
   return(d)
+}
+
+rowSumsOfDist <- function(dv){
+  n <- attr(dv, 'Size')
+  l <- attr(dv, 'Labels')
+  outSums <- numeric(n)
+  for(i in seq_len(n)){
+    lesservals <- seq_len(i-1)
+    lesservals <- n*(lesservals-1) - lesservals*(lesservals-1)/2 + i - lesservals
+    greatervals <- c()
+    if(i+1 <= n){
+      greatervals <- seq(i+1, n)
+      greatervals <- n*(i-1) - i*(i-1)/2 + greatervals - i
+    }
+    if(all(is.na(dv[c(lesservals, greatervals)]))){
+      outSums[i] <- NA
+    } else {
+      outSums[i] <- sum(dv[c(lesservals, greatervals)], na.rm=TRUE)
+    }
+  }
+  names(outSums) <- l
+  return(outSums)
+}
+
+trim_paralogs <- function(xss, verbose=TRUE){
+  n <- unique(names(xss))
+  lst <- vector('list', length(n))
+  names(lst) <- n
+  if(verbose) cat('Partitioning sequences...\n')
+  if(verbose) pb <- txtProgressBar(style=3, max=length(xss))
+  for(i in seq_along(xss)){
+    ni <- names(xss)[i]
+    if(is.null(lst[[ni]])){
+      lst[[ni]] <- xss[i]
+    } else {
+      lst[[ni]] <- c(lst[[ni]], xss[i])
+    }
+    if(verbose) setTxtProgressBar(pb, i)
+  }
+  if(verbose) cat('\nFinding best sequences...\n')
+
+  outSeqs <- NULL
+  if(verbose) pb <- txtProgressBar(style=3, max=length(lst))
+  for(i in seq_along(lst)){
+    if(length(lst[[i]]) <= 2){
+      choice <- 1L
+    } else {
+      seqs <- lst[[i]]
+      st <- seqtype(seqs)
+      seqs <- AlignSeqs(seqs, verbose=FALSE, processors=NULL)
+      seqs <- MaskAlignment(seqs)
+      seqs <- as(seqs, paste0(st, "StringSet"))
+      d <- DistanceMatrix(seqs, type='dist', verbose = FALSE)
+      d[is.na(d)] <- 2*max(d, na.rm=TRUE)
+      sums <- rowSumsOfDist(d)
+      choice <- which.min(sums)
+    }
+
+    if(is.null(outSeqs)){
+      outSeqs <- lst[[i]][choice]
+    } else {
+      outSeqs <- c(outSeqs, lst[[i]][choice])
+    }
+    if(verbose) setTxtProgressBar(pb, i)
+  }
+  if(verbose) cat('\n')
+
+  outSeqs
 }
 ########
