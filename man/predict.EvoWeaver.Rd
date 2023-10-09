@@ -1,15 +1,15 @@
-\name{predict.ProtWeaver}
-\alias{predict.ProtWeaver}
+\name{predict.EvoWeaver}
+\alias{predict.EvoWeaver}
 \title{
-Make predictions with ProtWeaver objects
+Make predictions with EvoWeaver objects
 }
 \description{
-This S3 method predicts pairwise functional associations between gene groups encoded in a \code{\link{ProtWeaver}} object.
-This returns an object of type \code{\link{ProtWeb}}, which is essentially an adjacency
+This S3 method predicts pairwise functional associations between gene groups encoded in a \code{\link{EvoWeaver}} object.
+This returns an object of type \code{\link{EvoWeb}}, which is essentially an adjacency
 matrix with some extra S3 methods to make printing cleaner.
 }
 \usage{
-\method{predict}{ProtWeaver}(object, Method='Ensemble',
+\method{predict}{EvoWeaver}(object, Method='Ensemble',
          Subset=NULL, Processors=1L,
          MySpeciesTree=SpeciesTree(object), 
          PretrainedModel=NULL,
@@ -18,7 +18,7 @@ matrix with some extra S3 methods to make printing cleaner.
 }
 \arguments{
   \item{object}{
-    A ProtWeaver object
+    A EvoWeaver object
   }
   \item{Method}{
     Method(s) to use for prediction. This can be a character vector with multiple entries for predicting using multiple methods. See 'Details' for more information.
@@ -49,7 +49,7 @@ matrix with some extra S3 methods to make printing cleaner.
   \item{MySpeciesTree}{
     Phylogenetic tree of all genomes in the dataset. Required for \code{Method='Behdenna'},
     and can improve predictions for other methods. \code{'Behdenna'} requires a 
-    rooted, bifurcating tree (other values of \code{Method} can handle arbitrary trees). Note that \code{ProtWeaver} can automatically infer a species tree if initialized with \code{dendrogram} objects.
+    rooted, bifurcating tree (other values of \code{Method} can handle arbitrary trees). Note that \code{EvoWeaver} can automatically infer a species tree if initialized with \code{dendrogram} objects.
   }
   \item{PretrainedModel}{
     A pretrained model for use with ensemble predictions. If unspecified when 
@@ -66,7 +66,7 @@ matrix with some extra S3 methods to make printing cleaner.
     with predictions from each algorithm for each pair. This dataframe is typically
     used to train an ensemble model. 
     
-    If \code{FALSE}, ProtWeaver will return predictions for each pair (using user model
+    If \code{FALSE}, EvoWeaver will return predictions for each pair (using user model
     if provided or a built-in otherwise).
   }
   \item{ReturnRawData}{
@@ -81,7 +81,7 @@ matrix with some extra S3 methods to make printing cleaner.
 }
 
 \details{
-\code{predict.ProtWeaver} wraps several methods to create an easy interface for multiple prediction types. \code{Method='Ensemble'} is the default value, but the following values of \code{Method} are also supported: 
+\code{predict.EvoWeaver} wraps several methods to create an easy interface for multiple prediction types. \code{Method='Ensemble'} is the default value, but the following values of \code{Method} are also supported: 
 
 \itemize{
   \item \code{'Ensemble'}: Ensemble prediction combining individual coevolutionary predictors.
@@ -107,28 +107,28 @@ Additional information and references for each prediction algorithm can be found
 following pages:
 
 \itemize{
-\item \link[=ProtWeaver-PAPreds]{ProtWeaver Presence/Absence Methods}
+\item \link[=EvoWeaver-PAPreds]{EvoWeaver Presence/Absence Methods}
 
-\item \link[=ProtWeaver-DMPreds]{ProtWeaver Distance Matrix Methods}
+\item \link[=EvoWeaver-DMPreds]{EvoWeaver Distance Matrix Methods}
 
-\item \link[=ProtWeaver-ColocPreds]{ProtWeaver Co-localization Methods}
+\item \link[=EvoWeaver-ColocPreds]{EvoWeaver Co-localization Methods}
 
-\item \link[=ProtWeaver-ResiduePreds]{ProtWeaver Residue Level Methods}
+\item \link[=EvoWeaver-ResiduePreds]{EvoWeaver Residue Level Methods}
 }
 
-This returns a \code{ProtWeb} object, an S3 class that makes formatting and printing of 
-results slightly nicer. See \code{\link{ProtWeb}} for more information.
+This returns a \code{EvoWeb} object, an S3 class that makes formatting and printing of 
+results slightly nicer. See \code{\link{EvoWeb}} for more information.
 
 Different methods require different types of input. The constructor 
-\code{\link{ProtWeaver}} will notify the user which methods are
+\code{\link{EvoWeaver}} will notify the user which methods are
 runnable with the given data. Method \code{Ensemble} automatically selects the 
 methods that can be run with the given input data. 
 
-See \code{\link{ProtWeaver}} for more information on input data types.
+See \code{\link{EvoWeaver}} for more information on input data types.
 
 }
 \value{
-Returns a ProtWeb object. See \code{\link{ProtWeb}} for more info.
+Returns a EvoWeb object. See \code{\link{EvoWeb}} for more info.
 }
 \author{
 Aidan Lakshman \email{ahl27@pitt.edu}
@@ -154,17 +154,17 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 }
 
 \seealso{
-\code{\link{ProtWeaver}}
+\code{\link{EvoWeaver}}
 
-\code{\link{ProtWeb}}
+\code{\link{EvoWeb}}
 
-\link[=ProtWeaver-PAPreds]{ProtWeaver Presence/Absence Predictors}
+\link[=EvoWeaver-PAPreds]{EvoWeaver Presence/Absence Predictors}
 
-\link[=ProtWeaver-DMPreds]{ProtWeaver Distance Matrix Predictors}
+\link[=EvoWeaver-DMPreds]{EvoWeaver Distance Matrix Predictors}
 
-\link[=ProtWeaver-ColocPreds]{ProtWeaver Co-localization Predictors}
+\link[=EvoWeaver-ColocPreds]{EvoWeaver Co-localization Predictors}
 
-\link[=ProtWeaver-ResiduePreds]{ProtWeaver Residue Level Predictors}
+\link[=EvoWeaver-ResiduePreds]{EvoWeaver Residue Level Predictors}
 }
 \examples{
 ##############
@@ -172,13 +172,13 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 ###############
 
 exData <- get(data("ExampleStreptomycesData"))
-pw <- ProtWeaver(exData$Genes[1:50])
+pw <- EvoWeaver(exData$Genes[1:50])
 
 # Subset isn't necessary but is faster for a working example
-protweb1 <- predict(pw, Subset=1:10, MySpeciesTree=exData$Tree)
+evoweb1 <- predict(pw, Subset=1:10, MySpeciesTree=exData$Tree)
 
 # print out results as an adjacency matrix
-protweb1
+evoweb1
 
 ###############
 ## Training own ensemble model
@@ -194,10 +194,10 @@ actual_values <- sample(c(0,1), nrow(datavals), replace=TRUE)
 datavals[,'y'] <- actual_values                  
 myModel <- glm(y~., datavals[,-c(1,2)], family='binomial')
 
-testProtWeaverObject <- ProtWeaver(exData$Genes[51:60])
-protweb2 <- predict(testProtWeaverObject, 
+testEvoWeaverObject <- EvoWeaver(exData$Genes[51:60])
+evoweb2 <- predict(testEvoWeaverObject, 
                      PretrainedModel=myModel)
                      
 # Print result as a matrix of pairwise scores
-protweb2
+evoweb2
 }

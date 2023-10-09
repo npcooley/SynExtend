@@ -8,8 +8,20 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+// benchmarking
+#include <time.h>
+
+// for OpenMP parallel processing
+#ifdef SUPPORT_OPENMP
+#include <omp.h>
+#endif
+
+
 #include "SynExtend.h"
 #include "SEutils.h"
+
+clock_t startt, endt;
+double cpu_time_used;
 
 int decodeChar(char c, const char *lookup){
   // convert to lowercase
@@ -47,7 +59,7 @@ char *removeGaps(const unsigned char *nuc, uint64_t len, const char *codex){
     if (decodeChar(fast[i], codex) >= 0)
       *(slow++) = (char) fast[i];
   *slow = '\0';
-  
+
   return(newstring);
 }
 
@@ -74,7 +86,7 @@ SEXP StringToNVDT(SEXP DNASTRING, SEXP REMOVEGAPS, SEXP EXTENDED, SEXP USEDNA){
   /*
    * outvals is a 12 or 92 length vector
    * raw counts stored as follows:
-   * 
+   *
    *   A   T   G   C
    *  AA  AT  AG  AC
    *  TA  TT  TG  TC
@@ -87,20 +99,20 @@ SEXP StringToNVDT(SEXP DNASTRING, SEXP REMOVEGAPS, SEXP EXTENDED, SEXP USEDNA){
    * Dinucleotides: 12 + 4*N2 + N1
    * Trinucleotides: 28 + 16*N3 + 4*N2 + N1
    */
-  
+
   // Get Raw Counts
   double *outvals = calloc(length, sizeof(double));
   const unsigned char *instring = RAW(DNASTRING);
   char *dnastring;
   if (rgaps){
-    dnastring = removeGaps(instring, sl, codex);  
+    dnastring = removeGaps(instring, sl, codex);
   } else {
     dnastring = calloc(sl+1, sizeof(char));
     for(uint64_t i=0; i<sl; i++)
       dnastring[i] = (char) instring[i];
     dnastring[sl] = '\0';
   }
-  
+
 
   int idx;
   uint64_t i, j;
@@ -115,7 +127,7 @@ SEXP StringToNVDT(SEXP DNASTRING, SEXP REMOVEGAPS, SEXP EXTENDED, SEXP USEDNA){
           if (j==0)
             outvals[idx+codexlen] += (i+1.0);
         }
-      } 
+      }
       else break;
     }
   }
@@ -174,8 +186,8 @@ SEXP fastPearsonC(SEXP V1, SEXP V2){
     r = 0;
     t = 0;
   }
-  
-  
+
+
 
   SEXP outval = PROTECT(allocVector(REALSXP, 3));
   REAL(outval)[0] = r;
@@ -187,5 +199,112 @@ SEXP fastPearsonC(SEXP V1, SEXP V2){
 }
 
 
+static const uint16_t L_table[] = {
+    0x0000, 0xfa46, 0xf4a3, 0xef15, 0xe99c, 0xe438, 0xdee7, 0xd9aa,
+    0xd480, 0xcf68, 0xca61, 0xc56c, 0xc088, 0xbbb4, 0xb6f0, 0xb23b,
+    0xad96, 0xa900, 0xa477, 0x9ffd, 0x9b91, 0x9732, 0x92e0, 0x8e9b,
+    0x8a63, 0x8636, 0x8216, 0x7e01, 0x79f8, 0x75fa, 0x7206, 0x6e1e,
+    0x6a40, 0x666c, 0x62a2, 0x5ee2, 0x5b2c, 0x577f, 0x53dc, 0x5042,
+    0x4cb0, 0x4927, 0x45a7, 0x422f, 0x3ec0, 0x3b58, 0x37f9, 0x34a1,
+    0x3151, 0x2e09, 0x2ac8, 0x278e, 0x245b, 0x2130, 0x1e0b, 0x1aed,
+    0x17d6, 0x14c5, 0x11bb, 0x0eb7, 0x0bba, 0x08c2, 0x05d1, 0x02e6
+};
+static double logBaseVal;
 
+/*
+static double fastlog2(double x){
+    if(x == 0) return(0);
+    if(x == 0.5) return(-1);
+    int e, lookup;
+    x = frexp(x, &e);
 
+    lookup = floor((x*2-1)*64);
+    x = -1*((double)L_table[lookup]) / (1<<16);
+
+    return(x+e);
+}
+*/
+static inline double fastlog2(double x){ return( x == 0 ? 0 : log2(x)); }
+
+static double calc_mi_colpair(int* col1, int* col2, int collen, double addVal, int u1, int u2, double base){
+  double* contTable = calloc(u1*u2, sizeof(double));
+  double jEnt = 0;
+
+  for(int i=0; i<collen; i++){
+      contTable[col1[i]*u2+col2[i]]+=addVal;
+  }
+
+  // trying to zero out the gap values
+
+  for(int i=0; i<u1*u2;i++)
+    jEnt -= contTable[i] * (fastlog2(contTable[i])) * logBaseVal;
+
+  free(contTable);
+  return(jEnt);
+}
+
+static double calc_ent_col(int* col, int collen, double addVal, int llen, double base){
+  double* ptab = calloc(llen, sizeof(double));
+  double ent = 0;
+  for(int i=0; i<collen; i++)
+    //if(col[i])
+      ptab[col[i]]+=addVal;
+
+  for(int i=0; i<llen; i++)
+    ent -= ptab[i] * fastlog2(ptab[i]) * logBaseVal;
+
+  free(ptab);
+  return(ent);
+}
+
+SEXP MIForSequenceSets(SEXP M1, SEXP M2, SEXP NSEQS, SEXP U1, SEXP U2, SEXP BASE, SEXP NTHREADS){
+  /*
+   * inputs:
+   *  - two matrices of residues/bases such encoded as integers
+   *  - number of sequences
+   *  - number of columns for each matrix (is this necessary?)
+   *  - T/F for if we're using AA or DNA
+   */
+
+  double logBase = REAL(BASE)[0];
+  int nseqs = INTEGER(NSEQS)[0];
+  int *m1 = INTEGER(M1);
+  int *m2 = INTEGER(M2);
+  int c1 = LENGTH(M1) / nseqs;
+  int c2 = LENGTH(M2) / nseqs;
+  int u1 = INTEGER(U1)[0];
+  int u2 = INTEGER(U2)[0];
+  int nthreads = INTEGER(NTHREADS)[0];
+  double addVal = 1.0/((double)nseqs);
+
+  double *ent1 = calloc(c1, sizeof(double));
+  double *ent2 = calloc(c2, sizeof(double));
+  double *jointEnt = calloc(c1*c2, sizeof(double));
+
+  logBaseVal = 1.0/log2(21);
+
+  for(int i=0;i<c1;i++)
+    ent1[i] = calc_ent_col(m1+nseqs*i, nseqs, addVal, u1, logBase);
+
+  for(int i=0;i<c2;i++)
+    ent2[i] = calc_ent_col(m2+nseqs*i, nseqs, addVal, u2, logBase);
+
+  #pragma omp parallel for num_threads(nthreads)
+  for(int i=0; i<c1; i++)
+    for(int j=0; j<c2; j++)
+      jointEnt[i*c2+j] = calc_mi_colpair(m1+nseqs*i, m2+nseqs*j, nseqs, addVal, u1, u2, logBase);
+
+  for(int i=0; i<c1; i++)
+    for(int j=0; j<c2; j++)
+      jointEnt[i*c2+j] = jointEnt[i*c2+j] ? (ent1[i] + ent2[j] - jointEnt[i*c2+j]) / jointEnt[i*c2+j] : 0;
+
+  SEXP rval = PROTECT(allocVector(REALSXP, c1*c2));
+  memcpy(REAL(rval), jointEnt, sizeof(double)*c1*c2);
+
+  free(ent1);
+  free(ent2);
+  free(jointEnt);
+
+  UNPROTECT(1);
+  return(rval);
+}

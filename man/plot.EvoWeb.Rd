@@ -1,10 +1,10 @@
-\name{plot.ProtWeb}
-\alias{plot.ProtWeb}
+\name{plot.EvoWeb}
+\alias{plot.EvoWeb}
 \title{
-Plot predictions in a ProtWeb object
+Plot predictions in a EvoWeb object
 }
 \description{
-ProtWeb objects are outputted from \code{\link{predict.ProtWeaver}}. 
+EvoWeb objects are outputted from \code{\link{predict.EvoWeaver}}. 
 
 This function plots the predictions in the object using a force-directed embedding
 of connections in the adjacency matrix.
@@ -12,14 +12,14 @@ of connections in the adjacency matrix.
 \emph{This function is still a work in progress.}
 }
 \usage{
-\method{plot}{ProtWeb}(x, NumSims=10, 
+\method{plot}{EvoWeb}(x, NumSims=10, 
       Gravity=0.05, Coulomb=0.1, Connection=5, 
       MoveRate=0.25, Cutoff=0.2, ColorPalette=topo.colors, 
       Verbose=TRUE, ...)
 }
 \arguments{
   \item{x}{
-    A ProtWeb object. See \code{\link{ProtWeb}}
+    A EvoWeb object. See \code{\link{EvoWeb}}
   }
   \item{NumSims}{
     Number of iterations to run the model for.
@@ -52,7 +52,7 @@ of connections in the adjacency matrix.
 }
 
 \details{
-  This function plots the \code{ProtWeb} object using a force-directed embedding.
+  This function plots the \code{EvoWeb} object using a force-directed embedding.
   This embedding has three force components:
   \itemize{
   \item Gravity Force: Attractive force pulling nodes towards \code{(0,0)}
@@ -76,17 +76,17 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 }
 
 \seealso{
-\code{\link{predict.ProtWeaver}}
+\code{\link{predict.EvoWeaver}}
 
-\code{\link{ProtWeb}}
+\code{\link{EvoWeb}}
 }
 \examples{
 exData <- get(data("ExampleStreptomycesData"))
-pw <- ProtWeaver(exData$Genes)
+pw <- EvoWeaver(exData$Genes)
 
 # Subset isn't necessary but is faster for a working example
 # Same w/ method='Jaccard'
-protweb <- predict(pw, 'Jaccard', subset=1:50)
+evoweb <- predict(pw, 'Jaccard', subset=1:50)
 
-plot(protweb)
+plot(evoweb)
 }

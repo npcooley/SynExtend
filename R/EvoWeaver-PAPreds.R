@@ -1,4 +1,4 @@
-###### Presence/Absence Methods for ProtWeaver #####
+###### Presence/Absence Methods for EvoWeaver #####
 # author: Aidan Lakshman
 # contact: ahl27@pitt.edu
 
@@ -23,7 +23,7 @@ GainLoss <- function(pw, ...) UseMethod('GainLoss')
 PAPV <- function(pw, ...) UseMethod('PAPV')
 ################################
 
-Jaccard.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
+Jaccard.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
                                precalcProfs=NULL, precalcSubset=NULL, ...){
   
   if (!is.null(precalcSubset))
@@ -57,7 +57,7 @@ Jaccard.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   return(pairscores)
 }
 
-Hamming.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
+Hamming.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
                                precalcProfs=NULL, precalcSubset=NULL, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
@@ -91,7 +91,7 @@ Hamming.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   return(pairscores)
 }
 
-CorrGL.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
+CorrGL.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
                                 MySpeciesTree=NULL,
                                precalcProfs=NULL, precalcSubset=NULL, ...){
   if (!is.null(precalcSubset))
@@ -155,7 +155,7 @@ CorrGL.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
 }
 
 
-MutualInformation.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
+MutualInformation.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
                                          precalcProfs=NULL, precalcSubset=NULL, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
@@ -220,7 +220,7 @@ MutualInformation.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   return(pairscores)
 }
 
-ProfileDCA.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, Processors=1L,
+ProfileDCA.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE, Processors=1L,
                                   precalcProfs=NULL, precalcSubset=NULL, useAbs=TRUE, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
@@ -253,7 +253,7 @@ ProfileDCA.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, Processors=1L,
 }
 
 
-Behdenna.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
+Behdenna.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
                                 MySpeciesTree=NULL, useSubtree=FALSE, 
                                 useACCTRAN=TRUE, rawZScores=FALSE, 
                                 precalcProfs=NULL, precalcSubset=NULL, ...){
@@ -331,7 +331,7 @@ Behdenna.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   return(pairscores)
 }
 
-GainLoss.ProtWeaver <- function(pw, Subset=NULL, 
+GainLoss.EvoWeaver <- function(pw, Subset=NULL, 
                      Verbose=TRUE, MySpeciesTree=NULL, 
                      precalcProfs=NULL, precalcSubset=NULL, ...){
   if (!is.null(precalcSubset))
@@ -427,7 +427,7 @@ GainLoss.ProtWeaver <- function(pw, Subset=NULL,
   return(pairscores)
 }
 
-PAPV.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
+PAPV.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
                                precalcProfs=NULL, precalcSubset=NULL, ...){
   
   if (!is.null(precalcSubset))

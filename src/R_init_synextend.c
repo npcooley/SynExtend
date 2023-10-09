@@ -53,6 +53,7 @@ static const R_CallMethodDef callMethods[] = { // method call, pointer, num args
   CALLDEF(fastPearsonC, 2),
   CALLDEF(do_dendrapply, 4),
   CALLDEF(se_cophenetic, 5),
+  CALLDEF(MIForSequenceSets, 7),
   //CALLDEF(R_initNNptr, 6),
   //CALLDEF(R_PredictForInput, 2),
   //CALLDEF(R_UpdateWeights, 2),

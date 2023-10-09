@@ -94,7 +94,7 @@ SEXP calcScoreGL(SEXP tnPtr, SEXP glv1, SEXP glv2){
 
   free(nodeScores);
   SEXP retval = PROTECT(allocVector(REALSXP, 1));
-  REAL(retval)[0] = r; 
+  REAL(retval)[0] = r;
   UNPROTECT(1);
   return retval;
 }
@@ -133,7 +133,7 @@ SEXP calcScoreHamming(SEXP ov1, SEXP ov2, SEXP NN, SEXP norm){
     //outval += pow((v1[i] - v2[i]), 2);
   }
   outval = 1 - (outval / v1len);
-  
+
   SEXP retval = PROTECT(allocVector(REALSXP, 1));
   REAL(retval)[0] = outval;
   UNPROTECT(1);
@@ -187,15 +187,15 @@ SEXP GRFInfo(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels, SEXP shouldUseJRF, SEXP J
 
   double RFscore, entropy1, entropy2;
   if (useJRF){
-    RFscore = scoreJaccardRFDist(part1, part2, t1pln, t2pln, numLabels, jaccardExp); 
+    RFscore = scoreJaccardRFDist(part1, part2, t1pln, t2pln, numLabels, jaccardExp);
     entropy1 = t1pln;
     entropy2 = t2pln;
   } else {
-    RFscore = scorePMs(part1, part2, t1pln, t2pln, numLabels); 
+    RFscore = scorePMs(part1, part2, t1pln, t2pln, numLabels);
     entropy1 = calcEntropy(part1, numLabels, t1pln);
-    entropy2 = calcEntropy(part2, numLabels, t2pln); 
+    entropy2 = calcEntropy(part2, numLabels, t2pln);
   }
-  
+
   // cleanup
   for (int i=0; i<=t1pl; i++)
     free(part1[i]);
@@ -252,7 +252,7 @@ SEXP RFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
   }
 
   PutRNGstate();
-  
+
   RFHashMap(tree1, ht1, keyvals, allHashed, numLabels, t1pl);
   RFHashMap(tree2, ht2, keyvals, allHashed, numLabels, t2pl);
   Free(allHashed);
@@ -308,8 +308,8 @@ SEXP RFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
       }
     }
     if (!found) num_unique++;
-  }  
-  
+  }
+
   // cleanup
   Free(ht1);
   Free(ht2);
@@ -363,7 +363,7 @@ SEXP KFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
   }
 
   PutRNGstate();
-  
+
   KFHashMap(tree1, ht1, dists1, keyvals, allHashed, numLabels, t1pl);
   KFHashMap(tree2, ht2, dists2, keyvals, allHashed, numLabels, t2pl);
   Free(allHashed);
@@ -436,8 +436,8 @@ SEXP KFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
       }
     }
     if (!found) score += pow(curh, 2);
-  }  
-  
+  }
+
   // cleanup
   Free(ht1);
   Free(ht2);
@@ -633,7 +633,7 @@ double scoreSisterClades(treeNode *node, double *scores){
   // add children
   retval += scoreSisterClades(node->left, scores);
   retval += scoreSisterClades(node->right, scores);
-  
+
   double curscore = scores[node->value];
   // add current node
   retval += fabsl(curscore - scores[node->left->value]);
@@ -685,11 +685,11 @@ void internalPartitionMap(treeNode *node, bool **pSets, unsigned int *hvs, int l
       }
     }
   } else {
-    int lv=0, rv=0; 
+    int lv=0, rv=0;
     if (node->left){
       internalPartitionMap(node->left, pSets, hvs, lh, rootv);
       lv = node->left->value;
-    } 
+    }
     if (node->right){
       internalPartitionMap(node->right, pSets, hvs, lh, rootv);
       rv = node->right->value;
@@ -714,7 +714,7 @@ ulong RFHashMap(treeNode *node, ulong *htable, ulong *keys, unsigned int *hvs, i
       }
     }
   } else {
-    ulong lval=0, rval=0, setval; 
+    ulong lval=0, rval=0, setval;
     if (node->left) lval = RFHashMap(node->left, htable, keys, hvs, lh, rootv);
     if (node->right) rval = RFHashMap(node->right, htable, keys, hvs, lh, rootv);
     setval = (lval != 0 && rval !=0) ? rval ^ lval : 0;
@@ -739,7 +739,7 @@ ulong KFHashMap(treeNode *node, ulong *htable, double *dists, ulong *keys, unsig
       }
     }
   } else {
-    ulong lval=0, rval=0, setval; 
+    ulong lval=0, rval=0, setval;
     if (node->left){
      lval = RFHashMap(node->left, htable, keys, hvs, lh, rootv);
      dists[node->left->value] = node->height - node->left->height;
@@ -878,6 +878,7 @@ double scoreJaccardRFDist(bool **pm1, bool **pm2, int pm1l, int pm2l, int lh, do
   // note that B1 = !A1, B2 = !A2
   int counts[8];
   for (int i=0; i<shortl; i++){
+    R_CheckUserInterrupt();
     minval = 1;
     curS = shortPm[i];
     found = false;
@@ -913,7 +914,7 @@ double calcJaccardPairingScore(bool *v1, bool *v2, int lh, double expv){
   /****
    * We have two sets, A and B.
    * A = (A, A'); B = (B, B')
-   * 
+   *
    * Memory Map:
    * vals[0]: A  &&  B
    * vals[1]: A' &&  B
@@ -956,7 +957,7 @@ void findNodeScores(treeNode *curNode, int *v1, int *v2, double *scores, treeNod
     double h;
 
     ssNode = findNextNode(curNode, v2, v1, true);
-    
+
     if (ssNode){
       double mpOS, mpSS, mpCN, oshd;
 
@@ -981,7 +982,7 @@ void findNodeScores(treeNode *curNode, int *v1, int *v2, double *scores, treeNod
         mpOS = (osNode->height + mpOS) / 2;
         oshd = (2*head->height - mpOS - mpCN);
       }
-      
+
       if (osNode && ssNode)
         useOS = oshd < (mpCN - mpSS);
 
@@ -998,7 +999,7 @@ void findNodeScores(treeNode *curNode, int *v1, int *v2, double *scores, treeNod
         } else {
           h = fabs(mpCN - mpSS);
         }
-      } 
+      }
 
       h++;
       scores[v] = (sameVal ? 1 : -1) * h;
@@ -1135,7 +1136,7 @@ int populateVector(treeNode* node, int *container, int idx){
   curIdx++;
   if (node->left) curIdx = populateVector(node->left, container, curIdx);
   if (node->right) curIdx = populateVector(node->right, container, curIdx);
-  
+
   return curIdx;
 }
 
@@ -1186,7 +1187,7 @@ unsigned int hashLabel(SEXP label){
 
   unsigned int result = 0x55555555;
 
-  while (*s) { 
+  while (*s) {
       result ^= *s++;
       result = ((result << 5) | (result >> (27)));
   }
@@ -1223,7 +1224,7 @@ static void printHelper(treeNode* node, int depth){
   int vr = node->right ? node->right->value : 0;
   if (node->label != 0) Rprintf("LEAF %u (value %d)", node->label, node->value);
   else {
-    Rprintf("%f (v: %d, l: %d, r: %d)", 
+    Rprintf("%f (v: %d, l: %d, r: %d)",
               node->height, node->value, vl, vr);
   }
   Rprintf("\n");

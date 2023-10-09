@@ -1,23 +1,23 @@
-\name{ProtWeaver-PAPreds}
-\alias{ProtWeaver-PAPreds}
-\alias{Jaccard.ProtWeaver}
-\alias{Hamming.ProtWeaver}
-\alias{MutualInformation.ProtWeaver}
-\alias{ProfDCA.ProtWeaver}
-\alias{Behdenna.ProtWeaver}
-\alias{GainLoss.ProtWeaver}
-\alias{CorrGL.ProtWeaver}
+\name{EvoWeaver-PAPreds}
+\alias{EvoWeaver-PAPreds}
+\alias{Jaccard.EvoWeaver}
+\alias{Hamming.EvoWeaver}
+\alias{MutualInformation.EvoWeaver}
+\alias{ProfDCA.EvoWeaver}
+\alias{Behdenna.EvoWeaver}
+\alias{GainLoss.EvoWeaver}
+\alias{CorrGL.EvoWeaver}
 \docType{data}
 \title{
-Presence/Absence Predictions for ProtWeaver
+Presence/Absence Predictions for EvoWeaver
 }
 \description{
-\code{ProtWeaver} incorporates four classes of prediction, each with multiple 
+\code{EvoWeaver} incorporates four classes of prediction, each with multiple 
 methods and algorithms. Presence/Absence (PA) methods examine conservation 
 of gain/loss events within orthology groups using phylogenetic profiles
 constructed from presence/absence patterns.
 
-\code{predict.ProtWeaver} currently supports seven PA methods:
+\code{predict.EvoWeaver} currently supports seven PA methods:
 \itemize{
   \item \code{'Jaccard'}
   \item \code{'Hamming'}
@@ -31,8 +31,8 @@ constructed from presence/absence patterns.
 }
 
 \details{
-Most PA methods are compatible with a \code{ProtWeaver} object initialized
-with any input type. See \code{\link{ProtWeaver}} for more information on input data types.
+Most PA methods are compatible with a \code{EvoWeaver} object initialized
+with any input type. See \code{\link{EvoWeaver}} for more information on input data types.
 
 All of these methods use PA profiles, which are binary presence/absence
 vectors such that 1 implies the corresponding genome has that particular
@@ -45,21 +45,21 @@ Methods \code{Hamming} and \code{Jaccard} use Hamming and Jaccard distance
 score, employing a weighting scheme such that \eqn{11} and \eqn{00} give
 positive information, and \eqn{10} and \eqn{01} give negative information. 
 
-\code{PAPV} calculates a p-value for PA profiles using Fisher's Exact Test. The returned score is provided as \code{1-p_value} so that larger scores indicate more significance, and smaller scores indicate less significance. This rescaling is consistent with the other similarity metrics in \code{ProtWeaver}. This can be used with \code{Jaccard}, \code{Hamming}, or \code{MutualInformation} to weight raw scores by statistical significance.
+\code{PAPV} calculates a p-value for PA profiles using Fisher's Exact Test. The returned score is provided as \code{1-p_value} so that larger scores indicate more significance, and smaller scores indicate less significance. This rescaling is consistent with the other similarity metrics in \code{EvoWeaver}. This can be used with \code{Jaccard}, \code{Hamming}, or \code{MutualInformation} to weight raw scores by statistical significance.
 
 \code{ProfDCA} uses the direct coupling analysis algorithm introduced by
 Weigt et al. (2005) to determine direct information between PA profiles.
 This approach has been validated on PA profiles in Fukunaga and Iwasaki (2022),
-though the implementation in \code{ProtWeaver} forsakes the persistent contrasive divergence method in favor of the the algorithm from
+though the implementation in \code{EvoWeaver} forsakes the persistent contrasive divergence method in favor of the the algorithm from
 Lokhov et al. (2018) for increased speed and exact solutions. Note that this algorithm is still extremely slow relative to the other methods despite the aforementioned runtime improvements.
 
 \code{Behdenna} implements the method detailed in Behdenna et al. (2016) to
 find statistically significant interactions using co-occurence of gain/loss 
 events mapped to ancestral states on a species tree. This method requires
-a species tree as input. If the \code{ProtWeaver} object is initialized with \code{dendrogram} objects, \code{\link{SuperTree}} will be used to infer a species tree.
+a species tree as input. If the \code{EvoWeaver} object is initialized with \code{dendrogram} objects, \code{\link{SuperTree}} will be used to infer a species tree.
 
 \code{GainLoss} uses a similar method to \code{Behdenna}. This method uses Fitch Parsimony to infer where events were gained or lost on a species tree, and then looks for distance between these gain/loss events. Unlike \code{Behdenna}, this method takes into account the types of events (ex. gain/gain and loss/loss are treated differently than gain/loss). This method requires
-a species tree as input. If the \code{ProtWeaver} object is initialized with \code{dendrogram} objects, \code{\link{SuperTree}} will be used to infer a species tree.
+a species tree as input. If the \code{EvoWeaver} object is initialized with \code{dendrogram} objects, \code{\link{SuperTree}} will be used to infer a species tree.
 
 \code{CorrGL} infers where events were gained or lost on a species tree as in method
 \code{GainLoss}, then uses a Pearson's correlation coefficient weighted by p-value to infer similarity.
@@ -89,13 +89,13 @@ Weigt, M., et al., \emph{Identification of direct residue contacts in protein-pr
 
 \seealso{
 
-\code{\link{ProtWeaver}}
+\code{\link{EvoWeaver}}
 
-\code{\link{predict.ProtWeaver}}
+\code{\link{predict.EvoWeaver}}
 
-\link[=ProtWeaver-DMPreds]{ProtWeaver Distance Matrix Predictors}
+\link[=EvoWeaver-DMPreds]{EvoWeaver Distance Matrix Predictors}
 
-\link[=ProtWeaver-ColocPreds]{ProtWeaver Co-localization Predictors}
+\link[=EvoWeaver-ColocPreds]{EvoWeaver Co-localization Predictors}
 
-\link[=ProtWeaver-ResiduePreds]{ProtWeaver Residue Level Predictors}
+\link[=EvoWeaver-ResiduePreds]{EvoWeaver Residue Level Predictors}
 }

@@ -1,17 +1,17 @@
-\name{ProtWeaver-ResiduePreds}
-\alias{ProtWeaver-ResiduePreds}
-\alias{ResidueMI.ProtWeaver}
+\name{EvoWeaver-ResiduePreds}
+\alias{EvoWeaver-ResiduePreds}
+\alias{ResidueMI.EvoWeaver}
 \docType{data}
 \title{
-Residue Level Predictions for ProtWeaver
+Residue Level Predictions for EvoWeaver
 }
 \description{
-\code{ProtWeaver} incorporates four classes of prediction, each with multiple 
+\code{EvoWeaver} incorporates four classes of prediction, each with multiple 
 methods and algorithms. Residue level methods examine conservation of 
 individual base pairs, commonly exhibited due to physical interactions
 between proteins.
 
-\code{predict.ProtWeaver} currently supports two Residue methods:
+\code{predict.EvoWeaver} currently supports two Residue methods:
 \itemize{
   \item \code{'ResidueMI'}
   \item \code{'NVDT'}
@@ -20,8 +20,8 @@ between proteins.
 }
 
 \details{
-All residue methods require a \code{ProtWeaver} object initialized
-with \code{dendrogram} objects and ancestral states. See \code{\link{ProtWeaver}} for more information on input data types.
+All residue methods require a \code{EvoWeaver} object initialized
+with \code{dendrogram} objects and ancestral states. See \code{\link{EvoWeaver}} for more information on input data types.
 
 The \code{ResidueMI} method looks at mutual information between 
 ancestral gene states at the nucleotide level. This approach is conceptually 
@@ -66,13 +66,13 @@ Zhao, N., et al., \emph{Protein-protein interaction and non-interaction predicti
 
 \seealso{
 
-\code{\link{ProtWeaver}}
+\code{\link{EvoWeaver}}
 
-\code{\link{predict.ProtWeaver}}
+\code{\link{predict.EvoWeaver}}
 
-\link[=ProtWeaver-PAPreds]{ProtWeaver Presence/Absence Predictors}
+\link[=EvoWeaver-PAPreds]{EvoWeaver Presence/Absence Predictors}
 
-\link[=ProtWeaver-DMPreds]{ProtWeaver Distance Matrix Predictors}
+\link[=EvoWeaver-DMPreds]{EvoWeaver Distance Matrix Predictors}
 
-\link[=ProtWeaver-ColocPreds]{ProtWeaver Co-localization Predictors}
+\link[=EvoWeaver-ColocPreds]{EvoWeaver Co-localization Predictors}
 }

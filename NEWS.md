@@ -1,8 +1,13 @@
+# SynExtend 1.13.6
+* `ProtWeaver` and `ProtWeb` have been renamed to `EvoWeaver` and `EvoWeb`, respectively
+* New sequence level method for `EvoWeaver`
+* Various small internal updates to `EvoWeaver`
+
 # SynExtend 1.13.5
 * Minor changes to `SelectByK` and vignette
 
 # SynExtend 1.13.4
-* New predictor `PAPV.ProtWeaver` to calculate p-values for presence/absence profiles. 
+* New predictor `PAPV.ProtWeaver` to calculate p-values for presence/absence profiles.
 * `ContextTree` now uses `MirrorTree` with species tree correction and p/a overlap correction
 * Updates to documentation
 
@@ -124,7 +129,7 @@
 # SynExtend 1.9.20
 
 * Adds new `GeneralizedRF` function to calculated information-theoretic Generalized Robinson-Foulds distance between two dendrograms.
-* Documentation for new function 
+* Documentation for new function
 * New ProtWeaver predictor based off of `GeneralizedRF` metric
 * New internal C source code for `GeneralizedRF`
 
@@ -185,7 +190,7 @@
   * Note `ContextTree` and `ProfDCA` require matrices internally
 * `ProtWeb` objects now inherit from `simMat`
   * `ProtWeb.show` and `ProtWeb.print` now display predictions in a more natural way
-  * `GetProtWebData()` deprecated; `ProtWeb` now inherits `as.matrix.simMat` and `as.data.frame.simMat` 
+  * `GetProtWebData()` deprecated; `ProtWeb` now inherits `as.matrix.simMat` and `as.data.frame.simMat`
 * New documentation pages for `simMat` class
 * `GetProtWebData` documentation page reworked into `ProtWeb` documentation file.
 * Fixes new bug in `Method='Hamming'` introduced in SynExtend 1.9.9
@@ -233,7 +238,7 @@
 # SynExtend 1.7.13
 
 * Introduces new `ProtWeaver` class to predict functional association of genes from COGs or gene trees. This implements many algorithms commonly used in the literature, such as MirrorTree and Inverse Potts Models.
-* `predict(ProtWeaverObject)` returns a `ProtWeb` class with information on predicted associations. 
+* `predict(ProtWeaverObject)` returns a `ProtWeb` class with information on predicted associations.
 * Adds `BlastSeqs` to run BLAST queries on sequences stored as an `XStringSet` or `FASTA` file.
 
 # SynExtend 1.7.12

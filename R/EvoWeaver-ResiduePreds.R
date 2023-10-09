@@ -1,4 +1,4 @@
-###### Residue Methods for ProtWeaver #####
+###### Residue Methods for EvoWeaver #####
 # author: Aidan Lakshman
 # contact: ahl27@pitt.edu
 
@@ -13,15 +13,17 @@ NVDT <- function(pw, ...) UseMethod('NVDT')
 Ancestral <- function(pw, ...) UseMethod('Ancestral')
 ################################
 
-ResidueMI.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
-                                 precalcSubset=NULL, ...){
+ResidueMI.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
+                                 precalcSubset=NULL, gapCutoff=0.5, 
+                                 useDNA=FALSE, Processors=1L, useWeights=TRUE, ...){
   useResidue <- attr(pw, 'useResidue')
   useMT <- attr(pw, 'useMT')
   useColoc <- attr(pw, 'useColoc')
+  Processors <- NormArgProcessors(Processors)
   
-  stopifnot('ProtWeaver object must be initialized with dendrograms to run Residue methods'=
+  stopifnot('EvoWeaver object must be initialized with dendrograms to run Residue methods'=
               useMT)
-  stopifnot('ProtWeaver dendrograms must have ancestral states to run Residue methods'=
+  stopifnot('EvoWeaver dendrograms must have ancestral states to run Residue methods'=
               useResidue)
   
   if (!is.null(precalcSubset))
@@ -39,19 +41,72 @@ ResidueMI.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
     return(mat)
   }
   
+  if(useDNA)
+    lookup <- 'ATGC'
+  else
+    lookup <- "ARNDCQEGHILKMFPSTWYV"
+  lookup <- strsplit(lookup, '')[[1]]
+  lookupMap <- seq_along(lookup)
+  names(lookupMap) <- lookup
+  
+  ResidueSets <- vector('list', length(uvals))
+  if(Verbose){
+    cat('  Preproccessing sequence sets\n')
+    pb <- txtProgressBar(max=length(uvals), style=3)
+  }
+  for(i in seq_along(uvals)){
+    tree <- pw[[uvals[i]]]
+    seqs <- rapply(tree, attr, which='state')
+    ncharSeq <- nchar(seqs)
+    stopifnot('Sequences are not aligned!'=all(ncharSeq==ncharSeq[1]))
+    seqs <- toupper(seqs)
+    if(useDNA){
+      maskPos <- which(!MaskAlignment(DNAStringSet(seqs), 
+                                      type='values', includeTerminalGaps = TRUE)[,3])
+    } else {
+      maskPos <- which(!MaskAlignment(AAStringSet(seqs), threshold=0.3,
+                                      type='values', includeTerminalGaps = TRUE)[,3])
+    }
+    
+    if(length(maskPos)==0){
+      seqs <- matrix(NA_integer_, nrow=length(seqs), ncol=0L)
+    } else {
+      seqs <- vapply(seqs, 
+                     \(s) lookupMap[(strsplit(s, '')[[1]])[maskPos]], 
+                                integer(length(maskPos)), USE.NAMES = FALSE)
+      seqs[is.na(seqs)] <- 0L
+      seqs <- t(seqs)
+    }
+    labs <- labels(tree)
+    if(useColoc){
+      labs <- gsub('([^_]*)_.*', '\\1', labs)
+    }
+    rownames(seqs) <- labs
+    ResidueSets[[i]] <- seqs
+    if(Verbose) setTxtProgressBar(pb, i)
+  }
+  
   pairscores <- rep(NA_real_, l*(l-1)/2)
   ctr <- 0
-  if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
+  if (Verbose){ 
+    cat('\nDone.\n')
+    pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
+  }
   for ( i in seq_len(l-1) ){
     uval1 <- uvals[i]
-    tree1 <- pw[[uval1]]
+    #tree1 <- pw[[uval1]]
+    seqs1 <- ResidueSets[[i]]
     for ( j in (i+1):l ){
       uval2 <- uvals[j]
       accessor <- as.character(min(uval1, uval2))
       entry <- max(uval1, uval2)
       if (i!=j && (is.null(evalmap) || entry %in% evalmap[[accessor]])){
-        tree2 <- pw[[uval2]]
-        pairscores[ctr+1] <- ResidueMIDend(tree1, tree2, useColoc=useColoc, ...)
+        #tree2 <- pw[[uval2]]
+        seqs2 <- ResidueSets[[j]]
+        #pairscores[ctr+1] <- ResidueMIDend(tree1, tree2, useColoc=useColoc, ...)
+        score <- ResidueMISeqs(seqs1, seqs2, lookup=lookup, 
+                                useColoc=useColoc, Processors=Processors, ...)
+        pairscores[ctr+1] <- ifelse(is.na(score), 0L, score)
       }
       ctr <- ctr + 1
       if (Verbose) setTxtProgressBar(pb, ctr)
@@ -65,16 +120,17 @@ ResidueMI.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   return(pairscores)
 }
 
-NVDT.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
+NVDT.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
                             precalcSubset=NULL, extended=TRUE, 
-                            DNAseqs=TRUE, ...){
+                            DNAseqs=TRUE, centerObservations=FALSE,
+                            sqrtCorrelation=TRUE, ...){
   #source('/Users/aidan/Nextcloud/RStudioSync/comps/NVDT/calcNVDT.R')
   useResidue <- attr(pw, 'useResidue')
   useMT <- attr(pw, 'useMT')
   
-  stopifnot('ProtWeaver object must be initialized with dendrograms to run Residue methods'=
+  stopifnot('EvoWeaver object must be initialized with dendrograms to run Residue methods'=
               useMT)
-  stopifnot('ProtWeaver dendrograms must have ancestral states to run Residue methods'=
+  stopifnot('EvoWeaver dendrograms must have ancestral states to run Residue methods'=
               useResidue)
   
   if (!is.null(precalcSubset))
@@ -104,7 +160,7 @@ NVDT.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
     uv <- uvals[i]
     tree <- pw[[uv]]
     #seqs <- DNAStringSet(flatdendrapply(tree, NODEFUN=\(x) attr(x, 'state')))
-    seqs <- flatdendrapply(tree, NODEFUN=\(x) attr(x, 'state'))
+    seqs <- rapply(tree, attr, which='state')
     # Remove Gaps
     #seqs <- gsub('[-.+]', '', seqs)
     #s1 <- gsub('[-.+]', '', seqs)
@@ -130,12 +186,19 @@ NVDT.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
           divval <- c(divval, rep(seqlen-1L, 16L), rep(seqlen-2L, 64L))
         }
       } else {
-        divval <- c(rep(seqlen, 40L), rep(1L, 20L))
+        divval <- rep(seqlen, 60L)
       }
       nvdtvec <- nvdtvec / divval
       outv <- outv + nvdtvec
     }
-    outv <- outv / sqrt(sum(outv**2))
+    if(centerObservations && !DNAseqs){
+      outv[1:20] <- (outv[1:20] - mean(outv[1:20])) / sd(outv[1:20])
+      # Center should always be 0.5 for mean
+      outv[21:40] <- (outv[21:40] - 0.5) / sd(outv[21:40])
+      outv[41:60] <- (outv[41:60] - mean(outv[41:60])) / sd(outv[41:60])
+    } else {
+      outv <- outv / sqrt(sum(outv**2))
+    }
     vecs[i,] <- outv
     if(Verbose) setTxtProgressBar(pb, i)
   }
@@ -146,22 +209,36 @@ NVDT.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   for ( i in seq_len(l-1) ){
     uval1 <- uvals[i]
     l1 <- alllabs[[i]]
-    v1 <- vecs[i,]
+    if(sqrtCorrelation)
+      v1 <- sqrt(abs(vecs[i,])) * sign(vecs[i,])
+    else
+      v1 <- vecs[i,]
     for ( j in (i+1):l ){
       uval2 <- uvals[j]
       l2 <- alllabs[[j]]
       accessor <- as.character(min(uval1, uval2))
       entry <- max(uval1, uval2)
       if (i!=j && (is.null(evalmap) || entry %in% evalmap[[accessor]])){
-        v2 <- vecs[j,]
+        if(sqrtCorrelation)
+          v2 <- sqrt(abs(vecs[j,])) * sign(vecs[j,])
+        else
+          v2 <- vecs[j,]
         if(length(intersect(l1,l2))==0){
           pairscores[ctr+1] <- 0
         } else {
           # first entry is score, second is t-value
-          cval <- .Call('fastPearsonC', v1, v2)
-          pval <- pt(cval[2], cval[3]-2)
-          pval <- ifelse(pval < 0.5, 2*pval, 2*(pval-0.5))
-          cval <- cval[1]
+          # cval <- .Call('fastPearsonC', v1, v2)
+          # pval <- pt(cval[2], cval[3]-2)
+          # pval <- ifelse(pval < 0.5, 2*pval, 2*(pval-0.5))
+          
+          cval <- suppressWarnings(cor(v1, v2, 
+                                      use='pairwise.complete.obs', 
+                                      method='spearman'))
+          # should be absolute value, negative correlation is same effect
+          cval <- abs(cval[1])
+          
+          num_obs <- length(v1)
+          pval <- 1 - exp(pt(cval, num_obs-2, lower.tail=FALSE, log.p=TRUE))
           #pairscores[ctr+1] <- cor(v1,v2)
           pairscores[ctr+1] <- pval*cval
         }
@@ -179,15 +256,15 @@ NVDT.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   
 }
 
-Ancestral.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
+Ancestral.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
                                  precalcSubset=NULL, ...){
   useResidue <- attr(pw, 'useResidue')
   useMT <- attr(pw, 'useMT')
   useColoc <- attr(pw, 'useColoc')
   
-  stopifnot('ProtWeaver object must be initialized with dendrograms to run Residue methods'=
+  stopifnot('EvoWeaver object must be initialized with dendrograms to run Residue methods'=
               useMT)
-  stopifnot('ProtWeaver dendrograms must have ancestral states to run Residue methods'=
+  stopifnot('EvoWeaver dendrograms must have ancestral states to run Residue methods'=
               useResidue)
   
   if (!is.null(precalcSubset))

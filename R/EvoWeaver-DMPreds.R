@@ -1,4 +1,4 @@
-###### Distance Matrix Methods for ProtWeaver #####
+###### Distance Matrix Methods for EvoWeaver #####
 # author: Aidan Lakshman
 # contact: ahl27@pitt.edu
 
@@ -17,7 +17,7 @@ ContextTree <- function(pw, ...) UseMethod('ContextTree')
 TreeDistance <- function(pw, ...) UseMethod('TreeDistance')
 ################################
 
-MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
+MirrorTree.EvoWeaver <- function(pw, MTCorrection=c(),
                                   Subset=NULL, Verbose=TRUE,
                                   MySpeciesTree=NULL, 
                                   precalcProfs=NULL, precalcSubset=NULL, ...){
@@ -142,7 +142,7 @@ MirrorTree.ProtWeaver <- function(pw, MTCorrection=c(),
   return(pairscores)
 }
 
-ContextTree.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, precalcProfs=NULL, 
+ContextTree.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE, precalcProfs=NULL, 
                                    MySpeciesTree=NULL, ...){
   
   if ( is.null(MySpeciesTree) || !is(MySpeciesTree, 'dendrogram')){
@@ -158,7 +158,7 @@ ContextTree.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, precalcProfs=N
                     MySpeciesTree=MySpeciesTree))
 }
 
-TreeDistance.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
+TreeDistance.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
                                       precalcSubset=NULL, 
                                       TreeMethods="CI", JRFk=4, ...){
   if (!is.null(precalcSubset))

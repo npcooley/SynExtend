@@ -1,13 +1,13 @@
-##### -- ProtWeb Class for output of ProtWeaver predictions --------------------
+##### -- EvoWeb Class for output of EvoWeaver predictions --------------------
 # author: Aidan Lakshman
 # contact: ahl27@pitt.edu
 
 
-## Defining S3 class for ProtWeb Object
-##  This is just an S3 class to make output of ProtWeaver predictions 
+## Defining S3 class for EvoWeb Object
+##  This is just an S3 class to make output of EvoWeaver predictions 
 ##  easier to manage.
 
-plot.ProtWeb <- function(x, NumSims=10, Gravity=0.05, Coulomb=0.1, Connection=5,
+plot.EvoWeb <- function(x, NumSims=10, Gravity=0.05, Coulomb=0.1, Connection=5,
                          MoveRate=0.25, Cutoff=0.2, 
                          ColorPalette=topo.colors, Verbose=TRUE, ...){
   ## Springy embedding
@@ -68,8 +68,8 @@ plot.ProtWeb <- function(x, NumSims=10, Gravity=0.05, Coulomb=0.1, Connection=5,
        main='Force-directed embedding of COGs', ...)
 }
 
-summary.ProtWeb <- function(object, ...){
-  cat('a ProtWeb object.\n')
+summary.EvoWeb <- function(object, ...){
+  cat('a EvoWeb object.\n')
   a <- attributes(object)
   cat('\tMethod used:', a$method, '\n')
   numGenes <- length(a$NAMES)
@@ -82,8 +82,8 @@ summary.ProtWeb <- function(object, ...){
   }
 }
 
-show.ProtWeb <- function(object){
-  cat('a ProtWeb object.\n')
+show.EvoWeb <- function(object){
+  cat('a EvoWeb object.\n')
   a <- attributes(object)
   cat('\tMethod used:', a$method, '\n')
   numGenes <- length(a$NAMES)
@@ -94,24 +94,24 @@ show.ProtWeb <- function(object){
   NextMethod()
 }
 
-print.ProtWeb <- function(x, ...){
+print.EvoWeb <- function(x, ...){
   summary(x)
   cat('\nPredictions:\n\n')
   NextMethod()
 }
 
 
-as.data.frame.ProtWeb <- function(x, ...) {
+as.data.frame.EvoWeb <- function(x, ...) {
   # Fall through to 'simMat' function
   NextMethod()
 }
 
-as.matrix.ProtWeb <- function(x, ...) {
+as.matrix.EvoWeb <- function(x, ...) {
   # Fall through to 'simMat' function
   NextMethod()
 }
 
-ProtWebMatToDf <- function(preds){
+EvoWebMatToDf <- function(preds){
   stopifnot(is(preds,'matrix'))
   pair_locs <- upper.tri(preds)
   pairnames <- which(pair_locs, arr.ind=TRUE)

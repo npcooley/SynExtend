@@ -16,7 +16,7 @@ SEXP initCDend(SEXP dend);
 SEXP hashString(SEXP label);
 SEXP printTree(SEXP tnPtr);
 
-// scoring functions for ProtWeaver
+// scoring functions for EvoWeaver
 SEXP calcGainLoss(SEXP tnPtr, SEXP occVec, SEXP convertToGL);
 SEXP calcScoreGL(SEXP tnPtr, SEXP glv1, SEXP glv2);
 SEXP calcScoreJaccard(SEXP ov1, SEXP ov2, SEXP NN);
@@ -49,6 +49,7 @@ void shuffleRRepl(int *v, int *l);
 /**** NucleotideCounts.c ****/
 SEXP StringToNVDT(SEXP DNASTRING, SEXP REMOVEGAPS, SEXP EXTENDED, SEXP USEDNA);
 SEXP fastPearsonC(SEXP V1, SEXP V2);
+SEXP MIForSequenceSets(SEXP M1, SEXP M2, SEXP NSEQS, SEXP U1, SEXP U2, SEXP BASE, SEXP NTHREADS);
 
 /**** HungarianAlgo.c ****/
 SEXP HungarianAssignment(SEXP MATVEC, SEXP DIM);

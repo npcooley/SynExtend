@@ -1,4 +1,4 @@
-###### Co-localization Methods for ProtWeaver #####
+###### Co-localization Methods for EvoWeaver #####
 # author: Aidan Lakshman
 # contact: ahl27@pitt.edu
 
@@ -12,8 +12,9 @@ ColocMoran <- function(pw, ...) UseMethod('ColocMoran')
 TranscripMI <- function(pw, ...) UseMethod('TranscripMI')
 ################################
 
-Coloc.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
-                             precalcProfs=NULL, precalcSubset=NULL, ...){
+Coloc.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
+                             precalcProfs=NULL, precalcSubset=NULL, 
+                             minimumGenomeSize=2500, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
@@ -52,7 +53,14 @@ Coloc.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
           diffs <- diffs + exp(1 - abs(v1i - v2i))
       score <- score + sum(diffs) / (length(vec1) * length(vec2))
     }
-    return(score * mult)
+    score <- score * mult
+    pval <- NA_real_
+    if(!is.na(score)){
+      rawscore <- ifelse(score==0, 0, -1*log(score) + 1)
+      pval <- (1-(rawscore / minimumGenomeSize))**2
+      pval <- vapply(pval, \(x) max(x, 0), numeric(1L))
+    }
+    return(score*(1-pval))
   }
   
   pairscores <- BuildSimMatInternal(labvecs, uvals, evalmap, l, n, 
@@ -65,7 +73,7 @@ Coloc.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   return(pairscores)
 }
 
-ColocMoran.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
+ColocMoran.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
                                   MySpeciesTree=NULL,
                                   precalcProfs=NULL, precalcSubset=NULL, ...){
   if (!is.null(precalcSubset))
@@ -141,7 +149,7 @@ ColocMoran.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   return(pairscores)
 }
 
-TranscripMI.ProtWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
+TranscripMI.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
                                           precalcProfs=NULL, precalcSubset=NULL, ...){
   stopifnot('Some labels are missing strand identifiers!'=attr(pw, 'useStrand'))
   if (!is.null(precalcSubset))
