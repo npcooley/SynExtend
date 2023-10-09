@@ -56,11 +56,7 @@ ResidueMI.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   }
   for(i in seq_along(uvals)){
     tree <- pw[[uvals[i]]]
-    seqs <- dendrapply(tree, \(x){
-      if(is.leaf(x)) 
-        return(attr(x,'state'))
-      unlist(x)
-    }, how='post.order')
+    seqs <- rapply(tree, attr, which='state')
     ncharSeq <- nchar(seqs)
     stopifnot('Sequences are not aligned!'=all(ncharSeq==ncharSeq[1]))
     seqs <- toupper(seqs)
@@ -164,7 +160,7 @@ NVDT.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
     uv <- uvals[i]
     tree <- pw[[uv]]
     #seqs <- DNAStringSet(flatdendrapply(tree, NODEFUN=\(x) attr(x, 'state')))
-    seqs <- flatdendrapply(tree, NODEFUN=\(x) attr(x, 'state'))
+    seqs <- rapply(tree, attr, which='state')
     # Remove Gaps
     #seqs <- gsub('[-.+]', '', seqs)
     #s1 <- gsub('[-.+]', '', seqs)

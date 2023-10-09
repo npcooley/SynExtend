@@ -87,13 +87,14 @@ validate_EvoWeaver <- function(ipt, noWarn=FALSE){
   if (bitflags[['usemirrortree']]){
     useResidueMI <- TRUE
     for ( tree in ipt ){
-      useResidueMI <- dendrapply(tree, 
-                                 \(x){
-                                      sv <- !is.null(attr(x,'state'))
-                                      if(is.leaf(x)) 
-                                        return(sv)
-                                      return(all(sv, unlist(x)))
-                                    }, how='post.order')
+      # useResidueMI <- dendrapply(tree, 
+      #                            \(x){
+      #                                 sv <- !is.null(attr(x,'state'))
+      #                                 if(is.leaf(x)) 
+      #                                   return(sv)
+      #                                 return(all(sv, unlist(x)))
+      #                               }, how='post.order')
+      useResidueMI <- all(rapply(tree, \(x) !is.null(attr(x, 'state'))))
       if (!useResidueMI){
         if (!noWarn) message('Disabling Residue methods. Input dendrograms must',
                              ' include ancenstral state reconstruction for residue',

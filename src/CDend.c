@@ -436,7 +436,7 @@ SEXP KFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
       }
     }
     if (!found) score += pow(curh, 2);
-  } 
+  }
 
   // cleanup
   Free(ht1);
@@ -714,7 +714,7 @@ ulong RFHashMap(treeNode *node, ulong *htable, ulong *keys, unsigned int *hvs, i
       }
     }
   } else {
-    ulong lval=0, rval=0, setval; 
+    ulong lval=0, rval=0, setval;
     if (node->left) lval = RFHashMap(node->left, htable, keys, hvs, lh, rootv);
     if (node->right) rval = RFHashMap(node->right, htable, keys, hvs, lh, rootv);
     setval = (lval != 0 && rval !=0) ? rval ^ lval : 0;
@@ -739,7 +739,7 @@ ulong KFHashMap(treeNode *node, ulong *htable, double *dists, ulong *keys, unsig
       }
     }
   } else {
-    ulong lval=0, rval=0, setval; 
+    ulong lval=0, rval=0, setval;
     if (node->left){
      lval = RFHashMap(node->left, htable, keys, hvs, lh, rootv);
      dists[node->left->value] = node->height - node->left->height;
@@ -957,7 +957,7 @@ void findNodeScores(treeNode *curNode, int *v1, int *v2, double *scores, treeNod
     double h;
 
     ssNode = findNextNode(curNode, v2, v1, true);
-    
+
     if (ssNode){
       double mpOS, mpSS, mpCN, oshd;
 
@@ -982,7 +982,7 @@ void findNodeScores(treeNode *curNode, int *v1, int *v2, double *scores, treeNod
         mpOS = (osNode->height + mpOS) / 2;
         oshd = (2*head->height - mpOS - mpCN);
       }
-      
+
       if (osNode && ssNode)
         useOS = oshd < (mpCN - mpSS);
 
@@ -999,7 +999,7 @@ void findNodeScores(treeNode *curNode, int *v1, int *v2, double *scores, treeNod
         } else {
           h = fabs(mpCN - mpSS);
         }
-      } 
+      }
 
       h++;
       scores[v] = (sameVal ? 1 : -1) * h;
@@ -1136,7 +1136,7 @@ int populateVector(treeNode* node, int *container, int idx){
   curIdx++;
   if (node->left) curIdx = populateVector(node->left, container, curIdx);
   if (node->right) curIdx = populateVector(node->right, container, curIdx);
-  
+
   return curIdx;
 }
 
@@ -1187,7 +1187,7 @@ unsigned int hashLabel(SEXP label){
 
   unsigned int result = 0x55555555;
 
-  while (*s) { 
+  while (*s) {
       result ^= *s++;
       result = ((result << 5) | (result >> (27)));
   }
@@ -1224,7 +1224,7 @@ static void printHelper(treeNode* node, int depth){
   int vr = node->right ? node->right->value : 0;
   if (node->label != 0) Rprintf("LEAF %u (value %d)", node->label, node->value);
   else {
-    Rprintf("%f (v: %d, l: %d, r: %d)", 
+    Rprintf("%f (v: %d, l: %d, r: %d)",
               node->height, node->value, vl, vr);
   }
   Rprintf("\n");
