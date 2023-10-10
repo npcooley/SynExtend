@@ -69,12 +69,14 @@ FindSets <- function(p1,
     }
   }
   if (Verbose) {
-    TimeEnd <- Sys.time()
+    close(pBar)
     cat("\n")
+    TimeEnd <- Sys.time()
     print(TimeEnd - TimeStart)
     TimeStart <- Sys.time()
     cat("\nAssigning final root:\n")
     L2 <- length(Nodes)
+    pBar <- txtProgressBar(style = 1)
   }
   # end first pass, nodes are pointed upward only so far as paths have been explored
   # while scrolling through pairs
@@ -82,6 +84,7 @@ FindSets <- function(p1,
   # nodes whose pointer is towards another node that itself points elsewhere must be re-rooted
   # i.e. scroll through nodes and ask if parents are roots, if they are not, chase
   # the known paths till you get to a root
+  
   for (m1 in seq_along(Nodes)) {
     if (Nodes[m1] != m1) {
       # node is not it's own root
@@ -97,6 +100,7 @@ FindSets <- function(p1,
     # Res[, m1 + length(p1) + 1L] <- Nodes
   }
   if (Verbose) {
+    close(pBar)
     cat("\n")
     TimeEnd <- Sys.time()
     print(TimeEnd - TimeStart)

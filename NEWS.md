@@ -1,3 +1,6 @@
+# SynExtend 1.13.7
+* Small fixes
+
 # SynExtend 1.13.6
 * `ProtWeaver` and `ProtWeb` have been renamed to `EvoWeaver` and `EvoWeb`, respectively
 * New sequence level method for `EvoWeaver`
