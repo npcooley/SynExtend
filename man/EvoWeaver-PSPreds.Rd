@@ -1,18 +1,19 @@
-\name{EvoWeaver-DMPreds}
-\alias{EvoWeaver-DMPreds}
+\name{EvoWeaver-PSPreds}
+\alias{EvoWeaver-PSPreds}
 \alias{MirrorTree.EvoWeaver}
 \alias{ContextTree.EvoWeaver}
+\alias{TreeDistance.EvoWeaver}
 \docType{data}
 \title{
-Distance Matrix Predictions for EvoWeaver
+Phylogenetic Structure Predictions for EvoWeaver
 }
 \description{
 \code{EvoWeaver} incorporates four classes of prediction, each with multiple 
-methods and algorithms. Distance Matrix (DM) methods examine conservation 
+methods and algorithms. Phylogenetic Structure (PS) methods examine conservation 
 of overall evolutionary rates within orthology groups using distance matrices
 constructed from each gene tree.
 
-\code{predict.EvoWeaver} currently supports three DM methods:
+\code{predict.EvoWeaver} currently supports three PS methods:
 \itemize{
   \item \code{'MirrorTree'}
   \item \code{'ContextTree'}
@@ -36,7 +37,7 @@ of the data, but this prevents parallelization of the data and doesn't solve mem
 issues (since SVD takes as input the entire matrix with columns corresponding to upper triangle values). \code{EvoWeaver} instead uses a seeded random projection
 following Achlioptas (2001) to reduce the dimensionality of the data in a 
 reproducible and parallel-compatible way. We also utilize Spearman's \eqn{\rho},
-which has demonstrated better performance than Pearson's \eqn{r}.
+which outperforms Pearson's \eqn{r} following dimensionality reduction.
 
 Subsequent work by Pazos et al. (2005) and Sato et al. (2005, 2006) found
 multiple ways to improve predictions from the initial \code{MirrorTree} method.
@@ -57,7 +58,7 @@ The \code{TreeDistance} method uses phylogenetic tree distance to quantify diffe
 
 See the links above for more information and references. All of these metrics are accessible using the \code{\link{PhyloDistance}} method. Method \code{"JRF"} defaults to a \code{k}
 value of 4, but this can be specified further if necessary using the \code{JRFk} input parameter. Higher values of \code{k} approach the value of Robinson-Foulds 
-distance, but these have a negligible impact on performance so use of the default parameter is encouraged for simplicity.
+distance, but these have a negligible impact on performance so use of the default parameter is encouraged for simplicity. Multiple metrics can be specified.
 }
 
 \value{
@@ -87,11 +88,11 @@ Sato, T., et al., \emph{Partial correlation coefficient between distance matrice
 
 \code{\link{predict.EvoWeaver}}
 
-\link[=EvoWeaver-PAPreds]{EvoWeaver Presence/Absence Predictors}
+\link[=EvoWeaver-PPPreds]{EvoWeaver Phylogenetic Profiling Predictors}
 
-\link[=EvoWeaver-ColocPreds]{EvoWeaver Co-localization Predictors}
+\link[=EvoWeaver-GOPreds]{EvoWeaver Gene Organization Predictors}
 
-\link[=EvoWeaver-ResiduePreds]{EvoWeaver Residue Level Predictors}
+\link[=EvoWeaver-SLPreds]{EvoWeaver Sequence-Level Predictors}
 
 \code{\link{PhyloDistance}}
 }

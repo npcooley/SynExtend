@@ -1,9 +1,11 @@
-\name{EvoWeaver-ColocPreds}
-\alias{EvoWeaver-ColocPreds}
+\name{EvoWeaver-GOPreds}
+\alias{EvoWeaver-GOPreds}
 \alias{Coloc.EvoWeaver}
+\alias{ColocMoran.EvoWeaver}
+\alias{TranscripMI.EvoWeaver}
 \docType{data}
 \title{
-Co-localization Predictions for EvoWeaver
+Gene Organization Predictions for EvoWeaver
 }
 \description{
 \code{EvoWeaver} incorporates four classes of prediction, each with multiple 
@@ -25,11 +27,11 @@ with gene locations using the a three or four number code. See \code{\link{EvoWe
 
 The built-in \code{Coloc} examines relative location of genes within genomes
 as evidence of interaction. For a given pair of genes, the score is given by
-\eqn{\sum_{G}e^{-|dI_G|}}, where \eqn{G} the set of genomes and \eqn{dI_G} the 
+\eqn{\sum_{G}e^{1-|dI_G|}}, where \eqn{G} the set of genomes and \eqn{dI_G} the 
 difference in index between the two genes in genome \eqn{G}. Using gene index
-instead of number of base pairs avoids bias introduced by gene and genome length. \emph{Note: \code{Coloc} is currently only available to maintain backwards compatibility, and will be removed in a future release.}
+instead of number of base pairs avoids bias introduced by gene and genome length.
 
-\code{ColocMoran} improves upon \code{Coloc} by taking into account the underlying phylogenetic signal of the data. This function uses the same initial scoring scheme as \code{Coloc}, but can handle paralogs. The raw scores are passed into \code{\link{MoransI}} to calculate spatial autocorrelation. "Space" is taken as \eqn{e^{-C}}, where \eqn{C} is the Cophenetic distance matrix calculated from the species tree of the inputs. As such, this method requires a species tree as input, which can be calculated from a set of gene trees using \code{\link{SuperTree}}.
+\code{ColocMoran} measures the extent to which gene distances are preserved across a phylogeny. This function uses the same initial scoring scheme as \code{Coloc}, but can handle paralogs. The raw scores are passed into \code{\link{MoransI}} to calculate spatial autocorrelation. "Space" is taken as \eqn{e^{-C}}, where \eqn{C} is the Cophenetic distance matrix calculated from the species tree of the inputs. As such, this method requires a species tree as input, which can be calculated from a set of gene trees using \code{\link{SuperTree}}.
 
 \code{TranscripMI} uses mutual information of the transcriptional direction of each pair of genes. Conservation of relative transcriptional direction between gene pairs has been shown to imply functional association in prior work. This algorithm requires that the \code{EvoWeaver} object is initialized with a four number code, with the third number either \code{0} or \code{1}, denoting whether the gene is on the forward or reverse strand. The mutual information is calculated as: 
 
@@ -60,9 +62,9 @@ Moran, P. A. P., \emph{Notes on Continuous Stochastic Phenomena}. Biometrika, 19
 
 \code{\link{predict.EvoWeaver}}
 
-\link[=EvoWeaver-PAPreds]{EvoWeaver Presence/Absence Predictors}
+\link[=EvoWeaver-PPPreds]{EvoWeaver Phylogenetic Profiling Predictors}
 
-\link[=EvoWeaver-DMPreds]{EvoWeaver Distance Matrix Predictors}
+\link[=EvoWeaver-PSPreds]{EvoWeaver Phylogenetic Structure Predictors}
 
-\link[=EvoWeaver-ResiduePreds]{EvoWeaver Residue Level Predictors}
+\link[=EvoWeaver-SLPreds]{EvoWeaver Sequence-Level Predictors}
 }

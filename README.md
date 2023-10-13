@@ -162,11 +162,11 @@ An example of using `EvoWeaver` can be done using the built-in example *Streptom
 
 ```r
 exData <- get(data("ExampleStreptomycesData"))
-pw <- EvoWeaver(exData$Genes)
+ew <- EvoWeaver(exData$Genes)
 
 # For faster runtime, set subset as follows:
-# predictions <- predict(pw, mySpeciesTree=exData$Tree, subset=1:20)
-predictions <- predict(pw, mySpeciesTree=exData$Tree)
+# predictions <- predict(ew, mySpeciesTree=exData$Tree, subset=1:20)
+predictions <- predict(ew, mySpeciesTree=exData$Tree)
 
 # View number of genes and number of predictions:
 

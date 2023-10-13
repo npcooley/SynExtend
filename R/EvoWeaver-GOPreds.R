@@ -7,30 +7,30 @@
 ##########################
 
 #### S3 Generic Definitions ####
-Coloc <- function(pw, ...) UseMethod('Coloc')
-ColocMoran <- function(pw, ...) UseMethod('ColocMoran')
-TranscripMI <- function(pw, ...) UseMethod('TranscripMI')
+Coloc <- function(ew, ...) UseMethod('Coloc')
+ColocMoran <- function(ew, ...) UseMethod('ColocMoran')
+TranscripMI <- function(ew, ...) UseMethod('TranscripMI')
 ################################
 
-Coloc.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
+Coloc.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE, 
                              precalcProfs=NULL, precalcSubset=NULL, 
                              minimumGenomeSize=2500, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
-    subs <- ProcessSubset(pw, Subset)
+    subs <- ProcessSubset(ew, Subset)
   uvals <- subs$uvals
   evalmap <- subs$evalmap
-  stopifnot('Colocalization is disabled.'=attr(pw,'useColoc'))
-  if (attr(pw, 'useMT')){
-    labvecs <- lapply(pw[uvals], labels)
+  stopifnot('Colocalization is disabled.'=attr(ew,'useColoc'))
+  if (attr(ew, 'useMT')){
+    labvecs <- lapply(ew[uvals], labels)
   } else {
-    labvecs <- pw[uvals]
+    labvecs <- ew[uvals]
   }
   l <- length(labvecs)
   
   allsp <- lapply(labvecs, \(x) gsub('(.*)_.*$', '\\1', x))
-  n <- names(pw)[uvals]
+  n <- names(ew)[uvals]
   
   ARGS <- list(allsp=allsp)
   FXN <- function(lab1, lab2, ARGS, ii, jj){
@@ -73,31 +73,31 @@ Coloc.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   return(pairscores)
 }
 
-ColocMoran.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
+ColocMoran.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE, 
                                   MySpeciesTree=NULL,
                                   precalcProfs=NULL, precalcSubset=NULL, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
-    subs <- ProcessSubset(pw, Subset)
+    subs <- ProcessSubset(ew, Subset)
   uvals <- subs$uvals
   evalmap <- subs$evalmap
-  stopifnot('Colocalization is disabled.'=attr(pw,'useColoc'))
+  stopifnot('Colocalization is disabled.'=attr(ew,'useColoc'))
   if ( is.null(MySpeciesTree) || !is(MySpeciesTree, 'dendrogram')){
-    MySpeciesTree <- findSpeciesTree(pw, Verbose)
+    MySpeciesTree <- findSpeciesTree(ew, Verbose)
   }
   stopifnot('Missing MySpeciesTree'=!is.null(MySpeciesTree))
   stopifnot('MySpeciesTree must be a dendrogram'=is(MySpeciesTree, 'dendrogram'))
-  if (attr(pw, 'useMT')){
-    labvecs <- lapply(pw[uvals], labels)
+  if (attr(ew, 'useMT')){
+    labvecs <- lapply(ew[uvals], labels)
   } else {
-    labvecs <- pw[uvals]
+    labvecs <- ew[uvals]
   }
   l <- length(labvecs)
   specCoph <- as.matrix(Cophenetic(MySpeciesTree))
   
   allsp <- lapply(labvecs, \(x) gsub('(.*)_.*$', '\\1', x))
-  n <- names(pw)[uvals]
+  n <- names(ew)[uvals]
   
   ARGS <- list(allsp=allsp, cMat=specCoph)
   FXN <- function(lab1, lab2, ARGS, ii, jj){
@@ -149,25 +149,25 @@ ColocMoran.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   return(pairscores)
 }
 
-TranscripMI.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
+TranscripMI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE, 
                                           precalcProfs=NULL, precalcSubset=NULL, ...){
-  stopifnot('Some labels are missing strand identifiers!'=attr(pw, 'useStrand'))
+  stopifnot('Some labels are missing strand identifiers!'=attr(ew, 'useStrand'))
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
-    subs <- ProcessSubset(pw, Subset)
+    subs <- ProcessSubset(ew, Subset)
   uvals <- subs$uvals
   evalmap <- subs$evalmap
-  stopifnot('Colocalization is disabled.'=attr(pw,'useColoc'))
-  if (attr(pw, 'useMT')){
-    labvecs <- lapply(pw[uvals], labels)
+  stopifnot('Colocalization is disabled.'=attr(ew,'useColoc'))
+  if (attr(ew, 'useMT')){
+    labvecs <- lapply(ew[uvals], labels)
   } else {
-    labvecs <- pw[uvals]
+    labvecs <- ew[uvals]
   }
   l <- length(labvecs)
   
   allsp <- lapply(labvecs, \(x) gsub('(.*)_.*$', '\\1', x))
-  n <- names(pw)[uvals]
+  n <- names(ew)[uvals]
   
   ARGS <- list(allsp=allsp)
   FXN <- function(lab1, lab2, ARGS, ii, jj){

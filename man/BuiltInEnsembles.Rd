@@ -25,8 +25,8 @@ See the examples for how to train your own ensemble model.
 ## using built-ins
 
 exData <- get(data("ExampleStreptomycesData"))
-pw <- EvoWeaver(exData$Genes[1:50])
-datavals <- predict(pw, NoPrediction=TRUE)
+ew <- EvoWeaver(exData$Genes[1:50])
+datavals <- predict(ew, NoPrediction=TRUE)
                   
 # Make sure the actual values correspond to the right pairs! 
 # This example just picks random numbers

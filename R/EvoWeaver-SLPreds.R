@@ -8,17 +8,17 @@
 ##########################
 
 #### S3 Generic Definitions ####
-ResidueMI <- function(pw, ...) UseMethod('ResidueMI')
-NVDT <- function(pw, ...) UseMethod('NVDT')
-Ancestral <- function(pw, ...) UseMethod('Ancestral')
+ResidueMI <- function(ew, ...) UseMethod('ResidueMI')
+NVDT <- function(ew, ...) UseMethod('NVDT')
+Ancestral <- function(ew, ...) UseMethod('Ancestral')
 ################################
 
-ResidueMI.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
+ResidueMI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE, 
                                  precalcSubset=NULL, gapCutoff=0.5, 
                                  useDNA=FALSE, Processors=1L, useWeights=TRUE, ...){
-  useResidue <- attr(pw, 'useResidue')
-  useMT <- attr(pw, 'useMT')
-  useColoc <- attr(pw, 'useColoc')
+  useResidue <- attr(ew, 'useResidue')
+  useMT <- attr(ew, 'useMT')
+  useColoc <- attr(ew, 'useColoc')
   Processors <- NormArgProcessors(Processors)
   
   stopifnot('EvoWeaver object must be initialized with dendrograms to run Residue methods'=
@@ -29,12 +29,12 @@ ResidueMI.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
-    subs <- ProcessSubset(pw, Subset)
+    subs <- ProcessSubset(ew, Subset)
   
   uvals <- subs$uvals
   evalmap <- subs$evalmap
   l <- length(uvals)
-  n <- names(pw)
+  n <- names(ew)
   if ( l == 1 ){
     mat <- matrix(1, nrow=1, ncol=1)
     rownames(mat) <- colnames(mat) <- n
@@ -55,7 +55,7 @@ ResidueMI.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
     pb <- txtProgressBar(max=length(uvals), style=3)
   }
   for(i in seq_along(uvals)){
-    tree <- pw[[uvals[i]]]
+    tree <- ew[[uvals[i]]]
     seqs <- rapply(tree, attr, which='state')
     ncharSeq <- nchar(seqs)
     stopifnot('Sequences are not aligned!'=all(ncharSeq==ncharSeq[1]))
@@ -94,14 +94,14 @@ ResidueMI.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   }
   for ( i in seq_len(l-1) ){
     uval1 <- uvals[i]
-    #tree1 <- pw[[uval1]]
+    #tree1 <- ew[[uval1]]
     seqs1 <- ResidueSets[[i]]
     for ( j in (i+1):l ){
       uval2 <- uvals[j]
       accessor <- as.character(min(uval1, uval2))
       entry <- max(uval1, uval2)
       if (i!=j && (is.null(evalmap) || entry %in% evalmap[[accessor]])){
-        #tree2 <- pw[[uval2]]
+        #tree2 <- ew[[uval2]]
         seqs2 <- ResidueSets[[j]]
         #pairscores[ctr+1] <- ResidueMIDend(tree1, tree2, useColoc=useColoc, ...)
         score <- ResidueMISeqs(seqs1, seqs2, lookup=lookup, 
@@ -120,13 +120,13 @@ ResidueMI.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   return(pairscores)
 }
 
-NVDT.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
+NVDT.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE, 
                             precalcSubset=NULL, extended=TRUE, 
                             DNAseqs=TRUE, centerObservations=FALSE,
                             sqrtCorrelation=TRUE, ...){
   #source('/Users/aidan/Nextcloud/RStudioSync/comps/NVDT/calcNVDT.R')
-  useResidue <- attr(pw, 'useResidue')
-  useMT <- attr(pw, 'useMT')
+  useResidue <- attr(ew, 'useResidue')
+  useMT <- attr(ew, 'useMT')
   
   stopifnot('EvoWeaver object must be initialized with dendrograms to run Residue methods'=
               useMT)
@@ -136,13 +136,13 @@ NVDT.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
-    subs <- ProcessSubset(pw, Subset)
+    subs <- ProcessSubset(ew, Subset)
   
   uvals <- subs$uvals
   evalmap <- subs$evalmap
   l <- length(uvals)
-  alllabs <- lapply(uvals, \(x) labels(pw[[x]]))
-  n <- names(pw)
+  alllabs <- lapply(uvals, \(x) labels(ew[[x]]))
+  n <- names(ew)
   if ( l == 1 ){
     mat <- matrix(1, nrow=1, ncol=1)
     rownames(mat) <- colnames(mat) <- n
@@ -158,7 +158,7 @@ NVDT.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   }
   for (i in seq_len(l)){
     uv <- uvals[i]
-    tree <- pw[[uv]]
+    tree <- ew[[uv]]
     #seqs <- DNAStringSet(flatdendrapply(tree, NODEFUN=\(x) attr(x, 'state')))
     seqs <- rapply(tree, attr, which='state')
     # Remove Gaps
@@ -256,11 +256,11 @@ NVDT.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   
 }
 
-Ancestral.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE, 
+Ancestral.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE, 
                                  precalcSubset=NULL, ...){
-  useResidue <- attr(pw, 'useResidue')
-  useMT <- attr(pw, 'useMT')
-  useColoc <- attr(pw, 'useColoc')
+  useResidue <- attr(ew, 'useResidue')
+  useMT <- attr(ew, 'useMT')
+  useColoc <- attr(ew, 'useColoc')
   
   stopifnot('EvoWeaver object must be initialized with dendrograms to run Residue methods'=
               useMT)
@@ -270,12 +270,12 @@ Ancestral.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
-    subs <- ProcessSubset(pw, Subset)
+    subs <- ProcessSubset(ew, Subset)
   
   uvals <- subs$uvals
   evalmap <- subs$evalmap
   l <- length(uvals)
-  n <- names(pw)
+  n <- names(ew)
   
   if ( l == 1 ){
     mat <- matrix(1, nrow=1, ncol=1)
@@ -290,7 +290,7 @@ Ancestral.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   }
   for (i in seq_len(l)){
     uv <- uvals[i]
-    pmlst[[i]] <- find_dists_pos(pw[[uv]], useColoc)
+    pmlst[[i]] <- find_dists_pos(ew[[uv]], useColoc)
     if(Verbose) setTxtProgressBar(pb, i)
   }
   

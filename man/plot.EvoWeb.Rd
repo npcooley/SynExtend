@@ -82,11 +82,11 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 }
 \examples{
 exData <- get(data("ExampleStreptomycesData"))
-pw <- EvoWeaver(exData$Genes)
+ew <- EvoWeaver(exData$Genes)
 
 # Subset isn't necessary but is faster for a working example
 # Same w/ method='Jaccard'
-evoweb <- predict(pw, 'Jaccard', subset=1:50)
+evoweb <- predict(ew, Method='Jaccard', Subset=1:50)
 
 plot(evoweb)
 }

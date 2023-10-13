@@ -27,8 +27,8 @@ of 301 unique genomes.
 }
 \examples{
 exData <- get(data("ExampleStreptomycesData"))
-pw <- EvoWeaver(exData$Genes)
+ew <- EvoWeaver(exData$Genes)
 # Subset isn't necessary but is faster for a working example
-predict(pw, Subset=1:10, MySpeciesTree=exData$Tree)
+predict(ew, Subset=1:10, MySpeciesTree=exData$Tree)
 }
 \keyword{datasets}

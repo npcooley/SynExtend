@@ -35,21 +35,18 @@ matrix with some extra S3 methods to make printing cleaner.
     specifies a pair to evaluate. These can also be specifed by name (character) or by index 
     (numeric). 
     
-    \code{subset=cbind(c(1,1,2), c(2,3,3))} produces equivalent functionality to 
+    \code{subset=rbind(c(1,2),c(1,3),c(2,3))} produces equivalent functionality to 
     \code{subset=1:3}.
   }
   \item{Processors}{
     Number of cores to use for methods that support multithreaded execution. 
-    Currently only supported for methods \code{'ProfDCA'}, \code{'MirrorTree'} and \code{'Ensemble'}. Setting
-    to \code{NULL} or a negative value will use the value of \code{detectCores()}, 
+    Setting to \code{NULL} or a negative value will use the value of 
+    \code{detectCores()}, 
     or one core if the number of available cores cannot be determined. See Note
-    for more information. This parameter has no effect on Windows due to reliance on
-    forking via \code{mclapply}.
+    for more information. 
   }
   \item{MySpeciesTree}{
-    Phylogenetic tree of all genomes in the dataset. Required for \code{Method='Behdenna'},
-    and can improve predictions for other methods. \code{'Behdenna'} requires a 
-    rooted, bifurcating tree (other values of \code{Method} can handle arbitrary trees). Note that \code{EvoWeaver} can automatically infer a species tree if initialized with \code{dendrogram} objects.
+    Phylogenetic tree of all genomes in the dataset. Required for \code{Method=c('ContextTree', 'GainLoss', 'CorrGL', 'ColocMoran', 'Behdenna')}. \code{'Behdenna'} requires a rooted, bifurcating tree (other values of \code{Method} can handle arbitrary trees). Note that \code{EvoWeaver} can automatically infer a species tree if initialized with \code{dendrogram} objects.
   }
   \item{PretrainedModel}{
     A pretrained model for use with ensemble predictions. If unspecified when 
@@ -81,39 +78,40 @@ matrix with some extra S3 methods to make printing cleaner.
 }
 
 \details{
-\code{predict.EvoWeaver} wraps several methods to create an easy interface for multiple prediction types. \code{Method='Ensemble'} is the default value, but the following values of \code{Method} are also supported: 
+\code{predict.EvoWeaver} wraps several methods to create an easy interface for multiple prediction types. \code{Method='Ensemble'} is the default value, but each of the component analyses can also be accessed. The following is a list of all algorithms implemented in EvoWeaver (* denotes algorithms used in the EvoWeaver publication): 
 
 \itemize{
-  \item \code{'Ensemble'}: Ensemble prediction combining individual coevolutionary predictors.
-  \item \code{'Jaccard'}: Jaccard distance of Presence/Absence (P/A) profiles
+  \item \code{'Ensemble'}: Ensemble prediction combining individual coevolutionary predictors. See \code{Note} below.
+  \item * \code{'Jaccard'}: Jaccard distance of Presence/Absence (P/A) profiles
   \item \code{'Hamming'}: Hamming distance of P/A profiles
-  \item \code{'MutualInformation'}: MI of P/A profiles
-  \item \code{'PAPV'}: \code{1-p_value} of P/A profiles
+  \item * \code{'MutualInformation'}: MI of P/A profiles
+  \item * \code{'PAPV'}: \code{1-p_value} of P/A profiles
   \item \code{'ProfDCA'}: Direct Coupling Analysis of P/A profiles
   \item \code{'Behdenna'}: Analysis of Gain/Loss events following Behdenna et al. (2016) 
-  \item \code{'CorrGL'}: Correlation of ancestral Gain/Loss events
-  \item \code{'GainLoss'}: Score-based method based on distance between inferred ancestral Gain/Loss events
-  \item \code{'MirrorTree'}: MirrorTree using Random Projection for dimensionality reduction
-  \item \code{'ContextTree'}: MirrorTree with Random Projection correcting for species tree and P/A conservation
-  \item \code{'Coloc'}: Co-localization analysis
-  \item \code{'ColocMoran'}: Co-localization analysis using   \link[=MoransI]{Moran's I} for phylogenetic correction and significance
-  \item \code{'TranscripMI'}: Mutual Information of Transcriptional Direction
-  \item \code{'NVDT'}: Correlation of distribution of sequence level residues following Zhao et al. (2022)
+  \item * \code{'CorrGL'}: Correlation of ancestral Gain/Loss events
+  \item * \code{'GainLoss'}: Score-based method based on distance between inferred ancestral Gain/Loss events
+  \item * \code{'MirrorTree'}: MirrorTree using Random Projection for dimensionality reduction
+  \item * \code{'ContextTree'}: MirrorTree with Random Projection correcting for species tree and P/A conservation
+  \item * \code{'Coloc'}: Co-localization analysis
+  \item * \code{'ColocMoran'}: Co-localization analysis using   \link[=MoransI]{Moran's I} for phylogenetic correction and significance
+  \item * \code{'TranscripMI'}: Mutual Information of Transcriptional Direction
+  \item * \code{'NVDT'}: Correlation of distribution of sequence level residues following Zhao et al. (2022)
+  \item * \code{'ResidueMI'}: Mutual information of sites in multiple sequence alignment
 }
 
-The best performing individual predictors are \code{c('CorrGL', 'GainLoss', 'MirrorTree', 'Jaccard')}. Users interesting in running quick analyses should use \code{c('CorrGL', 'GainLoss', 'Jaccard')}.  
+The best performing individual predictors are \code{c('CorrGL', 'GainLoss', 'MirrorTree', 'Jaccard')}. Users interesting in running quick analyses should use \code{c('CorrGL', 'GainLoss', 'Jaccard')}. 
 
 Additional information and references for each prediction algorithm can be found at the 
 following pages:
 
 \itemize{
-\item \link[=EvoWeaver-PAPreds]{EvoWeaver Presence/Absence Methods}
+\item \link[=EvoWeaver-PPPreds]{EvoWeaver Phylogenetic Profiling Methods}
 
-\item \link[=EvoWeaver-DMPreds]{EvoWeaver Distance Matrix Methods}
+\item \link[=EvoWeaver-PSPreds]{EvoWeaver Phylogenetic Structure Methods}
 
-\item \link[=EvoWeaver-ColocPreds]{EvoWeaver Co-localization Methods}
+\item \link[=EvoWeaver-GOPreds]{EvoWeaver Gene Organization Methods}
 
-\item \link[=EvoWeaver-ResiduePreds]{EvoWeaver Residue Level Methods}
+\item \link[=EvoWeaver-SLPreds]{EvoWeaver Sequence-Level Methods}
 }
 
 This returns a \code{EvoWeb} object, an S3 class that makes formatting and printing of 
@@ -135,22 +133,15 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 }
 
 \note{
-  \code{NumCores} uses 1 less core than is detected, or 1 core if \code{detectCores()}
+The current ensemble method included with EvoWeaver is out of date. EvoWeaver's publication used a random forest model from the \code{randomForest} package for prediction. The next release of EvoWeaver will include multiple new built-in ensemble methods, but in the interim users are recommended to rely on \code{randomForest} or \code{neuralnet}. Planned algorithms are random forests and feed-forward neural networks. Feel free to contact me regarding other models you would like to see added.
+  
+  If \code{NumCores} is set to \code{NULL}, EvoWeaver will use one less core than is detected, or one core if \code{detectCores()}
   cannot detect the number of available cores. This is because of a recurring issue
   on my machine where the R session takes all available cores and is then locked
   out of forking processes, with the only solution to restart the entire R session.
   This may be an issue specific to ARM Macs, but out of an abundance of caution
   I've made the default setting to be slightly slower but guarantee completion
   rather than risk bricking a machine.
-
-  More models will be implemented in the future. Planned models for next release
-  include:
-  \itemize{
-    \item Random Forests for Ensemble predictions
-    \item XGBoost for Ensemble predictions
-  }
-  
-  Feel free to contact me regarding other models you would like to see added.
 }
 
 \seealso{
@@ -158,13 +149,13 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 
 \code{\link{EvoWeb}}
 
-\link[=EvoWeaver-PAPreds]{EvoWeaver Presence/Absence Predictors}
+\link[=EvoWeaver-PPPreds]{EvoWeaver Phylogenetic Profiling Predictors}
 
-\link[=EvoWeaver-DMPreds]{EvoWeaver Distance Matrix Predictors}
+\link[=EvoWeaver-PSPreds]{EvoWeaver Phylogenetic Structure Predictors}
 
-\link[=EvoWeaver-ColocPreds]{EvoWeaver Co-localization Predictors}
+\link[=EvoWeaver-GOPreds]{EvoWeaver Gene Organization Predictors}
 
-\link[=EvoWeaver-ResiduePreds]{EvoWeaver Residue Level Predictors}
+\link[=EvoWeaver-SLPreds]{EvoWeaver Sequence-Level Predictors}
 }
 \examples{
 ##############
@@ -172,10 +163,10 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 ###############
 
 exData <- get(data("ExampleStreptomycesData"))
-pw <- EvoWeaver(exData$Genes[1:50])
+ew <- EvoWeaver(exData$Genes[1:50])
 
 # Subset isn't necessary but is faster for a working example
-evoweb1 <- predict(pw, Subset=1:10, MySpeciesTree=exData$Tree)
+evoweb1 <- predict(ew, Subset=1:10, MySpeciesTree=exData$Tree)
 
 # print out results as an adjacency matrix
 evoweb1
@@ -184,7 +175,7 @@ evoweb1
 ## Training own ensemble model
 ###############
 
-datavals <- predict(pw, NoPrediction=TRUE)
+datavals <- predict(ew, NoPrediction=TRUE)
                   
 actual_values <- sample(c(0,1), nrow(datavals), replace=TRUE)
 # This example just picks random numbers

@@ -1,5 +1,5 @@
-\name{EvoWeaver-PAPreds}
-\alias{EvoWeaver-PAPreds}
+\name{EvoWeaver-PPPreds}
+\alias{EvoWeaver-PPPreds}
 \alias{Jaccard.EvoWeaver}
 \alias{Hamming.EvoWeaver}
 \alias{MutualInformation.EvoWeaver}
@@ -9,15 +9,15 @@
 \alias{CorrGL.EvoWeaver}
 \docType{data}
 \title{
-Presence/Absence Predictions for EvoWeaver
+Phylogenetic Profiling Predictions for EvoWeaver
 }
 \description{
 \code{EvoWeaver} incorporates four classes of prediction, each with multiple 
-methods and algorithms. Presence/Absence (PA) methods examine conservation 
+methods and algorithms. Phylogenetic Profiling (PP) methods examine conservation 
 of gain/loss events within orthology groups using phylogenetic profiles
 constructed from presence/absence patterns.
 
-\code{predict.EvoWeaver} currently supports seven PA methods:
+\code{predict.EvoWeaver} currently supports seven PP methods:
 \itemize{
   \item \code{'Jaccard'}
   \item \code{'Hamming'}
@@ -31,10 +31,10 @@ constructed from presence/absence patterns.
 }
 
 \details{
-Most PA methods are compatible with a \code{EvoWeaver} object initialized
+Most PP methods are compatible with a \code{EvoWeaver} object initialized
 with any input type. See \code{\link{EvoWeaver}} for more information on input data types.
 
-All of these methods use PA profiles, which are binary presence/absence
+All of these methods use presence/absence (PA) profiles, which are binary 
 vectors such that 1 implies the corresponding genome has that particular
 gene, and 0 implies the genome does not have that particular gene.
 
@@ -93,9 +93,9 @@ Weigt, M., et al., \emph{Identification of direct residue contacts in protein-pr
 
 \code{\link{predict.EvoWeaver}}
 
-\link[=EvoWeaver-DMPreds]{EvoWeaver Distance Matrix Predictors}
+\link[=EvoWeaver-PSPreds]{EvoWeaver Phylogenetic Structure Predictors}
 
-\link[=EvoWeaver-ColocPreds]{EvoWeaver Co-localization Predictors}
+\link[=EvoWeaver-GOPreds]{EvoWeaver Gene Organization Predictors}
 
-\link[=EvoWeaver-ResiduePreds]{EvoWeaver Residue Level Predictors}
+\link[=EvoWeaver-SLPreds]{EvoWeaver Sequence-Level Predictors}
 }
