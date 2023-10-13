@@ -14,7 +14,7 @@ protein or gene data. EvoWeaver implements multiple algorithms for analyzing coe
 \usage{
 EvoWeaver(ListOfData, MySpeciesTree=NULL, NoWarn=FALSE)
 
-\method{SpeciesTree}{EvoWeaver}(pw, Verbose=TRUE, Processors=1L)
+\method{SpeciesTree}{EvoWeaver}(ew, Verbose=TRUE, Processors=1L)
 }
 \arguments{
   \item{ListOfData}{
@@ -29,7 +29,7 @@ the list provided in \code{ListOfData}.
 \item{NoWarn}{
 Several algorithms depend on having certain data. When a \code{EvoWeaver} object is initialized, it automatically selects which algorithms can be used given the input data. By default, EvoWeaver will notify the user of algorithms that cannot be used with warnings. Setting \code{NoWarn=TRUE} will suppress these messages.
 }
-\item{pw}{
+\item{ew}{
 An object of class \code{EvoWeaver}
 }
 \item{Verbose}{
@@ -66,16 +66,16 @@ Case (3) expects gene trees for each gene, with labeled leaves corresponding to 
 
 \emph{See the Examples section for illustrative examples.}
 
-\emph{Whenever possible, provide a full set of \code{dendrogram} objects with leaf labels in form (2b). This will allow the most optimal algorithms to run. What follows is a more detailed description of which inputs allow which algorithms.}
+\emph{Whenever possible, provide a full set of \code{dendrogram} objects with leaf labels in form (2b). This will allow the most algorithms to run. What follows is a more detailed description of which inputs allow which algorithms.}
 
-EvoWeaver requires input of scenario (3) to use distance matrix methods, and requires input of scenario (2) (or (3) with leaves labeled according to (2)) for co-localization analyses. Transcriptional direction analysis requires input of scenario (2b).
-Residue covariation methods require dendrograms with sequence information included as the \code{state} attribute in each leaf node.
+EvoWeaver requires input of scenario (3) to use distance matrix methods, and requires input of scenario (2) (or (3) with leaves labeled according to (2)) for gene organization analyses. Transcriptional direction analysis requires input of scenario (2b).
+Sequence-level methods require dendrograms with sequence information included as the \code{state} attribute in each leaf node.
 
 Note that ALL entries must belong to the same category--a combination of character vectors and dendrograms is not allowed. 
 
 Prediction of a functional association network is done using \code{predict(EvoWeaverObject)}. See \code{\link{predict.EvoWeaver}} for more information.
 
-The \code{SpeciesTree} function takes in an object of class \code{EvoWeaver} and returns a species tree. If the object was not initialized with a species tree, it calculates one using \code{\link{SuperTree}}. The species tree for a EvoWeaver object can be set with \code{attr(pw, 'speciesTree') <- ...}.
+The \code{SpeciesTree} function takes in an object of class \code{EvoWeaver} and returns a species tree. If the object was not initialized with a species tree, it calculates one using \code{\link{SuperTree}}. The species tree for a EvoWeaver object can be set with \code{attr(ew, 'speciesTree') <- ...}.
 }
 \value{
 Returns a EvoWeaver object.

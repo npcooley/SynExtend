@@ -3,9 +3,9 @@
 # contact: ahl27@pitt.edu
 
 #### S3 Generic Definitions ####
-PAProfiles <- function(pw, ...) UseMethod('PAProfiles')
-CophProfiles <- function(pw, ...) UseMethod('CophProfiles')
-RandCophProfiles <- function(pw, ...) UseMethod('RandCophProfiles')
+PAProfiles <- function(ew, ...) UseMethod('PAProfiles')
+CophProfiles <- function(ew, ...) UseMethod('CophProfiles')
+RandCophProfiles <- function(ew, ...) UseMethod('RandCophProfiles')
 ################################
 
 NormArgProcessors <- function(Processors){
@@ -63,35 +63,35 @@ BuildSimMatInternal <- function(vecs, uvals, evalmap, l, n, FXN, ARGS, Verbose,
   return(pairscores)
 }
 
-PAProfiles.EvoWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
+PAProfiles.EvoWeaver <- function(ew, toEval=NULL, Verbose=TRUE,
                                   speciesList=NULL, ...){
-  cols <- names(pw)
-  ao <- attr(pw, 'allOrgs')
+  cols <- names(ew)
+  ao <- attr(ew, 'allOrgs')
   if (!is.null(speciesList)){
     stopifnot('Species list is missing species!'=all(ao %in% speciesList))
     allOrgs <- speciesList
   } else {
     allOrgs <- ao
   }
-  useColoc <- attr(pw, 'useColoc')
-  useMT <- attr(pw, 'useMT')
+  useColoc <- attr(ew, 'useColoc')
+  useMT <- attr(ew, 'useMT')
   if (useMT)
-    pw <- lapply(pw, labels)
+    ew <- lapply(ew, labels)
   if (useColoc)
-    pw <- lapply(pw, gsub, pattern='([^_]*)_.*', replacement='\\1')
+    ew <- lapply(ew, gsub, pattern='([^_]*)_.*', replacement='\\1')
 
   skip <- FALSE
   if ( !is.null(toEval) ){
     skip <- TRUE
     locs <- unique(c(toEval))
   }
-  profiles <- matrix(FALSE, nrow=length(allOrgs), ncol=length(pw))
+  profiles <- matrix(FALSE, nrow=length(allOrgs), ncol=length(ew))
   rownames(profiles) <- allOrgs
   colnames(profiles) <- cols
-  if (Verbose) pb <- txtProgressBar(max=length(pw), style=3)
-  for ( i in seq_len(length(pw)) ){
+  if (Verbose) pb <- txtProgressBar(max=length(ew), style=3)
+  for ( i in seq_len(length(ew)) ){
     if( !skip || i %in% locs)
-      profiles[pw[[i]],i] <- TRUE
+      profiles[ew[[i]],i] <- TRUE
     if (Verbose) setTxtProgressBar(pb, i)
   }
   if (Verbose) cat('\n')
@@ -100,19 +100,19 @@ PAProfiles.EvoWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
   return(profiles)
 }
 
-CophProfiles.EvoWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
+CophProfiles.EvoWeaver <- function(ew, toEval=NULL, Verbose=TRUE,
                                     speciesList=NULL, ...){
   ## TODO: Some way to handle paralogs
-  cols <- names(pw)
-  ao <- attr(pw, 'allOrgs')
+  cols <- names(ew)
+  ao <- attr(ew, 'allOrgs')
   if (!is.null(speciesList)){
     stopifnot('Species list is missing species!'=all(ao %in% speciesList))
     allOrgs <- speciesList
   } else {
     allOrgs <- ao
   }
-  useColoc <- attr(pw, 'useColoc')
-  useMT <- attr(pw, 'useMT')
+  useColoc <- attr(ew, 'useColoc')
+  useMT <- attr(ew, 'useMT')
 
   stopifnot('EvoWeaver object must be initialized with dendrograms to run MirrorTree methods'=
               useMT)
@@ -124,17 +124,17 @@ CophProfiles.EvoWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
   }
   l <- length(allOrgs)
   num_entries <- (l * (l-1)) / 2
-  outmat <- matrix(0, nrow=num_entries, ncol=length(pw))
+  outmat <- matrix(0, nrow=num_entries, ncol=length(ew))
   dummycoph <- matrix(NA, nrow=l, ncol=l)
   ut <- upper.tri(dummycoph)
   rownames(dummycoph) <- colnames(dummycoph) <- allOrgs
-  if (Verbose) pb <- txtProgressBar(max=length(pw), style=3)
-  for ( i in seq_along(pw) ){
+  if (Verbose) pb <- txtProgressBar(max=length(ew), style=3)
+  for ( i in seq_along(ew) ){
     if ( !skip || i %in% locs ){
       dummycoph[] <- NA
       cop <- NA
       # This is occasionally throwing errors that don't affect output for some reason
-      cop <- as.matrix(Cophenetic(pw[[i]]))
+      cop <- as.matrix(Cophenetic(ew[[i]]))
       copOrgNames <- rownames(cop)
       if (useColoc){
         copOrgNames <- vapply(copOrgNames, gsub, pattern='(.+)_.+_[0-9]+',
@@ -157,13 +157,13 @@ CophProfiles.EvoWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
   return(outmat)
 }
 
-RandCophProfiles.EvoWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
+RandCophProfiles.EvoWeaver <- function(ew, toEval=NULL, Verbose=TRUE,
                                         speciesList=NULL, outdim=-1,
                                         speciesCorrect=FALSE, mySpeciesTree=NULL,
                                         Processors=1L, ...){
   ## TODO: Some way to handle paralogs
-  cols <- names(pw)
-  ao <- attr(pw, 'allOrgs')
+  cols <- names(ew)
+  ao <- attr(ew, 'allOrgs')
   if (!is.null(speciesList)){
     stopifnot('Species list is missing species!'=all(ao %in% speciesList))
     allOrgs <- speciesList
@@ -173,8 +173,8 @@ RandCophProfiles.EvoWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
 
   Processors <- NormArgProcessors(Processors)
 
-  useColoc <- attr(pw, 'useColoc')
-  useMT <- attr(pw, 'useMT')
+  useColoc <- attr(ew, 'useColoc')
+  useMT <- attr(ew, 'useMT')
 
   stopifnot('EvoWeaver object must be initialized with dendrograms to run MirrorTree methods'=
               useMT)
@@ -187,7 +187,7 @@ RandCophProfiles.EvoWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
   l <- length(allOrgs)
   outdim <- ifelse(outdim < 1, l, outdim)
   outdim <- as.integer(outdim)
-  outmat <- matrix(0, nrow=outdim, ncol=length(pw))
+  outmat <- matrix(0, nrow=outdim, ncol=length(ew))
   #dummycoph <- matrix(NA, nrow=l, ncol=l)
   #ut <- upper.tri(dummycoph, diag=FALSE)
   dummycoph <- rep(0, l*(l-1)/2)
@@ -207,14 +207,14 @@ RandCophProfiles.EvoWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
   }
 
   #rownames(dummycoph) <- colnames(dummycoph) <- allOrgs
-  if (Verbose) pb <- txtProgressBar(max=length(pw), style=3)
-  for ( i in seq_along(pw) ){
+  if (Verbose) pb <- txtProgressBar(max=length(ew), style=3)
+  for ( i in seq_along(ew) ){
     if ( !skip || i %in% locs ){
       dummycoph[] <- 0
       cop <- 0
       # This is occasionally throwing errors that don't affect output for some reason
-      #cop <- as.matrix(Cophenetic(pw[[i]]))
-      cop <- fastCoph(pw[[i]])
+      #cop <- as.matrix(Cophenetic(ew[[i]]))
+      cop <- fastCoph(ew[[i]])
       #copOrgNames <- rownames(cop)
       copOrgNames <- attr(cop, 'Labels')
       if (useColoc){
@@ -249,15 +249,15 @@ RandCophProfiles.EvoWeaver <- function(pw, toEval=NULL, Verbose=TRUE,
   return(outmat)
 }
 
-ProcessSubset <- function(pw, Subset=NULL){
-  pl <- length(pw)
+ProcessSubset <- function(ew, Subset=NULL){
+  pl <- length(ew)
   evalmap <- NULL
   uvals <- seq_len(pl)
   if (!is.null(Subset)){
     if (is(Subset, 'data.frame')){
       Subset <- as.matrix(Subset)
     }
-    n <- names(pw)
+    n <- names(ew)
     stopifnot("'Subset' must be either character, numeric, or matrix"=
                 (is(Subset, 'character') || is(Subset, 'numeric') || is(Subset, 'matrix')))
     if (is(Subset, 'matrix')){
@@ -953,13 +953,13 @@ predictWithBuiltins <- function(preds){
   }
 }
 
-findSpeciesTree <- function(pw, Verbose=TRUE, NameFun=NULL, Processors=1L){
-  stopifnot("EvoWeaver object must contain dendrograms"=attr(pw, "useMT"))
-  if (attr(pw, "useColoc") && is.null(NameFun)){
+findSpeciesTree <- function(ew, Verbose=TRUE, NameFun=NULL, Processors=1L){
+  stopifnot("EvoWeaver object must contain dendrograms"=attr(ew, "useMT"))
+  if (attr(ew, "useColoc") && is.null(NameFun)){
     NameFun <- function(x) gsub('([^_])_.*', '\\1', x)
   }
 
-  SpecTree <- SuperTree(unclass(pw), NAMEFUN=NameFun,
+  SpecTree <- SuperTree(unclass(ew), NAMEFUN=NameFun,
                         Verbose=Verbose, Processors=Processors)
 
   return(SpecTree)

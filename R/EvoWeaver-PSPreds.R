@@ -12,30 +12,30 @@
 ##########################
 
 #### S3 Generic Definitions ####
-MirrorTree <- function(pw, ...) UseMethod('MirrorTree')
-ContextTree <- function(pw, ...) UseMethod('ContextTree')
-TreeDistance <- function(pw, ...) UseMethod('TreeDistance')
+MirrorTree <- function(ew, ...) UseMethod('MirrorTree')
+ContextTree <- function(ew, ...) UseMethod('ContextTree')
+TreeDistance <- function(ew, ...) UseMethod('TreeDistance')
 ################################
 
-MirrorTree.EvoWeaver <- function(pw, MTCorrection=c(),
+MirrorTree.EvoWeaver <- function(ew, MTCorrection=c(),
                                   Subset=NULL, Verbose=TRUE,
                                   MySpeciesTree=NULL, 
                                   precalcProfs=NULL, precalcSubset=NULL, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
-    subs <- ProcessSubset(pw, Subset)
+    subs <- ProcessSubset(ew, Subset)
   uvals <- subs$uvals
   evalmap <- subs$evalmap
   pl <- length(uvals)
   
-  DIM_LENGTH <- min(80L, length(attr(pw, "allOrgs")))
-  alllabs <- lapply(uvals, \(x) labels(pw[[x]]))
+  DIM_LENGTH <- min(80L, length(attr(ew, "allOrgs")))
+  alllabs <- lapply(uvals, \(x) labels(ew[[x]]))
   MTCorrection <- tolower(MTCorrection)
   useSpecCorr <- FALSE
   if ('speciestree' %in% MTCorrection){
     if ( is.null(MySpeciesTree) || !is(MySpeciesTree, 'dendrogram')){
-      MySpeciesTree <- findSpeciesTree(pw, Verbose)
+      MySpeciesTree <- findSpeciesTree(ew, Verbose)
     }
     stopifnot('Missing MySpeciesTree'=!is.null(MySpeciesTree))
     stopifnot('MySpeciesTree must be a dendrogram'=is(MySpeciesTree, 'dendrogram'))
@@ -49,8 +49,8 @@ MirrorTree.EvoWeaver <- function(pw, MTCorrection=c(),
       spl <- labels(MySpeciesTree)
       DIM_LENGTH <- min(80L, length(spl))
     } 
-    #CPs <- CophProfiles(pw, uvals, Verbose=Verbose, speciesList=spl)
-    CPs <- RandCophProfiles(pw, uvals, Verbose=Verbose,
+    #CPs <- CophProfiles(ew, uvals, Verbose=Verbose, speciesList=spl)
+    CPs <- RandCophProfiles(ew, uvals, Verbose=Verbose,
                               speciesList=spl, outdim=as.integer(DIM_LENGTH),
                               speciesCorrect=useSpecCorr,
                               mySpeciesTree=MySpeciesTree, ...)
@@ -136,41 +136,41 @@ MirrorTree.EvoWeaver <- function(pw, MTCorrection=c(),
     }
   }
   if (Verbose) cat('\n')
-  pairscores <- as.simMat(pairscores, NAMES=names(pw)[uvals], DIAG=FALSE)
+  pairscores <- as.simMat(pairscores, NAMES=names(ew)[uvals], DIAG=FALSE)
   Diag(pairscores) <- 1
   
   return(pairscores)
 }
 
-ContextTree.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE, precalcProfs=NULL, 
+ContextTree.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE, precalcProfs=NULL, 
                                    MySpeciesTree=NULL, ...){
   
   if ( is.null(MySpeciesTree) || !is(MySpeciesTree, 'dendrogram')){
-    MySpeciesTree <- findSpeciesTree(pw, Verbose)
+    MySpeciesTree <- findSpeciesTree(ew, Verbose)
   }
   
   #MTCorrection <- c('speciestree', 'normalize', 'partialcorrelation')
   MTCorrection <- c('speciestree', 'paoverlap')
   
-  return(MirrorTree(pw, MTCorrection=MTCorrection,
+  return(MirrorTree(ew, MTCorrection=MTCorrection,
                     Verbose=Verbose, 
                     precalcCProfs=precalcProfs,
                     MySpeciesTree=MySpeciesTree))
 }
 
-TreeDistance.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
+TreeDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
                                       precalcSubset=NULL, 
                                       TreeMethods="CI", JRFk=4, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
-    subs <- ProcessSubset(pw, Subset)
+    subs <- ProcessSubset(ew, Subset)
   uvals <- subs$uvals
   evalmap <- subs$evalmap
   
-  useColoc <- attr(pw, "useColoc")
+  useColoc <- attr(ew, "useColoc")
   l <- length(uvals)
-  n <- names(pw)
+  n <- names(ew)
   if ( l == 1 ){
     mat <- matrix(1, nrow=1, ncol=1)
     rownames(mat) <- colnames(mat) <- n
@@ -201,7 +201,7 @@ TreeDistance.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
   pArray <- vector('list', length=l)
   labelsArray <- vector('list', length=l)
   for ( i in seq_len(l) ){
-    tree <- pw[[uvals[i]]]
+    tree <- ew[[uvals[i]]]
     if (useColoc){
       tree <- rapply(tree, \(x){
         if (!is.null(attr(x, 'leaf'))){
@@ -284,7 +284,7 @@ TreeDistance.EvoWeaver <- function(pw, Subset=NULL, Verbose=TRUE,
         # JRF
         if (bitmask[3]){
           s <- .Call("GRFInfo", p1, p2, interlabs, TRUE, JRFk, PACKAGE="SynExtend")
-          normval <- 2*(s[2] + s[3])
+          normval <- (s[2] + s[3])
           if (is.na(normval) || normval == 0)
             pairscoresList$JRF[ctr+1] <- NA
             #pairscoresList$JRF[ctr+1] <- ifelse(s[1] == 0, 0, 1)

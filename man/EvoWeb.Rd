@@ -39,9 +39,9 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 exData <- get(data("ExampleStreptomycesData"))
 
 # Subset isn't necessary but is faster for a working example
-pw <- EvoWeaver(exData$Genes[1:10])
+ew <- EvoWeaver(exData$Genes[1:10])
 
-evoweb <- predict(pw, method='Jaccard')
+evoweb <- predict(ew, Method='Jaccard')
 
 # print out results as an adjacency matrix
 print(evoweb)

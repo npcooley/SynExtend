@@ -13,17 +13,17 @@
 
 #### IMPORTS ####
 # Relies on functions in the following files:
-#   - EvoWeaver-DMPreds.R          ( Distance Matrix Predictors )
-#   - EvoWeaver-PAPreds.R          ( Pres/Abs Predictors)
-#   - EvoWeaver-ColocPreds.R       ( Colocalization Predictors )
-#   - EvoWeaver-ResiduePreds.R     ( Residue level Predictors )
+#   - EvoWeaver-PSPreds.R          ( Phylogenetic Structure Predictors )
+#   - EvoWeaver-PPPreds.R          ( Phylogenetic Profiling Predictors)
+#   - EvoWeaver-GOPreds.R          ( Gene Organization Predictors )
+#   - EvoWeaver-SLPreds.R          ( Sequence-Level Predictors )
 #   - EvoWeaver-utils.R            ( Helper functions )
 #################
 
 
 #### S3 Generic Definitions ####
-Ensemble <- function(pw, ...) UseMethod('Ensemble')
-SpeciesTree <- function(pw, Verbose, Processors) UseMethod('SpeciesTree')
+Ensemble <- function(ew, ...) UseMethod('Ensemble')
+SpeciesTree <- function(ew, Verbose, Processors) UseMethod('SpeciesTree')
 ########
 
 
@@ -173,7 +173,7 @@ predict.EvoWeaver <- function(object, Method='Ensemble', Subset=NULL, Processors
                                PretrainedModel=NULL,
                                NoPrediction=FALSE, 
                                ReturnRawData=FALSE, Verbose=TRUE, ...){
-  pw <- object
+  ew <- object
   multiplepredictors <- length(Method)!=1
   methodnames <- character(0L)
   lst <- list()
@@ -182,7 +182,7 @@ predict.EvoWeaver <- function(object, Method='Ensemble', Subset=NULL, Processors
     func <- getS3method(methodtype, 'EvoWeaver')
     if(Verbose && !ReturnRawData) starttime <- Sys.time()
     
-    preds <- func(pw, Subset=Subset, Verbose=Verbose, 
+    preds <- func(ew, Subset=Subset, Verbose=Verbose, 
                   MySpeciesTree=MySpeciesTree, Processors=Processors,
                   PretrainedModel=PretrainedModel, 
                   NoPrediction=NoPrediction, ...)
@@ -197,8 +197,8 @@ predict.EvoWeaver <- function(object, Method='Ensemble', Subset=NULL, Processors
     if (ReturnRawData)
       return(invisible(preds))
     
-    pc <- ProcessSubset(pw, Subset)
-    n <- names(pw)[pc$uvals]
+    pc <- ProcessSubset(ew, Subset)
+    n <- names(ew)[pc$uvals]
     if (methodtype=='TreeDistance'){
       pnames <- names(preds)
       for (i in seq_along(pnames)){
@@ -232,10 +232,10 @@ predict.EvoWeaver <- function(object, Method='Ensemble', Subset=NULL, Processors
   lst
 }
 
-SpeciesTree.EvoWeaver <- function(pw, Verbose=TRUE, Processors=1L){
-  tree <- attr(pw,'speciesTree')
-  if(is.null(tree) && attr(pw, 'useMT'))
-    tree <- findSpeciesTree(pw, Verbose=Verbose, Processors=Processors)
+SpeciesTree.EvoWeaver <- function(ew, Verbose=TRUE, Processors=1L){
+  tree <- attr(ew,'speciesTree')
+  if(is.null(tree) && attr(ew, 'useMT'))
+    tree <- findSpeciesTree(ew, Verbose=Verbose, Processors=Processors)
   
   tree
 }
@@ -244,15 +244,15 @@ SpeciesTree.EvoWeaver <- function(pw, Verbose=TRUE, Processors=1L){
 
 #### Internal S3 Methods ####
 
-Ensemble.EvoWeaver <- function(pw,
+Ensemble.EvoWeaver <- function(ew,
                                 Subset=NULL, Verbose=TRUE, MySpeciesTree=NULL,
                                 PretrainedModel=NULL,
                                 NoPrediction=FALSE, ...){
   
   flags <- rep(FALSE, 3)
   
-  subs <- ProcessSubset(pw, Subset)
-  n <- names(pw)
+  subs <- ProcessSubset(ew, Subset)
+  n <- names(ew)
   uvals <- subs$uvals
   unames <- vapply(uvals, function(x) n[x], FUN.VALUE=character(1))
   splist <- NULL
@@ -261,14 +261,14 @@ Ensemble.EvoWeaver <- function(pw,
   }
   
   if (Verbose) cat('Calculating P/A profiles:\n')
-  PAs <- PAProfiles(pw, uvals, Verbose=Verbose, speciesList=splist)
+  PAs <- PAProfiles(ew, uvals, Verbose=Verbose, speciesList=splist)
   CPs <- NULL
   takesCP <- c('MirrorTree') # Just using MirrorTree for prediction
   
   submodels <- c('ProfileDCA', 'Jaccard', 'Hamming', 'MutualInformation')
-  if (attr(pw, 'useMT')){
+  if (attr(ew, 'useMT')){
     if (Verbose) cat('Calculating Cophenetic profiles:\n')
-    CPs <- CophProfiles(pw, uvals, Verbose=Verbose, speciesList=splist)
+    CPs <- CophProfiles(ew, uvals, Verbose=Verbose, speciesList=splist)
     submodels <- c(submodels, takesCP)
   }
   
@@ -276,11 +276,11 @@ Ensemble.EvoWeaver <- function(pw,
     submodels <- c(submodels, 'Behdenna')
   }
   
-  if (attr(pw, 'useColoc')){
+  if (attr(ew, 'useColoc')){
     submodels <- c(submodels, 'Coloc')
   }
   
-  if (attr(pw, 'useResidue')){
+  if (attr(ew, 'useResidue')){
     # Ensemble with this still needs to be trained
     #submodels <- c(submodels, 'useResidue')
     submodels <- submodels
@@ -298,7 +298,7 @@ Ensemble.EvoWeaver <- function(pw,
     if (Verbose) cat('Running ', model, ':\n', sep='')
     if (model %in% takesCP) profs <- CPs
     else profs <- PAs
-    results[[model]] <- predict(pw, model, Verbose=Verbose, 
+    results[[model]] <- predict(ew, model, Verbose=Verbose, 
                                 ReturnRawData=TRUE, precalcProfs=profs,
                                 precalcSubset=subs, 
                                 MySpeciesTree=MySpeciesTree, ...)

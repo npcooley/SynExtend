@@ -1,3 +1,8 @@
+# SynExtend 1.13.8
+* Updates to all EvoWeaver documentation files
+* Fixed small bug in `PhyloDistance` causing `Method='JRF'` to return similarity rather than the distance
+* Fixed small bug in `TreeDistance.EvoWeaver` resulting in an inconsistent calculation of score when using `TreeMethods='JRF'`
+
 # SynExtend 1.13.7
 * Small fixes
 
@@ -15,7 +20,7 @@
 * Updates to documentation
 
 # SynExtend 1.13.3
-* `predict.ProtWeaver` now supports multiple algorithms at once (ex. `predict(pw, Method=c("Jaccard", "Hamming"))`)
+* `predict.ProtWeaver` now supports multiple algorithms at once (ex. `predict(ew, Method=c("Jaccard", "Hamming"))`)
 * Documentation for `ProtWeaver` and associated methods has been updated to match recent updates.
 
 # SynExtend 1.13.2
