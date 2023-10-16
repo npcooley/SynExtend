@@ -22,7 +22,7 @@
 SEXP pseudoRandomSample(SEXP N){
   const uint64_t seed = 0xAE356E5F366847A2; //INTEGER(SEED)[0];
   int n = INTEGER(N)[0];
-  
+
 
   struct RNGstate64 *r = malloc(sizeof(struct RNGstate64));
   seedRNGState64(r, seed);
@@ -44,7 +44,7 @@ SEXP seededPseudoRandomSample(SEXP N, SEXP SEED){
   }
   const uint64_t seed = (((uint64_t) INTEGER(SEED)[0]) << 32) | INTEGER(SEED)[1];
   int n = INTEGER(N)[0];
-  
+
   struct RNGstate64 *r = malloc(sizeof(struct RNGstate64));
   seedRNGState64(r, seed);
 
@@ -89,14 +89,14 @@ SEXP randomProjection(SEXP VEC, SEXP NONZERO, SEXP N, SEXP OUTDIM, SEXP NTHREADS
     for (j=0; j < (m/bitwidth); j++){
       randnumber = xorshift128p(r);
       for (k=0; k<bitwidth; k++)
-        outvals[idx+k] += randnumber & (1ULL << k) ? val : invval; 
+        outvals[idx+k] += randnumber & (1ULL << k) ? val : invval;
       idx += bitwidth;
     }
 
     // faster to check once than to roll another number
     randnumber = remainder==0 ? 0 : xorshift128p(r);
     for (k=0; k<remainder; k++)
-        outvals[idx+k] += randnumber & (1ULL << k) ? val : invval; 
+        outvals[idx+k] += randnumber & (1ULL << k) ? val : invval;
   }
 
   free(r);
@@ -117,7 +117,7 @@ SEXP se_cophenetic(SEXP Index1, SEXP Index2, SEXP N, SEXP D, SEXP H)
   int n = asInteger(N);
   double *d = REAL(D);
   double h = asReal(H);
-  
+
   for (i = 0; i < l1; i++) {
     for (j = 0; j < l2; j++) {
       if (I[i] < J[j]) {
@@ -128,6 +128,6 @@ SEXP se_cophenetic(SEXP Index1, SEXP Index2, SEXP N, SEXP D, SEXP H)
       d[val] += h;
     }
   }
-  
+
   return D;
 }
