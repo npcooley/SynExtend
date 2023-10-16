@@ -179,7 +179,7 @@ void genCostMatrix(double *m1, double *m2, int *nc1p, int *nc2p, int *nrp, doubl
   const int nr = *nrp;
 
   double minv, tmp;
-  int col1, col2, row;
+  int col1, col2, row=0;
   // remember that R matrices are column-major
   for(int i=0; i<nc1; i++){
     col1 = i*nr;
