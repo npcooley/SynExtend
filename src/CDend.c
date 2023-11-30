@@ -188,8 +188,8 @@ SEXP GRFInfo(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels, SEXP shouldUseJRF, SEXP J
   double RFscore, entropy1, entropy2;
   if (useJRF){
     RFscore = scoreJaccardRFDist(part1, part2, t1pln, t2pln, numLabels, jaccardExp);
-    entropy1 = t1pln;
-    entropy2 = t2pln;
+    entropy1 = (double) t1pln;
+    entropy2 = (double) t2pln;
   } else {
     RFscore = scorePMs(part1, part2, t1pln, t2pln, numLabels);
     entropy1 = calcEntropy(part1, numLabels, t1pln);
