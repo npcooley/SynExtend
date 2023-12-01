@@ -167,6 +167,8 @@ TreeDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     subs <- ProcessSubset(ew, Subset)
   uvals <- subs$uvals
   evalmap <- subs$evalmap
+  if(!is.numeric(JRFk)) stop("JRFk value must be numeric")
+  if(is.integer(JRFk)) JRFk <- as.numeric(JRFk)
   
   useColoc <- attr(ew, "useColoc")
   l <- length(uvals)
