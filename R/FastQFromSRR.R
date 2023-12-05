@@ -35,8 +35,10 @@ FastQFromSRR <- function(SRR,
                            collapse = " "),
                      paste("--outdir", DIR),
                      paste("--accession", SRR))
-  print(paste("Running fastq-dump command:\n",
-              FASTQDUMP))
+  # print(paste("Running fastq-dump command:\n",
+  #             FASTQDUMP))
+  print("Running fastq-dump command:")
+  print(FASTQDUMP)
   system(command = FASTQDUMP)
   
   SeqsFound <- list.files(path = DIR,

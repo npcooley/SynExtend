@@ -43,6 +43,12 @@ SelectByK <- function(Pairs,
   #                    "SCORE" = Pairs$SCORE / max(Pairs$SCORE),
   #                    "TetDist" = Pairs$TetDist)
   
+  if (Verbose) {
+    pBar <- txtProgressBar(style = 1)
+    FunctionTimeStart <- Sys.time()
+    PBAR <- MaxClusters - 1L
+  }
+  
   # treating score differently
   # this doesn't seem to really change anything though
   s1 <- Pairs$SCORE
@@ -69,14 +75,19 @@ SelectByK <- function(Pairs,
   kmc <- vector(mode = "list",
                 length = length(NClust))
   for (m1 in seq_along(NClust)) {
-    kmc[[m1]] <- kmeans(x = dat1,
-                        centers = NClust[m1],
-                        iter.max = 25L,
-                        nstart = 25L)
+    kmc[[m1]] <- suppressWarnings(kmeans(x = dat1,
+                                         centers = NClust[m1],
+                                         iter.max = 25L,
+                                         nstart = 25L))
     
     if (Verbose) {
-      print(m1)
+      setTxtProgressBar(pb = pBar,
+                        value = m1 / PBAR)
     }
+  }
+  if (Verbose) {
+    close(pBar)
+    cat("\n")
   }
   
   wss <- sapply(X = kmc,
@@ -149,6 +160,11 @@ SelectByK <- function(Pairs,
   res2 <- kmc[[EvalClust]]$cluster %in% as.integer(res1)
   
   res3 <- Pairs[res2, ]
+  class(res3) <- c("data.frame",
+                   "PairSummaries")
+  attr(x = res3,
+       which = "GeneCalls") <- attr(x = Pairs,
+                                    which = "GeneCalls")
   res4 <- vector(mode = "list",
                  length = nrow(kmc[[EvalClust]]$centers))
   for (m2 in seq_along(res4)) {
@@ -223,6 +239,12 @@ SelectByK <- function(Pairs,
          main = "Pairs",
          xlab = "PID",
          ylab = "SCORE")
+  }
+  
+  if (Verbose) {
+    FunctionTimeEnd <- Sys.time()
+    FunctionTimeTotal <- FunctionTimeEnd - FunctionTimeStart
+    print(FunctionTimeTotal)
   }
   
   if (ReturnAllCommunities) {
