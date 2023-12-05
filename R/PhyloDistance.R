@@ -68,14 +68,12 @@ JRFDist <- function(val, RawScore=FALSE){
   if (RawScore){
     retval <- val
     names(retval) <- c("Distance", "dend1.NumSplits", "dend2.NumSplits")
-    if (val[1] == 0) retval[c(1,2)] <- c(NA, NA)
     return(retval)
   }
-  if (val[1] == 0) return(1)
   maxval <- (val[2] + val[3])
   retval <- val[1] / maxval
   if (maxval == 0)
-    retval <- as.integer(val[1] != 0)
+    retval <- as.integer(val[1] == 0)
   return(retval)
 }
 

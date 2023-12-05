@@ -215,7 +215,7 @@ predict.EvoWeaver <- function(object, Method='Ensemble', Subset=NULL, Processors
       if (length(rs) == 1) rs <- rs[[1]]
       methodnames <- c(methodnames, pnames)
     } else {
-      names(preds) <- n
+      #names(preds) <- n
       rs <- structure(preds,
                       method=methodtype,
                       class=c('EvoWeb', 'simMat'))

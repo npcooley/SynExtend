@@ -188,8 +188,8 @@ SEXP GRFInfo(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels, SEXP shouldUseJRF, SEXP J
   double RFscore, entropy1, entropy2;
   if (useJRF){
     RFscore = scoreJaccardRFDist(part1, part2, t1pln, t2pln, numLabels, jaccardExp);
-    entropy1 = t1pln;
-    entropy2 = t2pln;
+    entropy1 = (double) t1pln;
+    entropy2 = (double) t2pln;
   } else {
     RFscore = scorePMs(part1, part2, t1pln, t2pln, numLabels);
     entropy1 = calcEntropy(part1, numLabels, t1pln);
@@ -873,17 +873,16 @@ double scoreJaccardRFDist(bool **pm1, bool **pm2, int pm1l, int pm2l, int lh, do
   int numFound = 0;
   bool found;
 
-  // counts stores all the pairwise counts, as follows:
-  // [A1, A2, B1, B2, A1A2, A1B2, B1A2, B1B2]
-  // note that B1 = !A1, B2 = !A2
-  int counts[8];
   for (int i=0; i<shortl; i++){
     R_CheckUserInterrupt();
-    minval = 1;
+    // Mistake in the original paper for this
+    // they say that the value 2-2(JRFScore) approaches 1 for k->infty, but this is wrong
+    // it's actually 2, which corresponds to 1 *per partition*
+    // The worst score should be 2 (leaving unpaired), and the best should be zero
+    minval = 2;
     curS = shortPm[i];
     found = false;
      for (int j=0; j<(longl-numFound); j++){
-      memset(counts, 0, sizeof(counts));
       curL = longPm[j];
       cursum = 2 - 2*calcJaccardPairingScore(curS, curL, lh, expv);
       if (cursum < minval){
@@ -893,15 +892,16 @@ double scoreJaccardRFDist(bool **pm1, bool **pm2, int pm1l, int pm2l, int lh, do
       }
     }
 
-    retval += minval;
     // swap in the last column so we don't search it again
     if (found){
+      retval += minval;
       memcpy(longPm[idxchange], longPm[longl-numFound-1], lh);
       numFound++;
     }
   }
   // numFound is the number of pairs
   // Thus we have (shortl-numFound) + (longl-numFound) unpaired entries
+  // note that shortl and longl are 0-indexed, so we need to add one to each
   retval += (shortl + longl - 2*numFound);
 
   return retval;
@@ -909,7 +909,7 @@ double scoreJaccardRFDist(bool **pm1, bool **pm2, int pm1l, int pm2l, int lh, do
 
 double calcJaccardPairingScore(bool *v1, bool *v2, int lh, double expv){
   double vals[8];
-  memset(vals, 0, sizeof(int) * 8);
+  memset(vals, 0, sizeof(double) * 8);
 
   /****
    * We have two sets, A and B.
@@ -938,7 +938,6 @@ double calcJaccardPairingScore(bool *v1, bool *v2, int lh, double expv){
 
   for (int i=0; i<4; i++)
     vals[i] = vals[i+4] == 0 ? 0 : pow(vals[i] / vals[i+4], expv);
-
 
   vals[0] = vals[0] < vals[3] ? vals[0] : vals[3];
   vals[1] = vals[1] < vals[2] ? vals[1] : vals[2];

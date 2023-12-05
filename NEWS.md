@@ -1,3 +1,6 @@
+# SynExtend 1.15.1
+* Fixes bug in JRF distance causing scores to be higher than expected.
+
 # SynExtend 1.13.8
 * Updates to all EvoWeaver documentation files
 * Fixed small bug in `PhyloDistance` causing `Method='JRF'` to return similarity rather than the distance
