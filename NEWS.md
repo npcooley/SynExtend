@@ -1,3 +1,6 @@
+# SynExtend 1.15.2
+* Addition of `PrepareSeqs` function, beginning the process of deprecating `PairSummaries` in favor of more cohesive and user friendly functions.
+
 # SynExtend 1.15.1
 * Fixes bug in JRF distance causing scores to be higher than expected.
 

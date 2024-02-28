@@ -5,6 +5,8 @@ import(IRanges)
 import(Biostrings)
 import(DECIPHER)
 import(S4Vectors)
+import(DBI)
+import(RSQLite)
 
 importFrom("utils", "setTxtProgressBar", "txtProgressBar", "data", "object.size", "getS3method", "read.table")
 importFrom("stats", "predict", "runif", "setNames", "rnorm", "optim", "kmeans", "density", "nls", "ppois", "pt", "pnorm", "as.dist", "fisher.test", "is.leaf", "pchisq")
@@ -33,6 +35,7 @@ export(MoransI)
 export(dendrapply)
 export(FastQFromSRR)
 export(FitchParsimony)
+export(PrepareSeqs)
 
 S3method(subset, 'dendrogram')
 
