@@ -37,6 +37,7 @@ export(FastQFromSRR)
 export(FitchParsimony)
 export(FastLabelOOM)
 export(PrepareSeqs)
+export(FastLabelOOM)
 
 S3method(subset, 'dendrogram')
 
