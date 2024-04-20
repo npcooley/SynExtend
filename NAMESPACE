@@ -33,6 +33,7 @@ export(MoransI)
 export(dendrapply)
 export(FastQFromSRR)
 export(FitchParsimony)
+export(FastLabelOOM)
 
 S3method(subset, 'dendrogram')
 

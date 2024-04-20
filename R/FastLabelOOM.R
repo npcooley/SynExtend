@@ -1,4 +1,4 @@
-fastlabel_oom <- function(edgelistfiles, outfile=tempfile(),
+FastLabelOOM <- function(edgelistfiles, outfile=tempfile(),
                           mode=c("undirected", "directed"),
                           add_self_loops=FALSE,
                           ignore_weights=FALSE,
@@ -8,7 +8,7 @@ fastlabel_oom <- function(edgelistfiles, outfile=tempfile(),
                           consensus_cluster=FALSE,
                           verbose=interactive(),
                           sep='\t',
-                          tempfiledir=tempdir(), cleanup_files=TRUE){
+                          tempfiledir=tempdir()){
   if(!is.numeric(iterations)){
     stop("iterations must be an integer or numeric.")
   } else {
@@ -106,13 +106,6 @@ fastlabel_oom <- function(edgelistfiles, outfile=tempfile(),
   .Call("R_LP_write_output", counter_cluster_binary, hashdir,
         outfile, seps, verbose)
   
-  if(cleanup_files){
-    for(f in c(csr_table_binary, counter_cluster_binary, qfiles))
-      if(file.exists(f)) file.remove(f)
-    for(f in list.files(hashdir, full.names=TRUE))
-      if(file.exists(f)) file.remove(f)
-    file.remove(hashdir)
-  }
   if(return_table){
     tab <- read.table(outfile, sep=sep)
     colnames(tab) <- c("Vertex", "Cluster")

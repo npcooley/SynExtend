@@ -69,10 +69,6 @@ Character that separates entries on a line in each file in \code{edgelistfiles}.
 \item{tempfiledir}{
 Character vector corresponding to the location where temporary files used during execution should be stored. Defaults to R's \code{\link{tempdir}}.
 }
-
-\item{cleanup_files}{
-Should intermediary files be deleted when the process completes? Note that \code{outfile} will only be deleted if \code{return_table=TRUE} AND \code{cleanup_files=TRUE}.
-}
 }
 \details{
 Very large graphs require too much RAM for processing on some machines. In a graph containing billions of nodes and edges, loading the entire structure into RAM is rarely feasible. This implementation uses disk space for storing representations of each graph. While this is slower than computing on RAM, it allows this algorithm to scale to graphs of enormous size while only taking a small amount of RAM. Local benchmarking resulting in a plateau of approximately 100MB of RAM consumption for arbitrarily sized networks. If your graph is small enough to fit into RAM, consider using the \code{LP_igraph()} function instead.
@@ -116,7 +112,6 @@ Third, this algorithm uses disk space to store large objects. As such, please en
 }
 
 \examples{
-## See tests/oom_labelprop_test.R for a larger example
 num_verts <- 20L
 num_edges <- 20L
 all_verts <- sample(letters, num_verts)
@@ -125,11 +120,11 @@ all_edges <- vapply(seq_len(num_edges),
                    as.character(round(runif(1),3))),
                  collapse='\t'),
                     character(1L))
-edgefile <- tempfile()
-if(file.exists(edgefile)) file.remove(edgefile)
-writeLines(all_edges, edgefile)
-res <- fastlabel_oom(edgefile, return_table=TRUE)
-print(res)
+# edgefile <- tempfile()
+# if(file.exists(edgefile)) file.remove(edgefile)
+# writeLines(all_edges, edgefile)
+# res <- FastLabelOOM(edgefile, return_table=TRUE)
+# print(res)
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory (show via RShowDoc("KEYWORDS")):
