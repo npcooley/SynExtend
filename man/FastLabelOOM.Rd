@@ -1,5 +1,5 @@
-\name{fastlabel_oom}
-\alias{fastlabel_oom}
+\name{FastLabelOOM}
+\alias{FastLabelOOM}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
 Out of Memory Fast Label Propagation
@@ -8,7 +8,7 @@ Out of Memory Fast Label Propagation
 Runs Fast Label Propagation using disk space for constant memory complexity.
 }
 \usage{
-fastlabel_oom(edgelistfiles, outfile=tempfile(),
+FastLabelOOM(edgelistfiles, outfile=tempfile(),
               mode=c("undirected", "directed"),
               add_self_loops=FALSE,
               ignore_weights=FALSE,
@@ -18,8 +18,7 @@ fastlabel_oom(edgelistfiles, outfile=tempfile(),
               consensus_cluster=FALSE,
               verbose=interactive(),
               sep='\t',
-              tempfiledir=tempdir(),
-              cleanup_files=TRUE)
+              tempfiledir=tempdir())
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -120,11 +119,11 @@ all_edges <- vapply(seq_len(num_edges),
                    as.character(round(runif(1),3))),
                  collapse='\t'),
                     character(1L))
-# edgefile <- tempfile()
-# if(file.exists(edgefile)) file.remove(edgefile)
-# writeLines(all_edges, edgefile)
-# res <- FastLabelOOM(edgefile, return_table=TRUE)
-# print(res)
+edgefile <- tempfile()
+if(file.exists(edgefile)) file.remove(edgefile)
+writeLines(all_edges, edgefile)
+res <- FastLabelOOM(edgefile, return_table=TRUE)
+print(res)
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory (show via RShowDoc("KEYWORDS")):
