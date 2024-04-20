@@ -59,12 +59,11 @@ void hungarianCleanup(void);
 void free_dendrapply_list(void);
 SEXP do_dendrapply(SEXP tree, SEXP fn, SEXP env, SEXP order);
 
-
-/**** NeuralNetwork ****/
-/*
-SEXP R_initNNptr(SEXP NLAYERS, SEXP LAYERSIZES, SEXP ACTIVFUNCS, SEXP INPUT_SIZE, SEXP LR, SEXP LFXN);
-SEXP R_PredictForInput(SEXP INPUTVECTOR, SEXP nnPtr);
-SEXP R_UpdateWeights(SEXP LOSSVEC, SEXP nnPtr);
-*/
+/**** OnDiskLP.c ****/
+SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, SEXP TABNAME, SEXP TEMPTABNAME, SEXP QFILE, SEXP OUTDIR,
+                    SEXP SEPS, SEXP CTR, SEXP ITER, SEXP VERBOSE,
+                    SEXP IS_UNDIRECTED, SEXP ADD_SELF_LOOPS, SEXP IGNORE_WEIGHTS, SEXP NORMALIZE_WEIGHTS,
+                    SEXP CONSENSUS_WEIGHTS);
+SEXP R_LP_write_output(SEXP CLUSTERFILE, SEXP HASHFILES, SEXP OUTFILE, SEXP SEPS, SEXP VERBOSE);
 
 #endif
