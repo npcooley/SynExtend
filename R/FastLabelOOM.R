@@ -8,7 +8,8 @@ FastLabelOOM <- function(edgelistfiles, outfile=tempfile(),
                           consensus_cluster=FALSE,
                           verbose=interactive(),
                           sep='\t',
-                          tempfiledir=tempdir()){
+                          tempfiledir=tempdir(),
+                          cleanup_files=TRUE){
   if(!is.numeric(iterations)){
     stop("iterations must be an integer or numeric.")
   } else {
@@ -56,7 +57,7 @@ FastLabelOOM <- function(edgelistfiles, outfile=tempfile(),
     if(!ignore_weights && any(vapply(v, \(x) is.na(as.numeric(x[3])), logical(1L))))
       stop("file ", f, " has malformed weights")
   }
-  
+
   if(is.logical(consensus_cluster)){
     if(consensus_cluster){
       consensus_cluster <- c(0,0.2,0.4,0.6,0.8,1,1.33,1.67,2)
@@ -83,7 +84,7 @@ FastLabelOOM <- function(edgelistfiles, outfile=tempfile(),
   } else {
     dir.create(hashdir)
   }
-  
+
   if(verbose){
     cat("Temporary files stored at ", tempfiledir, "\n")
     cat("\tCSR: ", basename(csr_table_binary), "\n")
@@ -93,7 +94,7 @@ FastLabelOOM <- function(edgelistfiles, outfile=tempfile(),
     cat("\tQueue counter: ", basename(qfiles[3]), "\n")
     cat("\tHashes: ", basename(hashdir), "\n")
   }
-  
+
   seps <- paste(sep, "\n", sep='')
   ctr <- 1
   # R_hashedgelist(tsv, csr, clusters, queues, hashdir, seps, 1, iter, verbose)
@@ -101,11 +102,17 @@ FastLabelOOM <- function(edgelistfiles, outfile=tempfile(),
         counter_cluster_binary, qfiles, hashdir, seps, ctr, iterations,
         verbose, is_undirected, add_self_loops, ignore_weights, normalize_weights,
         consensus_cluster)
-  
+
   # R_write_output_clusters(clusters, hashes, length(hashes), out_tsvpath, seps)
   .Call("R_LP_write_output", counter_cluster_binary, hashdir,
         outfile, seps, verbose)
-  
+  if(cleanup_files){
+    for(f in c(csr_table_binary, counter_cluster_binary, qfiles))
+      if(file.exists(f)) file.remove(f)
+    for(f in list.files(hashdir, full.names=TRUE))
+      if(file.exists(f)) file.remove(f)
+    file.remove(hashdir)
+  }
   if(return_table){
     tab <- read.table(outfile, sep=sep)
     colnames(tab) <- c("Vertex", "Cluster")

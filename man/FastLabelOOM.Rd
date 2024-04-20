@@ -68,11 +68,14 @@ Character that separates entries on a line in each file in \code{edgelistfiles}.
 \item{tempfiledir}{
 Character vector corresponding to the location where temporary files used during execution should be stored. Defaults to R's \code{\link{tempdir}}.
 }
+\item{cleanup_files}{
+Should intermediary files be deleted when the process completes? Note that \code{outfile} will only be deleted if \code{return_table=TRUE} AND \code{cleanup_files=TRUE}.
+}
 }
 \details{
 Very large graphs require too much RAM for processing on some machines. In a graph containing billions of nodes and edges, loading the entire structure into RAM is rarely feasible. This implementation uses disk space for storing representations of each graph. While this is slower than computing on RAM, it allows this algorithm to scale to graphs of enormous size while only taking a small amount of RAM. Local benchmarking resulting in a plateau of approximately 100MB of RAM consumption for arbitrarily sized networks. If your graph is small enough to fit into RAM, consider using the \code{LP_igraph()} function instead.
 
-This function expects a set of edge list files. Each entry in the file is expected to be in the following:
+This function expects a set of edgelist files, provided as a vector of filepaths. Each entry in the file is expected to be in the following:
 
 \code{VERTEX1<sep>VERTEX2<sep>WEIGHT<linesep>}
 
