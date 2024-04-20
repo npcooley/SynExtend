@@ -1,3 +1,6 @@
+# SynExtend 1.15.3
+* Addition of `FastLabelOOM` function to find communities in graphs/networks on disk space.
+
 # SynExtend 1.15.2
 * Addition of `PrepareSeqs` function, beginning the process of deprecating `PairSummaries` in favor of more cohesive and user friendly functions.
 
