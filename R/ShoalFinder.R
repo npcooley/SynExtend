@@ -1,4 +1,4 @@
-FastLabelOOM <- function(edgelistfiles, outfile=tempfile(),
+ShoalFinder <- function(edgelistfiles, outfile=tempfile(),
                           mode=c("undirected", "directed"),
                           add_self_loops=FALSE,
                           ignore_weights=FALSE,
@@ -121,4 +121,43 @@ FastLabelOOM <- function(edgelistfiles, outfile=tempfile(),
   } else {
     return(outfile)
   }
+}
+
+EstimateShoal <- function(num_v, avg_degree=1,
+                          num_edges=num_v*avg_degree, node_name_length=8L){
+  if(!missing(avg_degree) && !missing(num_edges)){
+    warning("Only one of 'avg_degree' and 'num_edges' are needed.")
+  } else if (missing(avg_degree)){
+    avg_degree = num_edges / num_v
+  }
+  lv <- num_v*node_name_length
+  exp_size_file <- (2*lv+11)*num_edges
+  exp_size_internal <- 56*num_v + lv + 16*num_edges
+  exp_ratio <- exp_size_internal / exp_size_file
+  v <- c(exp_size_file, exp_size_internal, exp_ratio)
+  names(v) <- c("Expected total edgelist size", "Expected ShoalFinder Disk Usage", "Ratio")
+
+  unitsizes <- c("B", "KB", "MB", "GB", "TB", "PB", "EB")
+  unit <- ""
+  for(i in seq_along(unitsizes)){
+    unit <- unitsizes[i]
+    p <- 1024^(i-1)
+    if((exp_size_file / p) < 1024)
+      break
+  }
+  cat("Expected edgelist file size:", round(exp_size_file/p, 1), unit, '\n')
+
+  for(i in seq_along(unitsizes)){
+    unit <- unitsizes[i]
+    p <- 1024^(i-1)
+    if((exp_size_internal / p) < 1024)
+      break
+  }
+  cat("Expected ShoalFinder disk usage:", round(exp_size_internal/p,1), unit, '\n')
+  if(exp_ratio < 0.001){
+    cat("Algorithm disk consumption is <0.1% that of the original files\n")
+  } else {
+    cat("Algorithm disk consumption is about ", round(100*exp_ratio, 2), "% that of the initial files.\n", sep='')
+  }
+  v
 }

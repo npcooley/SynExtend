@@ -1,5 +1,6 @@
 /*
  * Out of memory clustering with fast label propagation
+ * Tentative Name: ShoalFinder
  * Author: Aidan Lakshman
  *
  * This set of functions creates 5 files and a directory (using dummy names):
@@ -24,6 +25,7 @@
  *  	-> something like a virtual array object that's actually r/w to disk, could be useful in future
  *		-> this implementation should use mmap (and Windows equivalent when necessary) to improve random r/w
  *		-> this is a very far off wishlist item, not necessary
+ *  - switch back to uint16_t for node name length
  *	- check performance of enabling use_limited_nodes
  */
 

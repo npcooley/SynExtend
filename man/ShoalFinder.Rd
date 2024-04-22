@@ -111,6 +111,7 @@ Second, nodes are indexed using 64-bit unsigned integers, with 0 reserved for ot
 Third, this algorithm uses disk space to store large objects. As such, please ensure you have sufficient disk space for the graph you intend to process. I've tried to put safeguards in the code itself, but funky stuff can happen when the OS runs out of space.
 
 The disk space required by this algorithm is equivalent to \eqn{56V + LV + 16E}, where \code{V} the number of unique vertices, \code{L} the average length of each vertex label, and \code{E} the number of edges. We can instead represent this purely in terms of vertices by setting \code{D} to the average degree of each node. The total disk space required is thus \eqn{(56+L+16D)V}. If you'd like to estimate the disk consumption of this algorithm, use the \code{\link{EstimateShoal}} function.
+% A good conservative approximation of disk consumption is \eqn{10(3v+4e)} bytes, where \eqn{v} is the number of vertices and \eqn{e} the number of edges. If you only know the average node degree \eqn{d}, then it would be \eqn{10v(3+4d)} bytes. That means that a network with one billion nodes and average node degree 4 would take around 190GB of disk space. Note that this is an approximate upper bound--actual consumption is likely less, but may be close to this bound with lots of long vertex names.
 }
 
 \examples{
@@ -130,5 +131,5 @@ print(res)
 }
 
 \seealso{
-\code{link{EstimateShoal}}
+\code{\link{EstimateShoal}}
 }
