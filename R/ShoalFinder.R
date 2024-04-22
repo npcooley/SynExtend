@@ -131,7 +131,8 @@ EstimateShoal <- function(num_v, avg_degree=1,
     avg_degree = num_edges / num_v
   }
   lv <- num_v*node_name_length
-  exp_size_file <- (2*lv+11)*num_edges
+  # file is v1 v2 %.3f, which is 2*node_name_len + 3 + 5
+  exp_size_file <- (2*node_name_length+8)*num_edges
   exp_size_internal <- 56*num_v + lv + 16*num_edges
   exp_ratio <- exp_size_internal / exp_size_file
   v <- c(exp_size_file, exp_size_internal, exp_ratio)
@@ -155,9 +156,9 @@ EstimateShoal <- function(num_v, avg_degree=1,
   }
   cat("Expected ShoalFinder disk usage:", round(exp_size_internal/p,1), unit, '\n')
   if(exp_ratio < 0.001){
-    cat("Algorithm disk consumption is <0.1% that of the original files\n")
+    cat("Algorithm disk consumption is <0.001x that of the original files\n")
   } else {
-    cat("Algorithm disk consumption is about ", round(100*exp_ratio, 2), "% that of the initial files.\n", sep='')
+    cat("Algorithm disk consumption is about ", round(exp_ratio, 2), "x that of the initial files.\n", sep='')
   }
   v
 }
