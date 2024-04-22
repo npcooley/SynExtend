@@ -535,6 +535,8 @@ void mergesort_clust_file(const char* f, const char* dir, size_t element_size,
 	free(tmp2);
 	for(int i=0; i<FILE_READ_CACHE_SIZE; i++) free(read_cache[i]);
 	free(read_cache);
+	remove(file1);
+	remove(file2);
 	free(file1);
 	free(file2);
 	return;
