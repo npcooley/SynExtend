@@ -18,7 +18,8 @@ ShoalFinder(edgelistfiles, outfile=tempfile(),
               consensus_cluster=FALSE,
               verbose=interactive(),
               sep='\t',
-              tempfiledir=tempdir())
+              tempfiledir=tempdir(),
+              cleanup_files=TRUE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
