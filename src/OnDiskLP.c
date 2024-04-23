@@ -34,6 +34,7 @@
 
 #define h_uint uint64_t
 #define uint uint32_t
+#define strlen_uint uint16_t
 #define l_uint uint64_t
 
 /*
@@ -55,7 +56,7 @@
 #define FILE_READ_CACHE_SIZE 4096 // used for mergesorting files
 
 const int L_SIZE = sizeof(l_uint);
-const int LEN_SIZE = sizeof(h_uint);
+const int LEN_SIZE = sizeof(strlen_uint);
 const int MAX_READ_RETRIES = 10;
 const char HASH_FNAME[] = "hashfile";
 const char HASH_INAME[] = "hashindex";
@@ -71,6 +72,13 @@ const l_uint MAX_EDGES_EXACT = 20000;
 const int PRINT_COUNTER_MOD = 811;
 const int PROGRESS_COUNTER_MOD = 3083;
 
+// fast, non-threadsafe getc() for better performance if opening for reading only
+#ifdef WIN32
+	inline int getc_unsafe(FILE *f) { return _getc_nolock(f); }
+#else
+	inline int getc_unsafe(FILE *f) { return getc_unlocked(f); }
+#endif
+
 
 /**********************/
 /* Struct Definitions */
@@ -81,7 +89,7 @@ typedef struct {
 } double_lu;
 
 typedef struct {
-	h_uint strlength;
+	strlen_uint strlength;
 	char s[MAX_NODE_NAME_SIZE];
 	h_uint hash;
 	l_uint count;
@@ -94,7 +102,7 @@ typedef struct ll {
 } ll;
 
 typedef struct {
-	h_uint len;
+	strlen_uint len;
 	h_uint hash;
 	l_uint index;
 } iline;
@@ -639,7 +647,7 @@ void batch_write_nodes(char **names, int num_to_sort, FILE *f){
 	l_uint tmpcount;
 
 	// strlens
-	h_uint cur_len;
+	strlen_uint cur_len;
 
 	// these are sometimes used for temp storage
 	int insert_point;
@@ -721,9 +729,9 @@ l_uint lookup_node_index(char *name, FILE *findex, FILE *fhash, l_uint num_v){
 
 	// findex and hashf should be opened rb
 	const size_t line_size = sizeof(iline);
-	const h_uint namelen = strlen(name);
+	const strlen_uint namelen = strlen(name);
 
-	h_uint tmplen;
+	strlen_uint tmplen;
 	h_uint curhash = hash_string_fnv(name);
 	int cmpresult;
 
@@ -792,7 +800,7 @@ void hash_file_vnames_batch(const char* fname, const char* dname, const char *ha
 	for(int i=0; i<NODE_NAME_CACHE_SIZE; i++) namecache[i] = malloc(MAX_NODE_NAME_SIZE+1);
 
 	int cur_pos = 0, cachectr=0;
-	char c = getc(f);
+	char c = getc_unsafe(f);
 	l_uint print_counter = 0;
 
 	if(v) Rprintf("\tReading file %s...\n", fname);
@@ -806,7 +814,7 @@ void hash_file_vnames_batch(const char* fname, const char* dname, const char *ha
 			cur_pos = 0;
 			while(c != sep && c != line_sep){
 				vname[cur_pos++] = c;
-				c = getc(f);
+				c = getc_unsafe(f);
 				if(cur_pos == MAX_NODE_NAME_SIZE-1) // max size has to include the null terminator
 					errorclose_file(f, hashf, "Node name is larger than max allowed name size.\n");
 
@@ -827,11 +835,11 @@ void hash_file_vnames_batch(const char* fname, const char* dname, const char *ha
 
 			// if lines are of the form `start end`, we need to leave c on the terminator
 			if(c == sep)
-				c = getc(f);
+				c = getc_unsafe(f);
 		}
 
-		while(c != line_sep && !feof(f)) c = getc(f);
-		if(c == line_sep) c=getc(f);
+		while(c != line_sep && !feof(f)) c = getc_unsafe(f);
+		if(c == line_sep) c=getc_unsafe(f);
 		print_counter++;
 		if(!(print_counter % PRINT_COUNTER_MOD)){
 			if(v) Rprintf("\t%lu lines read\r", print_counter);
@@ -983,7 +991,7 @@ void csr_compress_edgelist_batch(const char* edgefile, const char* indexfname, c
 	indexfile = fopen(indexfname, "rb");
 	if(v) Rprintf("\tReading file %s...\n", edgefile);
 
-	char c = getc(edgelist);
+	char c = getc_unsafe(edgelist);
 	while(!feof(edgelist)){
 		// read in the two vertex names
 		for(int i=0; i<2; i++){
@@ -991,12 +999,12 @@ void csr_compress_edgelist_batch(const char* edgefile, const char* indexfname, c
 			memset(vname, 0, MAX_NODE_NAME_SIZE);
 			while(c != sep && c != linesep){
 				vname[stringctr++] = c;
-				c = getc(edgelist);
+				c = getc_unsafe(edgelist);
 			}
 			// short circuit to skip a length-0 name
 			if(stringctr == 0){
 				i--;
-				c = getc(edgelist);
+				c = getc_unsafe(edgelist);
 				continue;
 			}
 			inds[i] = lookup_node_index(vname, indexfile, hashfile, num_v);
@@ -1004,26 +1012,26 @@ void csr_compress_edgelist_batch(const char* edgefile, const char* indexfname, c
 			// advance one past the separator if it isn't linesep
 			// it would equal linesep if we don't have weights included
 			if(c == sep)
-				c = getc(edgelist);
+				c = getc_unsafe(edgelist);
 		}
 		if(!ignore_weights){
 			// read in the weight
 			stringctr = 0;
 			memset(vname, 0, MAX_NODE_NAME_SIZE);
-			c = getc(edgelist);
+			c = getc_unsafe(edgelist);
 			while(c != linesep){
 				vname[stringctr++] = c;
-				c = getc(edgelist);
+				c = getc_unsafe(edgelist);
 			}
 			weight = atof(vname);
 		} else {
 			weight = 1.0;
 			while(c != linesep)
-				c = getc(edgelist);
+				c = getc_unsafe(edgelist);
 		}
 
 		// advance one past the separator
-		c = getc(edgelist);
+		c = getc_unsafe(edgelist);
 
 		// write the edge
 		for(int j=0; j<itermax; j++){
@@ -1583,7 +1591,7 @@ SEXP R_LP_write_output(SEXP CLUSTERFILE, SEXP HASHEDDIR, SEXP OUTFILE, SEXP SEPS
 	char *hashfname = malloc(PATH_MAX);
 	safe_filepath_cat(hashdir, HASH_FNAME, hashfname, PATH_MAX);
 
-	h_uint name_len;
+	strlen_uint name_len;
 	char buf[MAX_NODE_NAME_SIZE];
 	char write_buf[PATH_MAX];
 	l_uint clust, num_written=0, junk;
