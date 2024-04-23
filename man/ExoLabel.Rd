@@ -1,14 +1,14 @@
-\name{ShoalFinder}
-\alias{ShoalFinder}
+\name{ExoLabel}
+\alias{ExoLabel}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-ShoalFinder: Out of Memory Fast Label Propagation
+ExoLabel: Out of Memory Fast Label Propagation
 }
 \description{
 Runs Fast Label Propagation using disk space for constant memory complexity.
 }
 \usage{
-ShoalFinder(edgelistfiles, outfile=tempfile(),
+ExoLabel(edgelistfiles, outfile=tempfile(),
               mode=c("undirected", "directed"),
               add_self_loops=FALSE,
               ignore_weights=FALSE,
@@ -111,11 +111,7 @@ Second, nodes are indexed using 64-bit unsigned integers, with 0 reserved for ot
 
 Third, this algorithm uses disk space to store large objects. As such, please ensure you have sufficient disk space for the graph you intend to process. I've tried to put safeguards in the code itself, but funky stuff can happen when the OS runs out of space.
 
-The disk space required by this algorithm is equivalent to \eqn{56V + LV + 16E}, where \code{V} the number of unique vertices, \code{L} the average length of each vertex label, and \code{E} the number of edges. We can instead represent this purely in terms of vertices by setting \code{D} to the average degree of each node. The total disk space required is thus \eqn{(56+L+16D)V}. If you'd like to estimate the disk consumption of this algorithm, use the \code{\link{EstimateShoal}} function.
-}
-
-\note{
-The name of this algorithm comes from shoals, a term for communities of fish that stay together for social reasons. Schools are shoals that swim together in the same direction in a coordinated manner. As fish traditionally have limited long term memory, finding shoals is equivalent to searching oceans (of data) for communities with limited memory.
+The disk space required by this algorithm is equivalent to \eqn{56V + LV + 16E}, where \code{V} the number of unique vertices, \code{L} the average length of each vertex label, and \code{E} the number of edges. We can instead represent this purely in terms of vertices by setting \code{D} to the average degree of each node. The total disk space required is thus \eqn{(56+L+16D)V}. If you'd like to estimate the disk consumption of this algorithm, use the \code{\link{EstimateExoLabel}} function.
 }
 
 \examples{
@@ -130,10 +126,10 @@ all_edges <- vapply(seq_len(num_edges),
 edgefile <- tempfile()
 if(file.exists(edgefile)) file.remove(edgefile)
 writeLines(all_edges, edgefile)
-res <- ShoalFinder(edgefile, return_table=TRUE)
+res <- ExoLabel(edgefile, return_table=TRUE)
 print(res)
 }
 
 \seealso{
-\code{\link{EstimateShoal}}
+\code{\link{EstimateExoLabel}}
 }
