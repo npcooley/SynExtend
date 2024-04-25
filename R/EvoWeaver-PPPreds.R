@@ -454,6 +454,7 @@ PAPV.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   pap[] <- as.integer(pap) 
   ARGS <- list(nr=nr)
   FXN <- function(v1, v2, ARGS, ii, jj) {
+    if(all(v1==v1[1]) || all(v2==v2[1])) return(0)
     return(1-fisher.test(v1, v2, simulate.p.value=TRUE)$p.value)
   }
   pairscores <- BuildSimMatInternal(pap, uvals, evalmap, l, n, FXN, ARGS, Verbose)

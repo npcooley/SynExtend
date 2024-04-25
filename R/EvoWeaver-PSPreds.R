@@ -160,7 +160,7 @@ ContextTree.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE, precalcProfs=NU
 
 TreeDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
                                       precalcSubset=NULL, 
-                                      TreeMethods="CI", JRFk=4, ...){
+                                      TreeMethods="RF", JRFk=4, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
