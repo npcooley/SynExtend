@@ -8,6 +8,7 @@
 PrepareSeqs <- function(SynExtendObject,
                         DataBase,
                         DefaultTranslationTable = "11",
+                        Identifiers = NULL,
                         Storage = 1,
                         Verbose = FALSE) {
   
@@ -28,6 +29,10 @@ PrepareSeqs <- function(SynExtendObject,
     if (!requireNamespace(package = "RSQLite",
                           quietly = TRUE)) {
       stop("Package 'RSQLite' must be installed.")
+    }
+    if (!("package:RSQLite" %in% search())) {
+      print("Eventually character vector access to DECIPHER DBs will be deprecated.")
+      require(RSQLite, quietly = TRUE)
     }
     dbConn <- dbConnect(dbDriver("SQLite"), DataBase)
     on.exit(dbDisconnect(dbConn))
@@ -55,7 +60,19 @@ PrepareSeqs <- function(SynExtendObject,
       GeneCalls <- GeneCalls[match(x = dimnames(SynExtendObject)[[1]],
                                    table = names(GeneCalls))]
     }
-  } # else genecalls from PairSummaries objects will be guaranteed to be correctly shaped?
+  } # else GeneCalls from PairSummaries objects will be guaranteed to be correctly shaped?
+  
+  if (!is.null(Identifiers)) {
+    if (is(object = Identifiers,
+           class2 = "character")) {
+      GeneCalls <- GeneCalls[names(GeneCalls) %in% Identifiers]
+    } else {
+      stop ("Identifiers must be supplied as characters.")
+    }
+  }
+  if (length(GeneCalls) < 1) {
+    stop("Requested subset not found.")
+  }
   
   # load in genomes and ALL extracted features at the top until storage limit
   # is hit
@@ -83,8 +100,8 @@ PrepareSeqs <- function(SynExtendObject,
                                  -1.298, 0.2, -2.062, 1.275),
                                nrow = 4,
                                dimnames = list(DNA_BASES, DNA_BASES))
-  Features01 <- Features02 <- AAStruct <- vector("list",
-                                                 length = length(GeneCalls))
+  Features01 <- Features02 <- AAStruct <- FeatureLengths <- FeatureMods <- FeatureCode <- FeatureCDSCount <- vector("list",
+                                                                                                                    length = length(GeneCalls))
   L <- length(GeneCalls)
   
   Count <- 1L
@@ -178,6 +195,10 @@ PrepareSeqs <- function(SynExtendObject,
                                         GeneCalls[[Count]]$Index,
                                         seq(length(Features01[[Count]])),
                                         sep = "_")
+    FeatureLengths[[Count]] <- width(Features01[[Count]])
+    FeatureMods[[Count]] <- (FeatureLengths[[Count]] %% 3L) == 0L
+    FeatureCode[[Count]] <- GeneCalls[[Count]]$Coding
+    FeatureCDSCount[[Count]] <- lengths(GeneCalls[[Count]]$Range)
     
     # translate all translatable features with as few calls as possible
     ph <- unique(GeneCalls[[Count]]$Translation_Table)
@@ -186,13 +207,13 @@ PrepareSeqs <- function(SynExtendObject,
     if (length(ph) < 1L) {
       ph <- DefaultTranslationTable
       phkey <- which(GeneCalls[[Count]]$Coding &
-                       GeneCalls[[Count]]$Type == "gene")
+                       (GeneCalls[[Count]]$Type == "gene" | GeneCalls[[Count]]$Type == "pseudogene"))
       CurrentGeneticCode <- getGeneticCode(id_or_name2 = ph,
                                            full.search = FALSE,
                                            as.data.frame = FALSE)
-      Features02[[Count]] <- translate(x = Features01[[Count]][phkey],
-                                       genetic.code = CurrentGeneticCode,
-                                       if.fuzzy.codon = "solve")
+      Features02[[Count]] <- suppressWarnings(translate(x = Features01[[Count]][phkey],
+                                                        genetic.code = CurrentGeneticCode,
+                                                        if.fuzzy.codon = "solve"))
       Features02[[Count]] <- Features02[[Count]][order(phkey)]
       # print(length(Features02[[Count]]))
     } else {
@@ -204,14 +225,14 @@ PrepareSeqs <- function(SynExtendObject,
       for (m4 in seq_along(ph)) {
         matchph <- which(GeneCalls[[Count]]$Translation_Table == ph[m4] &
                            GeneCalls[[Count]]$Coding &
-                           GeneCalls[[Count]]$Type == "gene")
+                           (GeneCalls[[Count]]$Type == "gene" | GeneCalls[[Count]]$Type == "pseudogene"))
         phkey[[m4]] <- matchph
         CurrentGeneticCode <- getGeneticCode(id_or_name2 = ph[m4],
                                              full.search = FALSE,
                                              as.data.frame = FALSE)
-        Features02[[Count]][[m4]] <- translate(x = Features01[[Count]][matchph],
-                                               genetic.code = CurrentGeneticCode,
-                                               if.fuzzy.codon = "solve")
+        Features02[[Count]][[m4]] <- suppressWarnings(translate(x = Features01[[Count]][matchph],
+                                                                genetic.code = CurrentGeneticCode,
+                                                                if.fuzzy.codon = "solve"))
       }
       Features02[[Count]] <- do.call(c,
                                      Features02[[Count]])
@@ -220,7 +241,7 @@ PrepareSeqs <- function(SynExtendObject,
       
     }
     # rewrite ph to provide the correct names for the features
-    ph <- GeneCalls[[Count]]$Coding & GeneCalls[[Count]]$Type == "gene"
+    ph <- GeneCalls[[Count]]$Coding & (GeneCalls[[Count]]$Type == "gene" | GeneCalls[[Count]]$Type == "pseudogene")
     
     names(Features02[[Count]]) <- paste(rep(names(GeneCalls)[Count], length(Features02[[Count]])),
                                         GeneCalls[[Count]]$Index[ph],
@@ -233,6 +254,7 @@ PrepareSeqs <- function(SynExtendObject,
                                       type = "probabilities",
                                       HEC_MI1 = MAT1,
                                       HEC_MI2 = MAT2)
+      names(AAStruct[[Count]]) <- names(Features02[[Count]])
     }
     
     if (Verbose) {
@@ -258,11 +280,23 @@ PrepareSeqs <- function(SynExtendObject,
     print(TimeEnd - TimeStart)
   }
   
-  res <- list("DNA" = Features01,
-              "AA" = Features02,
-              "Struct" = AAStruct)
-  class(res) <- c("list", "SynExtendSeqs")
+  w1 <- sapply(X = Features01,
+               FUN = function(x) {
+                 !is.null(x)
+               },
+               simplify = TRUE)
+  
+  res <- list("DNA" = Features01[w1],
+              "AA" = Features02[w1],
+              "Struct" = AAStruct[w1],
+              "IDs" = names(GeneCalls)[w1],
+              "NTCount" = FeatureLengths[w1],
+              "CodingVal1" = FeatureMods[w1],
+              "CodingVal2" = FeatureCode[w1],
+              "CDSCount" = FeatureCDSCount[w1])
+  class(res) <- c("list", "FeatureSeqs")
   return(res)
 }
+
 
 

@@ -57,12 +57,23 @@ Nicholas Cooley \email{npc19@pitt.edu}
 \code{\link{PairSummaries}}, \code{\link{NucleotideOverlap}}, \code{link{SubSetPairs}}, \code{\link{FindSynteny}}
 }
 \examples{
+# this function will be deprecated soon,
+# please see the new ExpandDiagonal() function.
+library(RSQLite)
 DBPATH <- system.file("extdata",
-                      "Endosymbionts.sqlite",
+                      "Endosymbionts_v02.sqlite",
                       package = "SynExtend")
                       
+data("Endosymbionts_LinkedFeatures", package = "SynExtend")
+
+Pairs <- PairSummaries(SyntenyLinks = Endosymbionts_LinkedFeatures,
+                       PIDs = TRUE,
+                       Score = TRUE,
+                       DBPATH = DBPATH,
+                       Verbose = TRUE)
+                      
 data("Endosymbionts_Pairs01", package = "SynExtend")
-Pairs02 <- BlockExpansion(Pairs = Endosymbionts_Pairs01,
+Pairs02 <- BlockExpansion(Pairs = Pairs,
                           NewPairsOnly = FALSE,
                           DBPATH = DBPATH,
                           Verbose = TRUE)

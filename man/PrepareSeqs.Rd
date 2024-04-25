@@ -10,6 +10,7 @@ Given a \code{SynExtend} object with a \code{GeneCalls} attribute, and a \code{D
 PrepareSeqs(SynExtendObject,
             DataBase,
             DefaultTranslationTable = "11",
+            Identifiers = NULL,
             Storage = 1,
             Verbose = FALSE)
 }
@@ -23,6 +24,9 @@ A character string pointing to a SQLite database, or a connection to a \code{DEC
   \item{DefaultTranslationTable}{
 A character vector of length 1 identifying the translation table to use if one is not supplied in the \code{GeneCalls} attribute.
 }
+  \item{Identifiers}{
+By default \code{NULL}, but can be used to supply a vector of character identifiers for returning a subset of prepared sequences.
+}
   \item{Storage}{
 A soft memory limit for how much space to allow when building the resulting object. Translated to Gb.
 }
@@ -34,22 +38,22 @@ Logical indicating whether or not to display a progress bar and print the time d
 \code{PrepareSeqs} returns the sequences of genes and their translations where appropriate.
 }
 \value{
-An object of class \code{SynExtendSeqs}.
+An object of class \code{FeatureSeqs}.
 }
 \author{
 Nicholas Cooley \email{npc19@pitt.edu}
 }
 
 \seealso{
-\code{\link{PairSummaries}}, \code{\link{NucleotideOverlap}}, \code{\link{FindSynteny}}
+\code{\link{SummarizePairs}}, \code{\link{NucleotideOverlap}}, \code{\link{FindSynteny}}
 }
 \examples{
 DBPATH <- system.file("extdata",
-                      "Endosymbionts.sqlite",
+                      "Endosymbionts_v02.sqlite",
                       package = "SynExtend")
                       
-data("Endosymbionts_Pairs01", package = "SynExtend")
-CurrentSeqs <- PrepareSeqs(SynExtendObject = Endosymbionts_Pairs01,
+data("Endosymbionts_LinkedFeatures", package = "SynExtend")
+CurrentSeqs <- PrepareSeqs(SynExtendObject = Endosymbionts_LinkedFeatures,
                            DataBase = DBPATH,
                            Verbose = TRUE)
 }

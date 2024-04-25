@@ -36,6 +36,9 @@ export(dendrapply)
 export(FastQFromSRR)
 export(FitchParsimony)
 export(PrepareSeqs)
+export(SummarizePairs)
+export(ClusterByK)
+export(ExpandDiagonal)
 
 S3method(subset, 'dendrogram')
 

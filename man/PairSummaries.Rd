@@ -72,8 +72,10 @@ Nicholas Cooley \email{npc19@pitt.edu}
 \code{\link{FindSynteny}}, \code{\link{Synteny-class}}, \code{\link{NucleotideOverlap}}
 }
 \examples{
+# this function will be deprecated soon,
+# please see the new SummarizePairs() function.
 DBPATH <- system.file("extdata",
-                      "Endosymbionts.sqlite",
+                      "Endosymbionts_v02.sqlite",
                       package = "SynExtend")
                       
 data("Endosymbionts_LinkedFeatures", package = "SynExtend")
@@ -82,5 +84,4 @@ Pairs <- PairSummaries(SyntenyLinks = Endosymbionts_LinkedFeatures,
                        PIDs = FALSE,
                        DBPATH = DBPATH,
                        Verbose = TRUE)
-
 }

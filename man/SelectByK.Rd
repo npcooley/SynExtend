@@ -44,7 +44,7 @@ Logical indicating whether to retain the cluster with the highest PID centroid i
 }
 }
 \details{
-\code{SelectByK} uses a naive k-means routine to select for predicted pairs that below to clusters whose centroids are greater than or equal to the user specified PID confidence. This means that the confidence is not a minimum, and that pairs with PIDs below the user confidence can be retained. The sum of within cluster sum of squares is used to approximate ``knee'' selection with the user supplied ``ClusterScalar'' value. By default, with a ``ClusterScalar'' value of 1 the half-max of a right-hyperbola fitted to the sum of within-cluster sum of squares is used to pick the cluster number for evaluation, ``ClusterScalar'' is multiplied by the half-max to tune cluster number selection.
+\code{SelectByK} uses a naive k-means routine to select for predicted pairs that belong to clusters whose centroids are greater than or equal to the user specified PID confidence. This means that the confidence is not a minimum, and that pairs with PIDs below the user confidence can be retained. The sum of within cluster sum of squares is used to approximate ``knee'' selection with the user supplied ``ClusterScalar'' value. By default, with a ``ClusterScalar'' value of 1 the half-max of a right-hyperbola fitted to the sum of within-cluster sum of squares is used to pick the cluster number for evaluation, ``ClusterScalar'' is multiplied by the half-max to tune cluster number selection.
 This function is intended to be used at the genome-to-genome comparison level, and not say, at the level of an all-vs-all comparison of many genomes.
 }
 \value{
@@ -58,6 +58,20 @@ Nicholas Cooley \email{npc19@pitt.edu}
 \code{\link{PairSummaries}}, \code{\link{NucleotideOverlap}}, \code{link{SubSetPairs}}, \code{\link{FindSynteny}}
 }
 \examples{
-data("Endosymbionts_Pairs01", package = "SynExtend")
-Pairs02 <- SelectByK(Pairs = Endosymbionts_Pairs01)
+# this function will be deprecated soon,
+# please see the new ClusterByK() function.
+
+DBPATH <- system.file("extdata",
+                      "Endosymbionts_v02.sqlite",
+                      package = "SynExtend")
+
+data("Endosymbionts_LinkedFeatures", package = "SynExtend")
+
+Pairs <- PairSummaries(SyntenyLinks = Endosymbionts_LinkedFeatures,
+                       PIDs = TRUE,
+                       Score = TRUE,
+                       DBPATH = DBPATH,
+                       Verbose = TRUE)
+
+Pairs02 <- SelectByK(Pairs = Pairs)
 }

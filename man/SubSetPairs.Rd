@@ -48,12 +48,13 @@ Nicholas Cooley \email{npc19@pitt.edu}
 \code{\link{PairSummaries}} \code{\link{NucleotideOverlap}}
 }
 \examples{
+# expected to be deprecated soon...
 data("Endosymbionts_Pairs03", package = "SynExtend")
 # remove competitors under default conditions
 Pairs2 <- SubSetPairs(CurrentPairs = Endosymbionts_Pairs03,
                       Verbose = TRUE)
 THRESH <- c(0.5, 21)
-names(THRESH) <- c("Consensus", "ExactMatch")
+names(THRESH) <- c("Consensus", "TotalMatch")
 # remove pairs only based on user defined thresholds
 Pairs3 <- SubSetPairs(CurrentPairs = Endosymbionts_Pairs03,
                       UserThresholds = THRESH,

@@ -45,7 +45,7 @@ Using the `FindSynteny` function in `DECIPHER` builds an object of class `Synten
 library(SynExtend)
 
 DBPATH <- system.file("extdata",
-                      "Endosymbionts.sqlite",
+                      "Endosymbionts_v02.sqlite",
                       package = "SynExtend")
 
 Syn <- FindSynteny(dbFile = DBPATH)

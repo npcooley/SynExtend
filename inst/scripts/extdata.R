@@ -9,7 +9,15 @@
 # UPDATE DATALIST MANUALLY
 # data was regenerated on 2022 09 22
 
+# data was regenerated again on 2024 04 25 for a set of new functions and
+# the deprecation of some old ones.
+source(file = "~/Packages/SynExtend/R/SummarizePairs.R", echo = FALSE)
+source(file = "~/Packages/SynExtend/R/ClusterByK.R", echo = FALSE)
+source(file = "~/Packages/SynExtend/R/ExpandDiagonal.R", echo = FALSE)
+source(file = "~/Packages/SynExtend/R/PrepareSeqs.R", echo = FALSE)
+
 suppressMessages(library(SynExtend))
+suppressMessages(library(RSQLite))
 
 TODAYSDATE <- paste0(unlist(strsplit(x = as.character(Sys.time()),
                                      split = "-| ")[[1]][1:3]),
@@ -32,6 +40,11 @@ EntrezQuery <- paste("esearch -db assembly ",
 FtPPaths <- system(command = EntrezQuery,
                    intern = TRUE,
                    timeout = 300L)
+
+# keep the example data small...
+if (length(FtPPaths) > 4L) {
+  FtPPaths <- FtPPaths[1:4]
+}
 
 FNAs <- unname(sapply(FtPPaths,
                       function(x) paste(x,
@@ -70,7 +83,7 @@ system(command = CURLCOMMAND,
 Endosymbionts_GeneCalls <- vector(mode = "list",
                                     length = length(GFFs))
 
-VignetteDB <- "~/Packages/SynExtend/inst/extdata/Endosymbionts.sqlite"
+VignetteDB <- "~/Packages/SynExtend/inst/extdata/Endosymbionts_v02.sqlite"
 
 for (m1 in seq_along(GFFs)) {
   Endosymbionts_GeneCalls[[m1]] <- gffToDataFrame(GFF = GFFs[m1],
@@ -105,24 +118,29 @@ save(Endosymbionts_LinkedFeatures,
      file = "~/Packages/SynExtend/data/Endosymbionts_LinkedFeatures.RData",
      compress = "xz")
 
+###### -- PrepareSeqs ---------------------------------------------------------
+
+Endosymbiont_Seqs <- PrepareSeqs(SynExtendObject = Endosymbionts_LinkedFeatures,
+                                 DataBase = VignetteDB,
+                                 Verbose = TRUE)
+
 ###### -- PairSummaries -------------------------------------------------------
 
-Endosymbionts_Pairs01 <- PairSummaries(SyntenyLinks = Endosymbionts_LinkedFeatures,
-                                         PIDs = TRUE,
-                                         Score = TRUE,
-                                         DBPATH = VignetteDB,
-                                         Verbose = TRUE)
+Endosymbionts_Pairs01 <- SummarizePairs(SynExtendObject = Endosymbionts_LinkedFeatures,
+                                        FeatureSeqs = Endosymbiont_Seqs,
+                                        DataBase = VignetteDB,
+                                        Verbose = TRUE)
 
 save(Endosymbionts_Pairs01,
      file = "~/Packages/SynExtend/data/Endosymbionts_Pairs01.RData",
      compress = "xz")
 
-###### -- BlockExpansion ------------------------------------------------------
+###### -- Clustering ----------------------------------------------------------
 
-Endosymbionts_Pairs02 <- BlockExpansion(Pairs = Endosymbionts_Pairs01,
-                                        NewPairsOnly = FALSE,
-                                        DBPATH = VignetteDB,
-                                        Verbose = TRUE)
+Endosymbionts_Pairs02 <- ClusterByK(SynExtendObject = Endosymbionts_Pairs01,
+                                    ClusterScalar = 6,
+                                    ShowPlot = TRUE,
+                                    Verbose = TRUE)
 
 save(Endosymbionts_Pairs02,
      file = "~/Packages/SynExtend/data/Endosymbionts_Pairs02.RData",
@@ -130,9 +148,11 @@ save(Endosymbionts_Pairs02,
 
 ###### -- BlockReconciliation -------------------------------------------------
 
-Endosymbionts_Pairs03 <- BlockReconciliation(Pairs = Endosymbionts_Pairs02,
-                                             ConservativeRejection = FALSE,
-                                             Verbose = TRUE)
+Endosymbionts_Pairs03 <- ExpandDiagonal(SynExtendObject = Endosymbionts_Pairs02[Endosymbionts_Pairs02$ClusterID %in% as.integer(names(which(attr(x = Endosymbionts_Pairs02,
+                                                                                                                                                 which = "Retain")))), ],
+                                        FeatureSeqs = Endosymbiont_Seqs,
+                                        DataBase = VignetteDB,
+                                        Verbose = TRUE)
 save(Endosymbionts_Pairs03,
      file = "~/Packages/SynExtend/data/Endosymbionts_Pairs03.RData",
      compress = "xz")
