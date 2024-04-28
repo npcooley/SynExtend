@@ -6,6 +6,7 @@
 #include <math.h>
 #include <limits.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <R_ext/Random.h>
 #include <R.h>
 #include <Rdefines.h>
