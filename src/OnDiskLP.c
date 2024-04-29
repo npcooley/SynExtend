@@ -33,9 +33,10 @@
 #include "SynExtend.h"
 
 #define h_uint uint64_t
-#define uint uint32_t
-#define strlen_uint uint16_t
-#define l_uint uint64_t
+#define uint uint_fast32_t
+#define strlen_uint uint_least16_t
+#define l_uint uint_fast64_t
+#define lu_fprint PRIu64
 
 /*
  * common limits are defined in limits.h
@@ -710,7 +711,7 @@ l_uint node_vertex_file_cleanup(const char* dir, const char* fname, const char* 
 		curloc += line_fixed_size + index_line->len;
 		num_v++;
 		if(!(num_v % PRINT_COUNTER_MOD)){
-			if(v) Rprintf("\t%lu vertices found\r", num_v);
+			if(v) Rprintf("\t%" lu_fprint " vertices found\r", num_v);
 			else R_CheckUserInterrupt();
 		}
 	}
@@ -720,7 +721,7 @@ l_uint node_vertex_file_cleanup(const char* dir, const char* fname, const char* 
 	fclose(indexfile);
 	free(index_line);
 	free(vertname);
-	if(v) Rprintf("\t%lu vertices found\n", num_v);
+	if(v) Rprintf("\t%" lu_fprint " vertices found\n", num_v);
 	return num_v;
 }
 
@@ -842,13 +843,13 @@ void hash_file_vnames_batch(const char* fname, const char* dname, const char *ha
 		if(c == line_sep) c=getc_unsafe(f);
 		print_counter++;
 		if(!(print_counter % PRINT_COUNTER_MOD)){
-			if(v) Rprintf("\t%lu lines read\r", print_counter);
+			if(v) Rprintf("\t%" lu_fprint " lines read\r", print_counter);
 			else R_CheckUserInterrupt();
 		}
 	}
 	if(cachectr) batch_write_nodes(namecache, cachectr, hashf);
 
-	if(v) Rprintf("\t%lu lines read\n", print_counter);
+	if(v) Rprintf("\t%" lu_fprint " lines read\n", print_counter);
 	fclose(hashf);
 	fclose(f);
 
@@ -1056,12 +1057,12 @@ void csr_compress_edgelist_batch(const char* edgefile, const char* indexfname, c
 		}
 		print_counter++;
 		if(!(print_counter % PRINT_COUNTER_MOD)){
-			if(v) Rprintf("\t%lu edges read\r", print_counter);
+			if(v) Rprintf("\t%" lu_fprint " edges read\r", print_counter);
 			else R_CheckUserInterrupt();
 		}
 	}
 
-	if(v) Rprintf("\t%lu edges read\n", print_counter);
+	if(v) Rprintf("\t%" lu_fprint " edges read\n", print_counter);
 	free(vname);
 	fclose(mastertable);
 	fclose(countstable);
@@ -1616,11 +1617,11 @@ SEXP R_LP_write_output(SEXP CLUSTERFILE, SEXP HASHEDDIR, SEXP OUTFILE, SEXP SEPS
 		num_written++;
 
 		if(!(num_written % PRINT_COUNTER_MOD)){
-			if(v) Rprintf("%lu nodes written.\r", num_written);
+			if(v) Rprintf("%" lu_fprint " nodes written.\r", num_written);
 			else R_CheckUserInterrupt();
 		}
 	}
-	if(v) Rprintf("%lu nodes written.\n", num_written);
+	if(v) Rprintf("%" lu_fprint " nodes written.\n", num_written);
 	fclose(fclusters);
 	fclose(outf);
 	fclose(hashfile);
