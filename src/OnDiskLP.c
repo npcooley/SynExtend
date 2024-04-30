@@ -68,7 +68,7 @@ const char CONSENSUS_CLUSTER[] = "tmpclust";
 
 // set this to 1 if we should sample edges rather than use all of them
 // MAX_EDGES_EXACT is a soft cap -- if above this, we sample edges probabalistically
-const int use_limited_nodes = 0;
+const int use_limited_nodes = 1;
 const l_uint MAX_EDGES_EXACT = 20000;
 const int PRINT_COUNTER_MOD = 811;
 const int PROGRESS_COUNTER_MOD = 3083;
@@ -478,6 +478,9 @@ void mergesort_clust_file(const char* f, const char* dir, size_t element_size,
 	void *tmp2 = malloc(element_size);
 	char *f1, *f2;
 	while(block_size < total_lines){
+		// need an interrupt here or we can brick on larger graphs
+		R_CheckUserInterrupt();
+
 		// f1 is always the reading file, f2 the writing file
 		f1 = flip ? file1 : file2;
 		f2 = flip ? file2 : file1;
@@ -1289,6 +1292,7 @@ void cluster_file(const char* mastertab_fname, const char* clust_fname,
 	l_uint cluster_res, qsize, tmp_ind;
 	int print_counter=0, i=0;
 	uint statusctr=0;
+	double pct_complete = 0, prev_pct=0;
 
 	// randomly initialize queue and ctr file
 	if(v) Rprintf("\tInitializing queues...");
@@ -1302,6 +1306,12 @@ void cluster_file(const char* mastertab_fname, const char* clust_fname,
 		cur_q = fopen(queues[i%2], "rb+");
 		next_q = fopen(queues[(i+1)%2], "wb+");
 		qsize = get_qsize(cur_q);
+		pct_complete = max_iterations ? (i+1) / max_iterations : ((double)(num_v - qsize)) / num_v;
+		if(v){
+			if(pct_complete < prev_pct) pct_complete = prev_pct;
+			else prev_pct = pct_complete;
+			Rprintf("\r\t%0.1f%% complete %s", (pct_complete)*100, progress[++statusctr%progbarlen]);
+		}
 		if(!qsize) break;
 
 		while(fread(&tmp_ind, L_SIZE, 1, cur_q)){
@@ -1311,24 +1321,13 @@ void cluster_file(const char* mastertab_fname, const char* clust_fname,
 			add_to_queue(cluster_res, tmp_ind, num_v, clusterfile, masterfile, next_q, ctr_q);
 			print_counter++;
 			if(!(print_counter % PROGRESS_COUNTER_MOD)){
-				if(v){
-					if(max_iterations > 0)
-						Rprintf("\r\t%.0f%% complete %s", ((double)(i+1) / max_iterations)*100, progress[++statusctr%progbarlen]);
-					else
-						Rprintf("\r\t%d iterations %s", i+1, progress[++statusctr%progbarlen]);
-				}
+				if(v) Rprintf("\r\t%0.1f%% complete %s", (pct_complete)*100, progress[++statusctr%progbarlen]);
 				else R_CheckUserInterrupt();
 			}
 		}
 
 		fclose(cur_q);
 		fclose(next_q);
-		if(v){
-			if(max_iterations > 0)
-				Rprintf("\r\t%.0f%% complete %s", ((double)(i+1) / max_iterations)*100, progress[++statusctr%progbarlen]);
-			else
-				Rprintf("\r\t%d iterations %s", i+1, progress[++statusctr%progbarlen]);
-		}
 		i++;
 	}
 	if(v){
