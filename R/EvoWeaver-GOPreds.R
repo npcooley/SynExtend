@@ -12,8 +12,8 @@ ColocMoran <- function(ew, ...) UseMethod('ColocMoran')
 TranscripMI <- function(ew, ...) UseMethod('TranscripMI')
 ################################
 
-Coloc.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE, 
-                             precalcProfs=NULL, precalcSubset=NULL, 
+Coloc.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
+                             precalcProfs=NULL, precalcSubset=NULL,
                              minimumGenomeSize=2500, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
@@ -28,10 +28,10 @@ Coloc.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     labvecs <- ew[uvals]
   }
   l <- length(labvecs)
-  
+
   allsp <- lapply(labvecs, \(x) gsub('(.*)_.*$', '\\1', x))
-  n <- names(ew)[uvals]
-  
+  n <- names(ew)
+
   ARGS <- list(allsp=allsp)
   FXN <- function(lab1, lab2, ARGS, ii, jj){
     l1sp <- gsub('(.*)_.*$', '\\1', lab1)
@@ -62,18 +62,18 @@ Coloc.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     }
     return(score*(1-pval))
   }
-  
-  pairscores <- BuildSimMatInternal(labvecs, uvals, evalmap, l, n, 
+
+  pairscores <- BuildSimMatInternal(labvecs, uvals, evalmap, l, n,
                                     FXN, ARGS, Verbose,
                                     InputIsList=TRUE)
-  
+
   m <- ifelse(max(pairscores, na.rm=TRUE) != 0, max(pairscores,na.rm=TRUE), 1)
   pairscores <- pairscores / m
   Diag(pairscores) <- 1
   return(pairscores)
 }
 
-ColocMoran.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE, 
+ColocMoran.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
                                   MySpeciesTree=NULL,
                                   precalcProfs=NULL, precalcSubset=NULL, ...){
   if (!is.null(precalcSubset))
@@ -95,10 +95,10 @@ ColocMoran.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   }
   l <- length(labvecs)
   specCoph <- as.matrix(Cophenetic(MySpeciesTree))
-  
+
   allsp <- lapply(labvecs, \(x) gsub('(.*)_.*$', '\\1', x))
-  n <- names(ew)[uvals]
-  
+  n <- names(ew)
+
   ARGS <- list(allsp=allsp, cMat=specCoph)
   FXN <- function(lab1, lab2, ARGS, ii, jj){
     l1sp <- gsub('([^_]*_[0-9]*)_.*$', '\\1', lab1)
@@ -138,18 +138,18 @@ ColocMoran.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     pval <- res$p.value
     return(score*pval)
   }
-  
-  pairscores <- BuildSimMatInternal(labvecs, uvals, evalmap, l, n, 
+
+  pairscores <- BuildSimMatInternal(labvecs, uvals, evalmap, l, n,
                                     FXN, ARGS, Verbose,
                                     InputIsList=TRUE)
-  
+
   #m <- ifelse(max(pairscores, na.rm=TRUE) != 0, max(pairscores,na.rm=TRUE), 1)
   #pairscores <- pairscores / m
   Diag(pairscores) <- 1
   return(pairscores)
 }
 
-TranscripMI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE, 
+TranscripMI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
                                           precalcProfs=NULL, precalcSubset=NULL, ...){
   stopifnot('Some labels are missing strand identifiers!'=attr(ew, 'useStrand'))
   if (!is.null(precalcSubset))
@@ -165,10 +165,10 @@ TranscripMI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     labvecs <- ew[uvals]
   }
   l <- length(labvecs)
-  
+
   allsp <- lapply(labvecs, \(x) gsub('(.*)_.*$', '\\1', x))
-  n <- names(ew)[uvals]
-  
+  n <- names(ew)
+
   ARGS <- list(allsp=allsp)
   FXN <- function(lab1, lab2, ARGS, ii, jj){
     l1sp <- gsub('([^_]*_[0-9]*)_.*$', '\\1', lab1)
@@ -205,10 +205,10 @@ TranscripMI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
       -1*pmf[1,2]*log2(pmf[1,2] / (px1*(1-py1))) +
       -1*pmf[2,1]*log2(pmf[2,1] / ((1-px1)*py1)) +
       pmf[2,2]*log2(pmf[2,2] / ((1-px1)*(1-py1)))
-    
+
     jointentropy <- -1*sum(pmf*log2(pmf))
     mutinf <- mutinf / jointentropy
-  
+
     # mutinf <- ifelse(pmf[1,1]==0, 0, pmf[1,1]*log(pmf[1,1] / (px1*py1)))
     # mutinf <- mutinf - ifelse(pmf[1,2]==0, 0, pmf[1,2]*log(pmf[1,2] / (px1*(1-py1))))
     # mutinf <- mutinf - ifelse(pmf[2,1]==0, 0, pmf[2,1]*log(pmf[2,1] / ((1-px1)*py1)))
@@ -216,11 +216,11 @@ TranscripMI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     pval <- 1-fisher.test(conttable)$p.value
     return(mutinf*pval)
   }
-  
-  pairscores <- BuildSimMatInternal(labvecs, uvals, evalmap, l, n, 
+
+  pairscores <- BuildSimMatInternal(labvecs, uvals, evalmap, l, n,
                                     FXN, ARGS, Verbose,
                                     InputIsList=TRUE)
-  
+
   #m <- ifelse(max(pairscores, na.rm=TRUE) != 0, max(pairscores,na.rm=TRUE), 1)
   #pairscores <- pairscores / m
   Diag(pairscores) <- 1

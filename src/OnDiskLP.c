@@ -55,6 +55,7 @@
 #define MAX_NODE_NAME_SIZE 254 // max size of a vertex name (char array will have 2 extra spaces for terminator and flag)
 #define NODE_NAME_CACHE_SIZE 4096
 #define FILE_READ_CACHE_SIZE 4096 // used for mergesorting files
+#define CLUSTER_MIN_WEIGHT 0.05
 
 const int L_SIZE = sizeof(l_uint);
 const int LEN_SIZE = sizeof(strlen_uint);
@@ -87,7 +88,7 @@ const int PROGRESS_COUNTER_MOD = 3083;
 typedef struct {
 	l_uint ctr1;
 	l_uint ctr2;
-} double_lu;
+} float_lu;
 
 typedef struct {
 	strlen_uint strlength;
@@ -98,7 +99,7 @@ typedef struct {
 
 typedef struct ll {
 	l_uint id;
-	double w;
+	float w;
 	struct ll* next;
 } ll;
 
@@ -112,7 +113,9 @@ typedef struct {
 /* Core Utility Functions */
 /**************************/
 
-ll* insert_ll(ll* head, l_uint id, double w){
+
+
+ll* insert_ll(ll* head, l_uint id, float w){
 	ll *tmp = head;
 	if(!tmp){
 		tmp = malloc(sizeof(ll));
@@ -180,11 +183,11 @@ void errorclose_file(FILE *f1, FILE *f2, const char* message){
 	error("%s", message);
 }
 
-inline double sigmoid_transform(double w, const double slope){
+inline float sigmoid_transform(float w, const double slope){
 	// should probably expose these at some point
-	const double scale = 0.5;
-	const double cutoff = 0.2;
-	double r = 1 / (1+exp(-1*slope*(w-scale)));
+	const float scale = 0.5;
+	const float cutoff = 0.2;
+	float r = 1 / (1+exp(-1*slope*(w-scale)));
 	return r > cutoff ? r : 0;
 }
 
@@ -234,8 +237,8 @@ h_uint hash_string_fnv(const char *str){
 
 
 int l_uint_compar(const void* a, const void* b){
-	double_lu aa = **(double_lu **)(a);
-	double_lu bb = **(double_lu **)(b);
+	float_lu aa = **(float_lu **)(a);
+	float_lu bb = **(float_lu **)(b);
 	if(aa.ctr2 - bb.ctr2)
 		return aa.ctr2 - bb.ctr2;
 	return aa.ctr1 - bb.ctr1;
@@ -278,11 +281,11 @@ int nohash_name_cmpfunc(const void *a, const void *b){
 
 void precopy_dlu1(const char* f1, const char* f2){
 	// write and add index
-	double_lu dlu = {1,0};
+	float_lu dlu = {1,0};
 	FILE *orig = fopen(f1, "rb");
 	FILE *copy = fopen(f2, "wb");
 	while(fread(&dlu.ctr2, L_SIZE, 1, orig)){
-		fwrite(&dlu, sizeof(double_lu), 1, copy);
+		fwrite(&dlu, sizeof(float_lu), 1, copy);
 		dlu.ctr1++;
 	}
 	fclose(orig);
@@ -292,15 +295,15 @@ void precopy_dlu1(const char* f1, const char* f2){
 
 void precopy_dlu2(const char* f1, const char* f2){
 	// write flipped version (index, clust => clust, index)
-	double_lu dlu = {0,0};
+	float_lu dlu = {0,0};
 	l_uint prev_ind=0;
 	FILE *orig = fopen(f1, "rb");
 	FILE *copy = fopen(f2, "wb");
-	while(fread(&dlu, sizeof(double_lu), 1, orig)){
+	while(fread(&dlu, sizeof(float_lu), 1, orig)){
 			prev_ind = dlu.ctr1;
 			dlu.ctr1 = dlu.ctr2;
 			dlu.ctr2 = prev_ind;
-			fwrite(&dlu, sizeof(double_lu), 1, copy);
+			fwrite(&dlu, sizeof(float_lu), 1, copy);
 	}
 	fclose(orig);
 	fclose(copy);
@@ -308,18 +311,18 @@ void precopy_dlu2(const char* f1, const char* f2){
 }
 
 void postcopy_dlu1(const char* f1, const char* f2){
-	double_lu dlu = {0,0};
+	float_lu dlu = {0,0};
 	l_uint prev_ind=0, ctr=0;
 	FILE *orig = fopen(f1, "rb");
 	FILE *copy = fopen(f2, "wb");
-	while(fread(&dlu, sizeof(double_lu), 1, orig)){
+	while(fread(&dlu, sizeof(float_lu), 1, orig)){
 			if(prev_ind != dlu.ctr2){
 				prev_ind = dlu.ctr2;
 				dlu.ctr2 = ++ctr;
 			} else {
 				dlu.ctr2 = ctr;
 			}
-			fwrite(&dlu, sizeof(double_lu), 1, copy);
+			fwrite(&dlu, sizeof(float_lu), 1, copy);
 	}
 	fclose(orig);
 	fclose(copy);
@@ -330,22 +333,22 @@ void postcopy_dlu2(const char* f1, const char* f2){
 	// write only the cluster into file
 	// also can reindex such that the first cluster listed is cluster 1
 	// (this can be removed)
-	double_lu dlu = {0,0};
+	float_lu dlu = {0,0};
 	FILE *orig = fopen(f1, "rb");
 	FILE *copy = fopen(f2, "wb");
 
 	// uncomment these lines to make the first vertex have cluster 1
 	/*
 	l_uint max_found = 0, offset;
-	while(fread(&dlu, sizeof(double_lu), 1, orig))
+	while(fread(&dlu, sizeof(float_lu), 1, orig))
 			if(dlu.ctr1 > max_found) max_found = dlu.ctr1;
 	rewind(orig);
-	fread(&dlu, sizeof(double_lu), 1, orig);
+	fread(&dlu, sizeof(float_lu), 1, orig);
 	offset = max_found - dlu.ctr1;
 	rewind(orig);
 	*/
 
-	while(fread(&dlu, sizeof(double_lu), 1, orig)){
+	while(fread(&dlu, sizeof(float_lu), 1, orig)){
 			// dlu.ctr1 = ((dlu.ctr1 + offset) % max_found) + 1;
 			fwrite(&dlu.ctr1, L_SIZE, 1, copy);
 	}
@@ -418,7 +421,7 @@ void mergesort_clust_file(const char* f, const char* dir, size_t element_size,
 	 *  -    *postcopy: function to write final values back into f
 	 *  notes:
 	 *  - *precopy should open the file (assume it does not exist)
-	 *  - *compar will provide void** values, make sure to double dereference
+	 *  - *compar will provide void** values, make sure to float dereference
 	 */
 
 	// two read pointers, one write pointer
@@ -427,7 +430,7 @@ void mergesort_clust_file(const char* f, const char* dir, size_t element_size,
 	char *file2 = malloc(PATH_MAX);
 	char *finalfile;
 
-	//size_t dlu_size = sizeof(double_lu);
+	//size_t dlu_size = sizeof(float_lu);
 
 	// create the junk files we'll use
 	safe_filepath_cat(dir, "tmp_ms1", file1, PATH_MAX);
@@ -556,7 +559,7 @@ void mergesort_clust_file(const char* f, const char* dir, size_t element_size,
 
 void copy_csrfile_sig(const char* dest, const char* src, l_uint num_v, const double w){
 	l_uint *vbuf = malloc(FILE_READ_CACHE_SIZE*L_SIZE);
-	double *wbuf = malloc(FILE_READ_CACHE_SIZE*sizeof(double));
+	float *wbuf = malloc(FILE_READ_CACHE_SIZE*sizeof(float));
 	FILE *fd = fopen(dest, "wb");
 	FILE *fs = fopen(src, "rb");
 
@@ -572,13 +575,13 @@ void copy_csrfile_sig(const char* dest, const char* src, l_uint num_v, const dou
 	// next copy over vertices and weights
 	int cachectr = 0;
 	while(fread(&vbuf[cachectr], L_SIZE, 1, fs)){
-		fread(&wbuf[cachectr], sizeof(double), 1, fs);
+		fread(&wbuf[cachectr], sizeof(float), 1, fs);
 		cachectr++;
 		if(cachectr == FILE_READ_CACHE_SIZE){
 			for(int i=0; i<cachectr; i++){
 				wbuf[i] = w < 0 ? 0 : sigmoid_transform(wbuf[i], w);
 				fwrite(&vbuf[i], L_SIZE, 1, fd);
-				fwrite(&wbuf[i], sizeof(double), 1, fd);
+				fwrite(&wbuf[i], sizeof(float), 1, fd);
 			}
 			cachectr = 0;
 		}
@@ -587,7 +590,7 @@ void copy_csrfile_sig(const char* dest, const char* src, l_uint num_v, const dou
 		for(int i=0; i<cachectr; i++){
 			wbuf[i] = w < 0 ? 0 : sigmoid_transform(wbuf[i], w);
 			fwrite(&vbuf[i], L_SIZE, 1, fd);
-			fwrite(&wbuf[i], sizeof(double), 1, fd);
+			fwrite(&wbuf[i], sizeof(float), 1, fd);
 		}
 	}
 
@@ -886,11 +889,11 @@ void reformat_counts(const char* curcounts, const char* mastertable, l_uint n_ve
 	return;
 }
 
-void add_self_loops_to_csrfile(const char *ftable, l_uint num_v, const double self_weight){
+void add_self_loops_to_csrfile(const char *ftable, l_uint num_v, const float self_weight){
 	// If self loops are included, the first entry for each node remains empty
 	// here we'll fill it in with the node itself
 	// thus, we can just write to whatever the first index of the value is and set the value to 0
-	const uint entry_size = L_SIZE + sizeof(double);
+	const uint entry_size = L_SIZE + sizeof(float);
 
 	l_uint tmp_pos;
 
@@ -907,15 +910,15 @@ void add_self_loops_to_csrfile(const char *ftable, l_uint num_v, const double se
 		// then move forward another [entry] amounts and write the current index to get a self loop
 		fseek(mastertab, tmp_pos*entry_size, SEEK_CUR);
 		fwrite(&i, L_SIZE, 1, mastertab);
-		fwrite(&self_weight, sizeof(double), 1, mastertab);
+		fwrite(&self_weight, sizeof(float), 1, mastertab);
 	}
 
 	fclose(mastertab);
 }
 
 void normalize_csr_edgecounts(const char* ftable, l_uint num_v){
-	const int entry_size = L_SIZE + sizeof(double);
-	double tmp_val, normalizer;
+	const int entry_size = L_SIZE + sizeof(float);
+	float tmp_val, normalizer;
 	l_uint start, end;
 	FILE *mastertab = fopen(ftable, "rb+");
 	if(!mastertab) error("%s", "error opening CSR file.\n");
@@ -931,7 +934,7 @@ void normalize_csr_edgecounts(const char* ftable, l_uint num_v){
 		fseek(mastertab, start*entry_size, SEEK_CUR);
 		for(l_uint j=0; j<(end-start); j++){
 			fseek(mastertab, L_SIZE, SEEK_CUR);
-			safe_fread(&tmp_val, sizeof(double), 1, mastertab);
+			safe_fread(&tmp_val, sizeof(float), 1, mastertab);
 			normalizer += tmp_val;
 		}
 
@@ -945,10 +948,10 @@ void normalize_csr_edgecounts(const char* ftable, l_uint num_v){
 		// finally we overwrite each of the values
 		for(l_uint j=0; j<(end-start); j++){
 			fseek(mastertab, L_SIZE, SEEK_CUR);
-			safe_fread(&tmp_val, sizeof(double), 1, mastertab);
+			safe_fread(&tmp_val, sizeof(float), 1, mastertab);
 			tmp_val /= normalizer;
-			fseek(mastertab, -1*sizeof(double), SEEK_CUR);
-			fwrite(&tmp_val, sizeof(double), 1, mastertab);
+			fseek(mastertab, -1*sizeof(float), SEEK_CUR);
+			fwrite(&tmp_val, sizeof(float), 1, mastertab);
 		}
 		start = end;
 	}
@@ -967,10 +970,10 @@ void csr_compress_edgelist_batch(const char* edgefile, const char* indexfname, c
 	 *
 	 * Error checking can be reduced because we would have caught it earlier
 	 */
-	const size_t entry_size = L_SIZE + sizeof(double);
+	const size_t entry_size = L_SIZE + sizeof(float);
 	const int self_loop_inc = has_self_loops ? 1 : 0;
 	l_uint inds[2], loc, offset;
-	double weight;
+	float weight;
 
 	char *vname = malloc(MAX_NODE_NAME_SIZE);
 	int stringctr=0, itermax = is_undirected ? 2 : 1;
@@ -1051,7 +1054,7 @@ void csr_compress_edgelist_batch(const char* edgefile, const char* indexfname, c
 			fseek(mastertable, (num_v+1)*L_SIZE, SEEK_SET);
 			fseek(mastertable, (loc+offset+self_loop_inc-1)*entry_size, SEEK_CUR);
 			fwrite(&inds[(j+1)%2], L_SIZE, 1, mastertable);
-			fwrite(&weight, sizeof(double), 1, mastertable);
+			fwrite(&weight, sizeof(float), 1, mastertable);
 
 			// decrement the counts file
 			fseek(countstable, inds[j]*L_SIZE, SEEK_SET);
@@ -1076,7 +1079,7 @@ void csr_compress_edgelist_batch(const char* edgefile, const char* indexfname, c
 }
 
 
-l_uint update_node_cluster(l_uint ind, l_uint offset, FILE *mastertab, FILE *clusterings){
+l_uint update_node_cluster(l_uint ind, l_uint offset, FILE *mastertab, FILE *clusterings, float exp){
 	/*
 	 * Determine number of edges using the table file (next - cur)
 	 * If number of edges too large, use some sort of hash to bin edges, then rerun with less
@@ -1087,9 +1090,9 @@ l_uint update_node_cluster(l_uint ind, l_uint offset, FILE *mastertab, FILE *clu
 	 *	- clusterings: file of current cluster numbers (0=unassigned)
 	 */
 	R_CheckUserInterrupt();
-	const size_t entry_size = L_SIZE + sizeof(double);
+	const size_t entry_size = L_SIZE + sizeof(float);
 	l_uint start, end, num_edges, tmp_cl, tmp_id, zeromaxid=ind+1;
-	double tmp_w, acceptance_prob, zeromax=0;
+	float tmp_w, acceptance_prob, zeromax=0;
 
 	// move to information for the vertex and read in number of edges
 	fseek(mastertab, L_SIZE*ind, SEEK_SET);
@@ -1101,7 +1104,7 @@ l_uint update_node_cluster(l_uint ind, l_uint offset, FILE *mastertab, FILE *clu
 	// if it has no edges we can't do anything
 	if(!num_edges) return ind+1;
 
-	acceptance_prob = fmin((double)MAX_EDGES_EXACT / num_edges, 1.0);
+	acceptance_prob = fmin((float)MAX_EDGES_EXACT / num_edges, 1.0);
 	ll *searchpath = NULL;
 	GetRNGstate();
 	fseek(mastertab, L_SIZE*offset, SEEK_SET);
@@ -1116,7 +1119,10 @@ l_uint update_node_cluster(l_uint ind, l_uint offset, FILE *mastertab, FILE *clu
 
 		// read in neighbor and weight
 		safe_fread(&tmp_id, L_SIZE, 1, mastertab);
-		safe_fread(&tmp_w, sizeof(double), 1, mastertab);
+		safe_fread(&tmp_w, sizeof(float), 1, mastertab);
+
+		//if(exp != 1) tmp_w = pow(tmp_w, exp);
+		//if(tmp_w < CLUSTER_MIN_WEIGHT) continue;
 
 		// get which cluster it belongs to
 		fseek(clusterings, L_SIZE*tmp_id, SEEK_SET);
@@ -1179,19 +1185,19 @@ l_uint update_node_cluster(l_uint ind, l_uint offset, FILE *mastertab, FILE *clu
 void add_to_queue(l_uint clust, l_uint ind, l_uint n_node, FILE *clust_f, FILE *master_f, FILE *q_f, FILE *ctrq_f){
 	l_uint start, end, tmp_ind, tmp_cl, nedge;
 	l_uint *buf = malloc(L_SIZE*MAX_EDGES_EXACT);
-	double dummy;
+	float dummy;
 	int ctr = 0, found;
 
 	fseek(master_f, ind*L_SIZE, SEEK_SET);
 	safe_fread(&start, L_SIZE, 1, master_f);
 	safe_fread(&end, L_SIZE, 1, master_f);
 	fseek(master_f, (n_node+1)*L_SIZE, SEEK_SET);
-	fseek(master_f, start*(L_SIZE+sizeof(double)), SEEK_CUR);
+	fseek(master_f, start*(L_SIZE+sizeof(float)), SEEK_CUR);
 
 	nedge = end - start;
 	for(l_uint i=0; i<nedge; i++){
 		safe_fread(&tmp_ind, L_SIZE, 1, master_f);
-		safe_fread(&dummy, sizeof(double), 1, master_f);
+		safe_fread(&dummy, sizeof(float), 1, master_f);
 		fseek(clust_f, L_SIZE*tmp_ind, SEEK_SET);
 		safe_fread(&tmp_cl, L_SIZE, 1, clust_f);
 
@@ -1292,7 +1298,7 @@ void cluster_file(const char* mastertab_fname, const char* clust_fname,
 	l_uint cluster_res, qsize, tmp_ind;
 	int print_counter=0, i=0;
 	uint statusctr=0;
-	double pct_complete = 0, prev_pct=0;
+	float pct_complete = 0, prev_pct=0;
 
 	// randomly initialize queue and ctr file
 	if(v) Rprintf("\tInitializing queues...");
@@ -1306,7 +1312,7 @@ void cluster_file(const char* mastertab_fname, const char* clust_fname,
 		cur_q = fopen(queues[i%2], "rb+");
 		next_q = fopen(queues[(i+1)%2], "wb+");
 		qsize = get_qsize(cur_q);
-		pct_complete = max_iterations ? (i+1) / max_iterations : ((double)(num_v - qsize)) / num_v;
+		pct_complete = max_iterations ? (i+1) / max_iterations : ((float)(num_v - qsize)) / num_v;
 		if(v){
 			if(pct_complete < prev_pct) pct_complete = prev_pct;
 			else prev_pct = pct_complete;
@@ -1317,7 +1323,7 @@ void cluster_file(const char* mastertab_fname, const char* clust_fname,
 		while(fread(&tmp_ind, L_SIZE, 1, cur_q)){
 			fseek(ctr_q, tmp_ind, SEEK_SET);
 			putc(0, ctr_q);
-			cluster_res = update_node_cluster(tmp_ind, num_v+1, masterfile, clusterfile);
+			cluster_res = update_node_cluster(tmp_ind, num_v+1, masterfile, clusterfile, 1 + ((float)i / 10));
 			add_to_queue(cluster_res, tmp_ind, num_v, clusterfile, masterfile, next_q, ctr_q);
 			print_counter++;
 			if(!(print_counter % PROGRESS_COUNTER_MOD)){
@@ -1347,14 +1353,14 @@ void cluster_file(const char* mastertab_fname, const char* clust_fname,
 	return;
 }
 
-void resolve_cluster_consensus(FILE *csr, const char* clustername, l_uint num_v, const double nclust){
+void resolve_cluster_consensus(FILE *csr, const char* clustername, l_uint num_v, const float nclust){
 	// remember that the csr file has num_v+1 entries, meaning they are at locations (0 -> num_v)
-	const size_t entry_size = L_SIZE + sizeof(double);
-	const double to_add = 1/nclust;
+	const size_t entry_size = L_SIZE + sizeof(float);
+	const float to_add = 1/nclust;
 	FILE *clustf = fopen(clustername, "rb");
 
 	l_uint start=0, end=0, pair, cur_clust, tmp_clust;
-	double w;
+	float w;
 
 	// iterate over all nodes
 	for(l_uint i=0; i<num_v-1; i++){
@@ -1370,14 +1376,14 @@ void resolve_cluster_consensus(FILE *csr, const char* clustername, l_uint num_v,
 		fseek(csr, start*entry_size, SEEK_CUR);
 		for(l_uint j=0; j<(end-start); j++){
 			safe_fread(&pair, L_SIZE, 1, csr);
-			safe_fread(&w, sizeof(double), 1, csr);
+			safe_fread(&w, sizeof(float), 1, csr);
 			fseek(clustf, pair*L_SIZE, SEEK_SET);
 			safe_fread(&tmp_clust, L_SIZE, 1, clustf);
 			if(tmp_clust == cur_clust){
 				// if clusters are the same, add the increment to the value
 				w += to_add;
-				fseek(csr, -1*sizeof(double), SEEK_CUR);
-				fwrite(&w, sizeof(double), 1, csr);
+				fseek(csr, -1*sizeof(float), SEEK_CUR);
+				fwrite(&w, sizeof(float), 1, csr);
 			}
 		}
 		start = end;
@@ -1399,8 +1405,8 @@ void cluster_oom_single(const char* tabfile, const char* clusteroutfile, const c
 
  	if(!is_consensus){
 	 	// reindex the clusters from 1 to n
-	 	mergesort_clust_file(clusteroutfile, dir, sizeof(double_lu), l_uint_compar, precopy_dlu1, postcopy_dlu1);
-	 	mergesort_clust_file(clusteroutfile, dir, sizeof(double_lu), l_uint_compar, precopy_dlu2, postcopy_dlu2);
+	 	mergesort_clust_file(clusteroutfile, dir, sizeof(float_lu), l_uint_compar, precopy_dlu1, postcopy_dlu1);
+	 	mergesort_clust_file(clusteroutfile, dir, sizeof(float_lu), l_uint_compar, precopy_dlu2, postcopy_dlu2);
  	}
 	return;
 }
@@ -1453,8 +1459,8 @@ void consensus_cluster_oom(const char* csrfile, const char* clusteroutfile, cons
 	cluster_oom_single(tmpcsrfilename2, clusteroutfile, dir, qfile1, qfile2, qfile3, num_v, num_iter, v, 1);
 
 	// reindex clusters from 1 to n
-	mergesort_clust_file(clusteroutfile, dir, sizeof(double_lu), l_uint_compar, precopy_dlu1, postcopy_dlu1);
-	mergesort_clust_file(clusteroutfile, dir, sizeof(double_lu), l_uint_compar, precopy_dlu2, postcopy_dlu2);
+	mergesort_clust_file(clusteroutfile, dir, sizeof(float_lu), l_uint_compar, precopy_dlu1, postcopy_dlu1);
+	mergesort_clust_file(clusteroutfile, dir, sizeof(float_lu), l_uint_compar, precopy_dlu2, postcopy_dlu2);
 
 	free(tmpcsrfilename1);
 	free(tmpcsrfilename2);
@@ -1508,7 +1514,7 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, SEXP TABNAME, SEXP TEMPTABN
 
 	// optional parameters
 	const int is_undirected = LOGICAL(IS_UNDIRECTED)[0];
-	const double self_loop_weight = REAL(ADD_SELF_LOOPS)[0];
+	const float self_loop_weight = REAL(ADD_SELF_LOOPS)[0];
 	const int add_self_loops = self_loop_weight > 0;
 	const int should_normalize = LOGICAL(NORMALIZE_WEIGHTS)[0];
 	const int ignore_weights = LOGICAL(IGNORE_WEIGHTS)[0];
@@ -1565,7 +1571,7 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, SEXP TABNAME, SEXP TEMPTABN
  	free(hashfile);
  	free(hashindex);
 	SEXP RETVAL = PROTECT(allocVector(REALSXP, 1));
-	REAL(RETVAL)[0] = (double) num_v;
+	REAL(RETVAL)[0] = (float) num_v;
 	UNPROTECT(1);
 	return RETVAL;
 }

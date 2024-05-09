@@ -25,14 +25,14 @@ PAPV <- function(ew, ...) UseMethod('PAPV')
 
 Jaccard.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
                                precalcProfs=NULL, precalcSubset=NULL, ...){
-  
+
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
     subs <- ProcessSubset(ew, Subset)
   uvals <- subs$uvals
   evalmap <- subs$evalmap
-  
+
   if ( is.null(precalcProfs) ){
     if (Verbose) cat('Calculating PA Profiles...\n')
     pap <- PAProfiles(ew, uvals, Verbose=Verbose)
@@ -47,7 +47,7 @@ Jaccard.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     return(mat)
   }
   nr <- nrow(pap)
-  pap[] <- as.integer(pap) 
+  pap[] <- as.integer(pap)
   ARGS <- list(nr=nr)
   FXN <- function(v1, v2, ARGS, ii, jj) {
     return(.Call("calcScoreJaccard", v1, v2, ARGS$nr, PACKAGE="SynExtend"))
@@ -87,11 +87,11 @@ Hamming.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     return(.Call("calcScoreHamming", v1, v2, ARGS$nr, 1, PACKAGE="SynExtend"))
   }
   pairscores <- BuildSimMatInternal(pap, uvals, evalmap, l, n, FXN, ARGS, Verbose)
-  
+
   return(pairscores)
 }
 
-CorrGL.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE, 
+CorrGL.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
                                 MySpeciesTree=NULL,
                                precalcProfs=NULL, precalcSubset=NULL, ...){
   if (!is.null(precalcSubset))
@@ -105,7 +105,7 @@ CorrGL.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     if (Verbose) cat('Calculating Species Tree...\n')
     MySpeciesTree <- findSpeciesTree(ew, Verbose)
   }
-  
+
   if ( is.null(precalcProfs) ){
     if (Verbose) cat('Calculating PA Profiles...\n')
     pap <- PAProfiles(ew, uvals, Verbose=Verbose, speciesList=labels(MySpeciesTree), ...)
@@ -114,7 +114,7 @@ CorrGL.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   }
   l <- length(uvals)
   n <- names(ew)
-  
+
   if ( l == 1 ){
     mat <- simMat(1, nelem=1)
     rownames(mat) <- colnames(mat) <- n
@@ -126,7 +126,7 @@ CorrGL.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   numnodes <- .Call("getTreeNodesCount", y, PACKAGE="SynExtend")
   rn <- rownames(pap)
   glvs <- matrix(NA_integer_, nrow=numnodes, ncol=l)
-  
+
   # Calculate Gain/Loss Vectors
   if (Verbose) cat('  Calculating gain/loss vectors:\n')
   if (Verbose) pb <- txtProgressBar(max=ncol(pap), style=3)
@@ -141,21 +141,26 @@ CorrGL.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     if (Verbose) setTxtProgressBar(pb, i)
   }
   if(Verbose) cat("\n")
-  
+
   ARGS <- list(numnodes=numnodes)
   FXN <- function(v1, v2, ARGS, ii, jj) {
+    if(all(v1[1]==v1) || all(v2[1]==v2)){
+      # catch case where standard deviation is 0
+      # (all elements of vector the same)
+      return(0)
+    }
     val <- cor(v1, v2)
     #pval <- 1 - pt(val, ARGS$numnodes - 2, lower.tail=FALSE)
     pval <- 1-fisher.test(v1, v2, simulate.p.value=TRUE)$p.value
     return(pval*val)
   }
   pairscores <- BuildSimMatInternal(glvs, uvals, evalmap, l, n, FXN, ARGS, Verbose)
-  
+
   return(pairscores)
 }
 
 
-MutualInformation.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE, 
+MutualInformation.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
                                          precalcProfs=NULL, precalcSubset=NULL, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
@@ -176,7 +181,7 @@ MutualInformation.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     rownames(mat) <- colnames(mat) <- n
     return(mat)
   }
-  
+
   FXN <- function(v1, v2, ARGS, ii, jj){
     score <- 0
     v1l <- length(v1)
@@ -185,23 +190,23 @@ MutualInformation.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     ft <- sum(!v1 & v2) / v1l
     ff <- sum(!v1 & !v2) / v1l
     jpd <- c(tt, tf, ft, ff)
-    
+
     tv1 <- sum(v1) / v1l
     tv2 <- sum(v2) / v1l
     fv1 <- 1 - tv1
     fv2 <- 1 - tv2
     mpdv1 <- c(tv1, tv1, fv1, fv1)
     mpdv2 <- c(tv2, fv2, tv2, fv2)
-    
+
     mult <- c(1,-1,-1,1)
-    
+
     for ( k in seq_along(jpd) ){
       val <- jpd[k] * log(jpd[k] / (mpdv1[k] * mpdv2[k]), base=2) * mult[k]
       score <- score + ifelse(is.nan(val), 0, val)
     }
     return(score)
   }
-  
+
   # APC Correction, removing for now
   # CORRECTION <- function(ps){
   #   apccorr <- mean(ps, na.rm=TRUE)
@@ -211,10 +216,10 @@ MutualInformation.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   #   denom <- max(ps, na.rm=TRUE)
   #   ps <- ps / ifelse(denom==0, 1, denom)
   # }
-  pairscores <- BuildSimMatInternal(pap, uvals, evalmap, l, n, 
+  pairscores <- BuildSimMatInternal(pap, uvals, evalmap, l, n,
                                     FXN, NULL, Verbose)
                                     #CORRECTION=CORRECTION)
-  
+
   Diag(pairscores) <- 1
   #pairscores <- pairscores #because distance
   return(pairscores)
@@ -227,7 +232,7 @@ ProfileDCA.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE, Processors=1L,
   else
     subs <- ProcessSubset(ew, Subset)
   uvals <- subs$uvals
-  
+
   if ( is.null(precalcProfs) ){
     if (Verbose) cat('Calculating PA Profiles...\n')
     pap <- PAProfiles(ew, uvals, Verbose=Verbose)
@@ -241,21 +246,21 @@ ProfileDCA.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE, Processors=1L,
     rownames(mat) <- colnames(mat) <- n
     return(mat)
   }
-  
+
   pairscores <- DCA_logRISE(pap, Verbose=Verbose, Processors=Processors, ...)
   rownames(pairscores) <- colnames(pairscores) <- n
   pairscores <- as.simMat(pairscores)
   if (useAbs) pairscores <- abs(pairscores)
   if (max(pairscores) != 0)
     pairscores <- pairscores / max(abs(pairscores))
-  
+
   return(pairscores)
 }
 
 
-Behdenna.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE, 
-                                MySpeciesTree=NULL, useSubtree=FALSE, 
-                                useACCTRAN=TRUE, rawZScores=FALSE, 
+Behdenna.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
+                                MySpeciesTree=NULL, useSubtree=FALSE,
+                                useACCTRAN=TRUE, rawZScores=FALSE,
                                 precalcProfs=NULL, precalcSubset=NULL, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
@@ -263,13 +268,13 @@ Behdenna.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     subs <- ProcessSubset(ew, Subset)
   uvals <- subs$uvals
   evalmap <- subs$evalmap
-  
+
   if (is.null(MySpeciesTree)){
       stopifnot("Method 'Behdenna' requires a species tree"=attr(ew, 'useMT'))
       if (Verbose) cat('Calculating Species Tree...\n')
       MySpeciesTree <- findSpeciesTree(ew, Verbose)
   }
-  
+
   if ( is.null(precalcProfs) ){
     if (Verbose) cat('Calculating PA Profiles...\n')
     pap <- PAProfiles(ew, uvals, Verbose=Verbose, speciesList=labels(MySpeciesTree))
@@ -296,9 +301,9 @@ Behdenna.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     M <- vals$Id
   Cmat <- vals$Cmat
   bl <- vals$blengths
-  
+
   glmat <- abs(glmat)
-  
+
   ARGS <- list(M=M, Cmat=Cmat, bl=bl)
   FXN <- function(v1, v2, ARGS, ii, jj){
     n1 <- sum(v1)
@@ -310,29 +315,29 @@ Behdenna.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
       exp_var <- n2*t(v1) %*% ARGS$M %*% ARGS$Cmat %*% t(M) %*% v1
       score <- (score - exp_mean) / sqrt(abs(exp_var))
     }
-    
+
     return(score)
   }
   CORRECTION <- NULL
   if (!rawZScores){
     CORRECTION <- function(ps){
       ps <- abs(ps)
-      ps <- ps / ifelse(max(ps,na.rm=TRUE) != 0, 
+      ps <- ps / ifelse(max(ps,na.rm=TRUE) != 0,
                         max(ps, na.rm=TRUE), 1)
       return(ps)
     }
   }
-  pairscores <- BuildSimMatInternal(glmat, uvals, evalmap, l, names(ew), 
+  pairscores <- BuildSimMatInternal(glmat, uvals, evalmap, l, names(ew),
                                     FXN, ARGS, Verbose,
                                     CORRECTION=CORRECTION)
-  
+
   Diag(pairscores) <- ifelse(rawZScores, 1, 0)
-  
+
   return(pairscores)
 }
 
-GainLoss.EvoWeaver <- function(ew, Subset=NULL, 
-                     Verbose=TRUE, MySpeciesTree=NULL, 
+GainLoss.EvoWeaver <- function(ew, Subset=NULL,
+                     Verbose=TRUE, MySpeciesTree=NULL,
                      precalcProfs=NULL, precalcSubset=NULL, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
@@ -347,7 +352,7 @@ GainLoss.EvoWeaver <- function(ew, Subset=NULL,
     if (Verbose) cat('Calculating Species Tree...\n')
     MySpeciesTree <- findSpeciesTree(ew, Verbose)
   }
-  
+
   if ( is.null(precalcProfs) ){
     if (Verbose) cat('Calculating PA Profiles...\n')
     pap <- PAProfiles(ew, uvals, Verbose=Verbose, speciesList=labels(MySpeciesTree), ...)
@@ -356,8 +361,8 @@ GainLoss.EvoWeaver <- function(ew, Subset=NULL,
   }
   l <- length(uvals)
   stopifnot(nrow(pap) > 1)
-  
-  
+
+
   # Initialize Dendrogram in C
   y <- .Call("initCDend", MySpeciesTree, PACKAGE="SynExtend")
   on.exit(rm(y))
@@ -396,9 +401,9 @@ GainLoss.EvoWeaver <- function(ew, Subset=NULL,
         l <- as.integer(ARGS$l)
         replicates <- rep(NA_real_, num_bs)
         for(i in seq_len(num_bs)){
-          replicates[i] <- .Call("calcScoreGL", ARGS$y, 
+          replicates[i] <- .Call("calcScoreGL", ARGS$y,
                                      .C("shuffleRInt", v1, l, PACKAGE="SynExtend")[[1]],
-                                     .C("shuffleRInt", v2, l, PACKAGE="SynExtend")[[1]], 
+                                     .C("shuffleRInt", v2, l, PACKAGE="SynExtend")[[1]],
                                      PACKAGE="SynExtend")
         }
         normer <- sum(abs(v1), abs(v2))
@@ -421,7 +426,7 @@ GainLoss.EvoWeaver <- function(ew, Subset=NULL,
       return(res)
     }
   }
-  pairscores <- BuildSimMatInternal(glvs, uvals, evalmap, l, names(ew), 
+  pairscores <- BuildSimMatInternal(glvs, uvals, evalmap, l, names(ew),
                                     FXN, ARGS, Verbose)
 
   return(pairscores)
@@ -429,14 +434,14 @@ GainLoss.EvoWeaver <- function(ew, Subset=NULL,
 
 PAPV.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
                                precalcProfs=NULL, precalcSubset=NULL, ...){
-  
+
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
     subs <- ProcessSubset(ew, Subset)
   uvals <- subs$uvals
   evalmap <- subs$evalmap
-  
+
   if ( is.null(precalcProfs) ){
     if (Verbose) cat('Calculating PA Profiles...\n')
     pap <- PAProfiles(ew, uvals, Verbose=Verbose)
@@ -451,13 +456,13 @@ PAPV.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     return(mat)
   }
   nr <- nrow(pap)
-  pap[] <- as.integer(pap) 
+  pap[] <- as.integer(pap)
   ARGS <- list(nr=nr)
   FXN <- function(v1, v2, ARGS, ii, jj) {
     if(all(v1==v1[1]) || all(v2==v2[1])) return(0)
     return(1-fisher.test(v1, v2, simulate.p.value=TRUE)$p.value)
   }
   pairscores <- BuildSimMatInternal(pap, uvals, evalmap, l, n, FXN, ARGS, Verbose)
-  
+
   return(pairscores)
 }

@@ -56,16 +56,23 @@ ResidueMI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   }
   for(i in seq_along(uvals)){
     tree <- ew[[uvals[i]]]
-    seqs <- rapply(tree, attr, which='state')
+    if((!is.null(attr(tree, 'leaf')) && attr(tree, 'leaf')) || attr(tree, 'members') == 1)
+       seqs <- attr(tree, 'state')
+    else
+      seqs <- rapply(tree, attr, which='state')
     ncharSeq <- nchar(seqs)
     stopifnot('Sequences are not aligned!'=all(ncharSeq==ncharSeq[1]))
     seqs <- toupper(seqs)
-    if(useDNA){
-      maskPos <- which(!MaskAlignment(DNAStringSet(seqs),
-                                      type='values', includeTerminalGaps = TRUE)[,3])
+    if(length(seqs) == 1){
+      maskPos <- ncharSeq
     } else {
-      maskPos <- which(!MaskAlignment(AAStringSet(seqs), threshold=0.3,
-                                      type='values', includeTerminalGaps = TRUE)[,3])
+      if(useDNA){
+        maskPos <- which(!MaskAlignment(DNAStringSet(seqs),
+                                        type='values', includeTerminalGaps = TRUE)[,3])
+      } else {
+        maskPos <- which(!MaskAlignment(AAStringSet(seqs), threshold=0.3,
+                                        type='values', includeTerminalGaps = TRUE)[,3])
+      }
     }
 
     if(length(maskPos)==0){

@@ -47,6 +47,7 @@ BuildSimMatInternal <- function(vecs, uvals, evalmap, l, n, FXN, ARGS, Verbose,
         } else {
           v2 <- vecs[,j]
         }
+
         pairscores[ctr+1] <- FXN(v1, v2, ARGS, i, j)
       }
       ctr <- ctr + 1
@@ -59,6 +60,7 @@ BuildSimMatInternal <- function(vecs, uvals, evalmap, l, n, FXN, ARGS, Verbose,
   if (!is.null(CORRECTION)){
     pairscores <- CORRECTION(pairscores)
   }
+
   pairscores <- as.simMat(pairscores, NAMES=n, DIAG=FALSE)
   return(pairscores)
 }
@@ -214,21 +216,26 @@ RandCophProfiles.EvoWeaver <- function(ew, toEval=NULL, Verbose=TRUE,
       cop <- 0
       # This is occasionally throwing errors that don't affect output for some reason
       #cop <- as.matrix(Cophenetic(ew[[i]]))
-      cop <- fastCoph(ew[[i]])
-      #copOrgNames <- rownames(cop)
-      copOrgNames <- attr(cop, 'Labels')
-      if (useColoc){
-        copOrgNames <- vapply(copOrgNames, gsub, pattern='([^_]*)_.*',
-                              replacement='\\1', FUN.VALUE=character(1))
-        #rownames(cop) <- colnames(cop) <- copOrgNames
-        attr(cop, 'Labels') <- copOrgNames
-      }
-      #dummycoph[copOrgNames, copOrgNames] <- cop
-      #copvec <- dummycoph[ut]
-      copvec <- combineDist(dummycoph, cop)
-      pos <- which(copvec != 0)
-      if (speciesCorrect){
-        copvec[pos] <- (copvec[pos] - specd[pos]) / spv2[pos]
+      if((!is.null(attr(ew[[i]], 'leaf')) && attr(ew[[i]],'leaf')) || attr(ew[[i]], 'members') <= 1L){
+        # edge case where we only have a single leaf in the tree
+        copvec <- dummycoph
+      } else {
+        cop <- fastCoph(ew[[i]])
+        #copOrgNames <- rownames(cop)
+        copOrgNames <- attr(cop, 'Labels')
+        if (useColoc){
+          copOrgNames <- vapply(copOrgNames, gsub, pattern='([^_]*)_.*',
+                                replacement='\\1', FUN.VALUE=character(1))
+          #rownames(cop) <- colnames(cop) <- copOrgNames
+          attr(cop, 'Labels') <- copOrgNames
+        }
+        #dummycoph[copOrgNames, copOrgNames] <- cop
+        #copvec <- dummycoph[ut]
+        copvec <- combineDist(dummycoph, cop)
+        pos <- which(copvec != 0)
+        if (speciesCorrect){
+          copvec[pos] <- (copvec[pos] - specd[pos]) / spv2[pos]
+        }
       }
       copvec <- .Call("randomProjection", copvec,
                       pos, length(pos), outdim,
