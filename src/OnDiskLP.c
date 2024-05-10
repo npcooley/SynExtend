@@ -382,7 +382,7 @@ void postcopy_vertexname(const char* f1, const char* f2){
 	FILE *orig = fopen(f1, "rb");
 	FILE *copy = fopen(f2, "wb");
 
-	fread(cur_elem, sizeof(msort_vertex_line), 1, orig);
+	safe_fread(cur_elem, sizeof(msort_vertex_line), 1, orig);
 	while(fread(tmp_elem, sizeof(msort_vertex_line), 1, orig)){
 		if(tmp_elem->strlength == cur_elem->strlength && !strcmp(tmp_elem->s, cur_elem->s)){
 			cur_elem->count += tmp_elem->count;
@@ -575,7 +575,7 @@ void copy_csrfile_sig(const char* dest, const char* src, l_uint num_v, const dou
 	// next copy over vertices and weights
 	int cachectr = 0;
 	while(fread(&vbuf[cachectr], L_SIZE, 1, fs)){
-		fread(&wbuf[cachectr], sizeof(float), 1, fs);
+		safe_fread(&wbuf[cachectr], sizeof(float), 1, fs);
 		cachectr++;
 		if(cachectr == FILE_READ_CACHE_SIZE){
 			for(int i=0; i<cachectr; i++){
@@ -761,8 +761,8 @@ l_uint lookup_node_index(char *name, FILE *findex, FILE *fhash, l_uint num_v){
 		if(index_line->len == namelen && !cmpresult){
 			memset(vname, 0, MAX_NODE_NAME_SIZE);
 			fseek(fhash, index_line->index, SEEK_SET);
-			fread(&tmplen, LEN_SIZE, 1, fhash);
-			fread(vname, 1, tmplen, fhash);
+			safe_fread(&tmplen, LEN_SIZE, 1, fhash);
+			safe_fread(vname, 1, tmplen, fhash);
 			cmpresult = strcmp(name, vname);
 			if(!cmpresult){
 				free(index_line);
@@ -1669,7 +1669,7 @@ SEXP R_LP_write_output(SEXP CLUSTERFILE, SEXP HASHEDDIR, SEXP OUTFILE, SEXP SEPS
 		safe_fread(&clust, L_SIZE, 1, fclusters);
 
 		// prepare data for output
-		snprintf(write_buf, (name_len+3)+L_SIZE, "%s%c%llu%c", buf, seps[0], clust, seps[1]);
+		snprintf(write_buf, (name_len+3)+L_SIZE, "%s%c%" lu_fprint "%c", buf, seps[0], clust, seps[1]);
 		fwrite(write_buf, 1, strlen(write_buf), outf);
 		num_written++;
 
