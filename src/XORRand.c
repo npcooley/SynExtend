@@ -61,7 +61,7 @@ SEXP seededPseudoRandomSample(SEXP N, SEXP SEED){
 SEXP randomProjection(SEXP VEC, SEXP NONZERO, SEXP N, SEXP OUTDIM, SEXP NTHREADS){
   int64_t m = INTEGER(OUTDIM)[0];
   double *v = REAL(VEC);
-  int threads = INTEGER(NTHREADS)[0];
+  //int threads = INTEGER(NTHREADS)[0];
   const int bitwidth = 64;
   const int remainder = m % bitwidth;
 
