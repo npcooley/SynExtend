@@ -36,7 +36,7 @@
 #define uint uint_fast32_t
 #define strlen_uint uint_least16_t
 #define l_uint uint_fast64_t
-#define lu_fprint PRIu64
+#define lu_fprint PRIuFAST64
 
 /*
  * common limits are defined in limits.h
