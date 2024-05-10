@@ -55,7 +55,7 @@
 #define MAX_NODE_NAME_SIZE 254 // max size of a vertex name (char array will have 2 extra spaces for terminator and flag)
 #define NODE_NAME_CACHE_SIZE 4096
 #define FILE_READ_CACHE_SIZE 4096 // used for mergesorting files
-#define CLUSTER_MIN_WEIGHT 0.05
+#define CLUSTER_MIN_WEIGHT 0.01
 
 const int L_SIZE = sizeof(l_uint);
 const int LEN_SIZE = sizeof(strlen_uint);
@@ -935,6 +935,7 @@ void normalize_csr_edgecounts(const char* ftable, l_uint num_v){
 		for(l_uint j=0; j<(end-start); j++){
 			fseek(mastertab, L_SIZE, SEEK_CUR);
 			safe_fread(&tmp_val, sizeof(float), 1, mastertab);
+			if(tmp_val < 0) tmp_val *= -1;
 			normalizer += tmp_val;
 		}
 
@@ -956,6 +957,53 @@ void normalize_csr_edgecounts(const char* ftable, l_uint num_v){
 		start = end;
 	}
 
+	fclose(mastertab);
+	return;
+}
+
+void inflate_csr_edgecounts(const char* ftable, FILE *q, l_uint num_v){
+	const int entry_size = L_SIZE + sizeof(float);
+	float tmp_val, normalizer;
+	l_uint start, end, i;
+	FILE *mastertab = fopen(ftable, "rb+");
+	rewind(q);
+	if(!mastertab) error("%s", "error opening CSR file.\n");
+
+	start = 0;
+	while(fread(&i, L_SIZE, 1, q)){
+		normalizer = 0;
+		fseek(mastertab, i*L_SIZE, SEEK_SET);
+		safe_fread(&start, L_SIZE, 1, mastertab);
+		safe_fread(&end, L_SIZE, 1, mastertab);
+		// pointer is now at position i+1, need to go to num_v+1
+		// num_v+1-(i+2) = num_v-i-1
+		fseek(mastertab, (num_v-i-1)*L_SIZE, SEEK_CUR);
+		fseek(mastertab, start*entry_size, SEEK_CUR);
+		for(l_uint j=0; j<(end-start); j++){
+			fseek(mastertab, L_SIZE, SEEK_CUR);
+			safe_fread(&tmp_val, sizeof(float), 1, mastertab);
+			tmp_val *= tmp_val;
+			normalizer += tmp_val;
+		}
+
+		// now we're at the entry at (end), need to move back to start
+		// that means moving back (end+start) spaces
+		fseek(mastertab, -1*entry_size*(end-start), SEEK_CUR);
+
+		// guard case where all weights sum to 0
+		if(!normalizer) normalizer = 1;
+
+		// finally we overwrite each of the values
+		for(l_uint j=0; j<(end-start); j++){
+			fseek(mastertab, L_SIZE, SEEK_CUR);
+			safe_fread(&tmp_val, sizeof(float), 1, mastertab);
+			tmp_val *= tmp_val;
+			tmp_val /= normalizer;
+			fseek(mastertab, -1*sizeof(float), SEEK_CUR);
+			fwrite(&tmp_val, sizeof(float), 1, mastertab);
+		}
+		start = end;
+	}
 	fclose(mastertab);
 	return;
 }
@@ -1122,7 +1170,7 @@ l_uint update_node_cluster(l_uint ind, l_uint offset, FILE *mastertab, FILE *clu
 		safe_fread(&tmp_w, sizeof(float), 1, mastertab);
 
 		//if(exp != 1) tmp_w = pow(tmp_w, exp);
-		//if(tmp_w < CLUSTER_MIN_WEIGHT) continue;
+		if(tmp_w < CLUSTER_MIN_WEIGHT) continue;
 
 		// get which cluster it belongs to
 		fseek(clusterings, L_SIZE*tmp_id, SEEK_SET);
@@ -1333,8 +1381,12 @@ void cluster_file(const char* mastertab_fname, const char* clust_fname,
 		}
 
 		fclose(cur_q);
-		fclose(next_q);
 		i++;
+		if(i%2 == 0){
+			// every 2 iterations, apply inflation operator
+			inflate_csr_edgecounts(mastertab_fname, next_q, num_v);
+		}
+		fclose(next_q);
 	}
 	if(v){
 		if(max_iterations > 0)
