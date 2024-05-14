@@ -2,7 +2,7 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
                           mode=c("undirected", "directed"),
                           add_self_loops=FALSE,
                           ignore_weights=FALSE,
-                          normalize_weights=FALSE,
+                          normalize_weights=TRUE,
                           iterations=0L,
                           return_table=FALSE,
                           consensus_cluster=FALSE,
@@ -133,7 +133,7 @@ EstimateExoLabel <- function(num_v, avg_degree=1,
   lv <- num_v*node_name_length
   # file is v1 v2 %.3f, which is 2*node_name_len + 3 + 5
   exp_size_file <- (2*node_name_length+8)*num_edges
-  exp_size_internal <- 56*num_v + lv + 16*num_edges
+  exp_size_internal <- 56*num_v + lv + 12*num_edges
   exp_ratio <- exp_size_internal / exp_size_file
   v <- c(exp_size_file, exp_size_internal, exp_ratio)
   names(v) <- c("Expected total edgelist size", "Expected ExoLabel Disk Usage", "Ratio")

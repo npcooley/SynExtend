@@ -5,11 +5,11 @@
 Example EvoWeaver Input Data from \emph{Streptomyces} Species
 }
 \description{
-Data from {Streptomyces} species to test \code{\link{EvoWeaver}} functionality.
+Data from \emph{Streptomyces} species to test \code{\link{EvoWeaver}} functionality.
 }
 \usage{data("ExampleStreptomycesData")}
 \value{
-  The data contain two elements, \code{Genes} and \code{Tree}. \code{Genes} is 
+  The data contain two elements, \code{Genes} and \code{Tree}. \code{Genes} is
   a list of presence/absence vectors in the input required for \code{\link{EvoWeaver}}.
   \code{Tree} is a species tree used for additional input.
 }
@@ -17,9 +17,9 @@ Data from {Streptomyces} species to test \code{\link{EvoWeaver}} functionality.
 This dataset contains a number of Clusters of Orthologous Genes (COGs) and a species
 tree for use with EvoWeaver. This dataset showcases an example of using EvoWeaver with
 a list of vectors. Entries in each vector are formatted correctly for use with
-co-localization prediction. Each COG \code{i} contains entries of the form 
+co-localization prediction. Each COG \code{i} contains entries of the form
 \code{a_b_c}, indicating that the gene was found in genome \code{a} on chromosome
-\code{b}, and was at the \code{c}'th location. The original dataset is comprised 
+\code{b}, and was at the \code{c}'th location. The original dataset is comprised
 of 301 unique genomes.
 }
 \seealso{

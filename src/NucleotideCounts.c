@@ -249,7 +249,7 @@ SEXP MIForSequenceSets(SEXP M1, SEXP M2, SEXP NSEQS, SEXP U1, SEXP U2, SEXP BASE
   int c2 = LENGTH(M2) / nseqs;
   int u1 = INTEGER(U1)[0];
   int u2 = INTEGER(U2)[0];
-  int nthreads = INTEGER(NTHREADS)[0];
+  //int nthreads = INTEGER(NTHREADS)[0];
   double addVal = 1.0/((double)nseqs);
 
   double *ent1 = calloc(c1, sizeof(double));

@@ -12,7 +12,7 @@ ExoLabel(edgelistfiles, outfile=tempfile(),
               mode=c("undirected", "directed"),
               add_self_loops=FALSE,
               ignore_weights=FALSE,
-              normalize_weights=FALSE,
+              normalize_weights=TRUE,
               iterations=0L,
               return_table=FALSE,
               consensus_cluster=FALSE,
@@ -111,7 +111,7 @@ Second, nodes are indexed using 64-bit unsigned integers, with 0 reserved for ot
 
 Third, this algorithm uses disk space to store large objects. As such, please ensure you have sufficient disk space for the graph you intend to process. I've tried to put safeguards in the code itself, but funky stuff can happen when the OS runs out of space.
 
-The disk space required by this algorithm is equivalent to \eqn{56V + LV + 16E}, where \code{V} the number of unique vertices, \code{L} the average length of each vertex label, and \code{E} the number of edges. We can instead represent this purely in terms of vertices by setting \code{D} to the average degree of each node. The total disk space required is thus \eqn{(56+L+16D)V}. If you'd like to estimate the disk consumption of this algorithm, use the \code{\link{EstimateExoLabel}} function.
+The disk space required by this algorithm is equivalent to \eqn{56V + LV + 12E}, where \code{V} the number of unique vertices, \code{L} the average length of each vertex label, and \code{E} the number of edges. We can instead represent this purely in terms of vertices by setting \code{D} to the average degree of each node. The total disk space required is thus \eqn{(56+L+12D)V}. If you'd like to estimate the disk consumption of this algorithm, use the \code{\link{EstimateExoLabel}} function.
 }
 
 \examples{
