@@ -56,7 +56,7 @@ validate_EvoWeaver <- function(ipt, noWarn=FALSE){
   bitflags <- list(usecoloc=FALSE, usemirrortree=FALSE, useresidue=FALSE)
   stopifnot('EvoWeaver expects a list of dendrograms or character vectors as input.'=
               is(ipt, 'list'))
-  
+
   ipt <- ipt[!vapply(ipt, is.null, TRUE)]
   stopifnot('Input has no groups!'=length(ipt)>0)
   checkdend <- vapply(ipt, is, class2='dendrogram', FUN.VALUE = TRUE)
@@ -65,10 +65,10 @@ validate_EvoWeaver <- function(ipt, noWarn=FALSE){
               !any(checkchar) || all(checkchar))
   stopifnot('Input list must be all vectors or all dendrograms'=
               !any(checkdend) || all(checkdend))
-  
+
   stopifnot('Input list elements must be dendrograms or vectors of character'=
               all(checkdend) || all(checkchar))
-  
+
   # Now we know that the input is either of type 'character' or 'dendrogram'
   if (all(checkchar)){
     if (!noWarn) message('Disabling Residue and MirrorTree-based algorithms. ',
@@ -83,14 +83,14 @@ validate_EvoWeaver <- function(ipt, noWarn=FALSE){
       allentries <- unique(c(allentries, as.character(labels(tree))))
     }
   }
-  
+
   if (bitflags[['usemirrortree']]){
     useResidueMI <- TRUE
     for ( tree in ipt ){
-      # useResidueMI <- dendrapply(tree, 
+      # useResidueMI <- dendrapply(tree,
       #                            \(x){
       #                                 sv <- !is.null(attr(x,'state'))
-      #                                 if(is.leaf(x)) 
+      #                                 if(is.leaf(x))
       #                                   return(sv)
       #                                 return(all(sv, unlist(x)))
       #                               }, how='post.order')
@@ -104,7 +104,7 @@ validate_EvoWeaver <- function(ipt, noWarn=FALSE){
     }
     bitflags[['useresidue']] <- useResidueMI
   }
-  
+
   checkforcoloc <- grepl('[^_]+_[^_]+_.*[0-9]+', allentries)
   if ( all(checkforcoloc) ){
     bitflags[['usecoloc']] <- TRUE
@@ -119,7 +119,7 @@ validate_EvoWeaver <- function(ipt, noWarn=FALSE){
                          '[GENOME]_[INDEX]_[ORDER] to use co-localization ',
                          '(where ORDER is a numeric). Consult the documentation for more info.\n')
   }
-  
+
   if (is.null(names(ipt))){
     if (!noWarn) message('Adding character labels to input data.\n')
     names(ipt) <- as.character(seq_len(length(ipt)))
@@ -130,12 +130,12 @@ validate_EvoWeaver <- function(ipt, noWarn=FALSE){
     n <- names(ipt)
     names(ipt)[n==''] <- safe[n=='']
   }
-  
+
   if (all(grepl('^[0-9]+$', allentries)))
     allentries <- allentries[order(as.integer(allentries))]
-  else 
+  else
     allentries <- sort(allentries)
-  
+
   return(list(ipt=ipt, allgenomes=allentries, flags=bitflags))
 }
 
@@ -165,13 +165,16 @@ print.EvoWeaver <- function(x, ...){
 `[.EvoWeaver` <- function(x, i){
   y <- unclass(x)
   newv <- validate_EvoWeaver(y[i], noWarn=TRUE)
+  newv$speciestree <- attr(x, 'speciesTree')
+  if(!is.null(newv$speciestree))
+    newv$allgenomes <- labels(newv$speciestree)
   new_EvoWeaver(newv)
 }
 
 predict.EvoWeaver <- function(object, Method='Ensemble', Subset=NULL, Processors=1L,
-                               MySpeciesTree=SpeciesTree(object), 
+                               MySpeciesTree=SpeciesTree(object),
                                PretrainedModel=NULL,
-                               NoPrediction=FALSE, 
+                               NoPrediction=FALSE,
                                ReturnRawData=FALSE, Verbose=TRUE, ...){
   ew <- object
   multiplepredictors <- length(Method)!=1
@@ -181,22 +184,22 @@ predict.EvoWeaver <- function(object, Method='Ensemble', Subset=NULL, Processors
   for(methodtype in Method){
     func <- getS3method(methodtype, 'EvoWeaver')
     if(Verbose && !ReturnRawData) starttime <- Sys.time()
-    
-    preds <- func(ew, Subset=Subset, Verbose=Verbose, 
+
+    preds <- func(ew, Subset=Subset, Verbose=Verbose,
                   MySpeciesTree=MySpeciesTree, Processors=Processors,
-                  PretrainedModel=PretrainedModel, 
+                  PretrainedModel=PretrainedModel,
                   NoPrediction=NoPrediction, ...)
-    
+
     if (Verbose && !ReturnRawData){
-      cat('Done.\n\nTime difference of', 
+      cat('Done.\n\nTime difference of',
           round(difftime(Sys.time(), starttime, units = 'secs'), 2),
           'seconds.\n')
-    } 
+    }
     if (is(preds, 'list') && !is.null(preds$noPostFormatting))
       return(invisible(preds$res))
     if (ReturnRawData)
       return(invisible(preds))
-    
+
     pc <- ProcessSubset(ew, Subset)
     n <- names(ew)[pc$uvals]
     if (methodtype=='TreeDistance'){
@@ -226,7 +229,7 @@ predict.EvoWeaver <- function(object, Method='Ensemble', Subset=NULL, Processors
     if(!multiplepredictors){
       return(rs)
     }
-    
+
   }
   names(lst) <- methodnames
   lst
@@ -236,7 +239,7 @@ SpeciesTree.EvoWeaver <- function(ew, Verbose=TRUE, Processors=1L){
   tree <- attr(ew,'speciesTree')
   if(is.null(tree) && attr(ew, 'useMT'))
     tree <- findSpeciesTree(ew, Verbose=Verbose, Processors=Processors)
-  
+
   tree
 }
 
@@ -248,9 +251,9 @@ Ensemble.EvoWeaver <- function(ew,
                                 Subset=NULL, Verbose=TRUE, MySpeciesTree=NULL,
                                 PretrainedModel=NULL,
                                 NoPrediction=FALSE, ...){
-  
+
   flags <- rep(FALSE, 3)
-  
+
   subs <- ProcessSubset(ew, Subset)
   n <- names(ew)
   uvals <- subs$uvals
@@ -259,60 +262,60 @@ Ensemble.EvoWeaver <- function(ew,
   if (!is.null(MySpeciesTree)){
     splist <- labels(MySpeciesTree)
   }
-  
+
   if (Verbose) cat('Calculating P/A profiles:\n')
   PAs <- PAProfiles(ew, uvals, Verbose=Verbose, speciesList=splist)
   CPs <- NULL
   takesCP <- c('MirrorTree') # Just using MirrorTree for prediction
-  
+
   submodels <- c('ProfileDCA', 'Jaccard', 'Hamming', 'MutualInformation')
   if (attr(ew, 'useMT')){
     if (Verbose) cat('Calculating Cophenetic profiles:\n')
     CPs <- CophProfiles(ew, uvals, Verbose=Verbose, speciesList=splist)
     submodels <- c(submodels, takesCP)
   }
-  
+
   if (!is.null(MySpeciesTree) && CheckBifurcating(MySpeciesTree)){
     submodels <- c(submodels, 'Behdenna')
   }
-  
+
   if (attr(ew, 'useColoc')){
     submodels <- c(submodels, 'Coloc')
   }
-  
+
   if (attr(ew, 'useResidue')){
     # Ensemble with this still needs to be trained
     #submodels <- c(submodels, 'useResidue')
     submodels <- submodels
   }
-  
+
   if(!is.null(PretrainedModel)) {
     UseBuiltIns <- FALSE
     predictionmodel <- PretrainedModel
   } else {
     UseBuiltIns <- TRUE
   }
-  
+
   results <- list()
   for ( model in submodels ){
     if (Verbose) cat('Running ', model, ':\n', sep='')
     if (model %in% takesCP) profs <- CPs
     else profs <- PAs
-    results[[model]] <- predict(ew, model, Verbose=Verbose, 
+    results[[model]] <- predict(ew, model, Verbose=Verbose,
                                 ReturnRawData=TRUE, precalcProfs=profs,
-                                precalcSubset=subs, 
+                                precalcSubset=subs,
                                 MySpeciesTree=MySpeciesTree, ...)
   }
-  
+
   cat('Combining results...\n')
   results <- AdjMatToDf(results, Verbose=Verbose)
   cat('Calculating additional P/A Statistics...\n')
-  pas <- PAStats(results, PAs) 
+  pas <- PAStats(results, PAs)
   results[,'AvgOcc'] <- pas$avg
   results[,'OccDiff'] <- pas$diff
-  
+
   if (NoPrediction) return(list(res=results, noPostFormatting=TRUE))
-  
+
   if (Verbose) cat('Predicting with Ensemble method...\n')
   if (UseBuiltIns){
     predictions <- predictWithBuiltins(results)

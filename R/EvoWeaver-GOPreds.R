@@ -209,12 +209,8 @@ TranscripMI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     jointentropy <- -1*sum(pmf*log2(pmf))
     mutinf <- mutinf / jointentropy
 
-    # mutinf <- ifelse(pmf[1,1]==0, 0, pmf[1,1]*log(pmf[1,1] / (px1*py1)))
-    # mutinf <- mutinf - ifelse(pmf[1,2]==0, 0, pmf[1,2]*log(pmf[1,2] / (px1*(1-py1))))
-    # mutinf <- mutinf - ifelse(pmf[2,1]==0, 0, pmf[2,1]*log(pmf[2,1] / ((1-px1)*py1)))
-    # mutinf <- mutinf + ifelse(pmf[2,2]==0, 0, pmf[2,2]*log(pmf[2,2] / ((1-px1)*(1-py1))))
     pval <- 1-fisher.test(conttable)$p.value
-    return(mutinf*pval)
+    return(abs(mutinf)*pval)
   }
 
   pairscores <- BuildSimMatInternal(labvecs, uvals, evalmap, l, n,
