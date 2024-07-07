@@ -204,15 +204,18 @@ static inline double fastlog2(double x){ return( x == 0 ? 0 : log2(x)); }
 static double calc_mi_colpair(int* col1, int* col2, int collen, double addVal, int u1, int u2, double base){
   double* contTable = calloc(u1*u2, sizeof(double));
   double jEnt = 0;
+  //double pseudocount = 0.05;
+  double total=0;
 
   for(int i=0; i<collen; i++){
-      contTable[col1[i]*u2+col2[i]]+=addVal;
+      contTable[col1[i]*u2+col2[i]]+=1;
+      total += 1;
   }
 
-  // trying to zero out the gap values
-
-  for(int i=0; i<u1*u2;i++)
+  for(int i=0; i<u1*u2;i++){
+    contTable[i] = (contTable[i]) / total;
     jEnt -= contTable[i] * (fastlog2(contTable[i])) * logBaseVal;
+  }
 
   free(contTable);
   return(jEnt);
@@ -221,12 +224,18 @@ static double calc_mi_colpair(int* col1, int* col2, int collen, double addVal, i
 static double calc_ent_col(int* col, int collen, double addVal, int llen, double base){
   double* ptab = calloc(llen, sizeof(double));
   double ent = 0;
-  for(int i=0; i<collen; i++)
-    //if(col[i])
-      ptab[col[i]]+=addVal;
+  //double pseudocount = 0.05;
+  double total=0;
+  for(int i=0; i<collen; i++){
+      ptab[col[i]]+=1;
+      total++;
+  }
 
-  for(int i=0; i<llen; i++)
+  for(int i=0; i<llen; i++){
+    // could add pseudocounts here
+    ptab[i] = (ptab[i]) / total;
     ent -= ptab[i] * fastlog2(ptab[i]) * logBaseVal;
+  }
 
   free(ptab);
   return(ent);
@@ -238,7 +247,10 @@ SEXP MIForSequenceSets(SEXP M1, SEXP M2, SEXP NSEQS, SEXP U1, SEXP U2, SEXP BASE
    *  - two matrices of residues/bases such encoded as integers
    *  - number of sequences
    *  - number of columns for each matrix (is this necessary?)
-   *  - T/F for if we're using AA or DNA
+   *  - base of log used for calculations
+   *
+   * Note that we add an extra space for gaps, but we don't utilize it
+   * This ensures we count enough values, but we don't need to
    */
 
   double logBase = REAL(BASE)[0];
@@ -256,7 +268,7 @@ SEXP MIForSequenceSets(SEXP M1, SEXP M2, SEXP NSEQS, SEXP U1, SEXP U2, SEXP BASE
   double *ent2 = calloc(c2, sizeof(double));
   double *jointEnt = calloc(c1*c2, sizeof(double));
 
-  logBaseVal = 1.0/log2(21);
+  logBaseVal = 1.0/log2(logBase);
 
   for(int i=0;i<c1;i++)
     ent1[i] = calc_ent_col(m1+nseqs*i, nseqs, addVal, u1, logBase);
@@ -271,7 +283,8 @@ SEXP MIForSequenceSets(SEXP M1, SEXP M2, SEXP NSEQS, SEXP U1, SEXP U2, SEXP BASE
 
   for(int i=0; i<c1; i++)
     for(int j=0; j<c2; j++)
-      jointEnt[i*c2+j] = jointEnt[i*c2+j] ? (ent1[i] + ent2[j] - jointEnt[i*c2+j]) / jointEnt[i*c2+j] : 0;
+      //jointEnt[i*c2+j] = jointEnt[i*c2+j] ? ((ent1[i] + ent2[j] - jointEnt[i*c2+j]) / jointEnt[i*c2+j]) : 0;
+      jointEnt[i*c2+j] = ent1[i] + ent2[j] - jointEnt[i*c2+j];
 
   SEXP rval = PROTECT(allocVector(REALSXP, c1*c2));
   memcpy(REAL(rval), jointEnt, sizeof(double)*c1*c2);

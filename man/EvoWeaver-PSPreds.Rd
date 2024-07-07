@@ -8,8 +8,8 @@
 Phylogenetic Structure Predictions for EvoWeaver
 }
 \description{
-\code{EvoWeaver} incorporates four classes of prediction, each with multiple 
-methods and algorithms. Phylogenetic Structure (PS) methods examine conservation 
+\code{EvoWeaver} incorporates four classes of prediction, each with multiple
+methods and algorithms. Phylogenetic Structure (PS) methods examine conservation
 of overall evolutionary rates within orthology groups using distance matrices
 constructed from each gene tree.
 
@@ -27,15 +27,15 @@ with \code{dendrogram} objects. See \code{\link{EvoWeaver}} for more information
 
 The \code{MirrorTree} method was introduced by Pazos et al. (2001). This method
 builds distance matrices using a nucleotide substitution model, and then
-calculates coevolution between gene families using the Pearson correlation 
-coefficient of the upper triangle of the two corresponding matrices. 
+calculates coevolution between gene families using the Pearson correlation
+coefficient of the upper triangle of the two corresponding matrices.
 
 Experimental analysis has shown data in the upper triangle is heavily
 redundant and rapidly overwhelms available system memory. Previous work
 has incorporated dimensionality reduction such as SVD to reduce the dimensionality
 of the data, but this prevents parallelization of the data and doesn't solve memory
 issues (since SVD takes as input the entire matrix with columns corresponding to upper triangle values). \code{EvoWeaver} instead uses a seeded random projection
-following Achlioptas (2001) to reduce the dimensionality of the data in a 
+following Achlioptas (2001) to reduce the dimensionality of the data in a
 reproducible and parallel-compatible way. We also utilize Spearman's \eqn{\rho},
 which outperforms Pearson's \eqn{r} following dimensionality reduction.
 
@@ -57,7 +57,7 @@ The \code{TreeDistance} method uses phylogenetic tree distance to quantify diffe
 }
 
 See the links above for more information and references. All of these metrics are accessible using the \code{\link{PhyloDistance}} method. Method \code{"JRF"} defaults to a \code{k}
-value of 4, but this can be specified further if necessary using the \code{JRFk} input parameter. Higher values of \code{k} approach the value of Robinson-Foulds 
+value of 4, but this can be specified further if necessary using the \code{JRFk} input parameter. Higher values of \code{k} approach the value of Robinson-Foulds
 distance, but these have a negligible impact on performance so use of the default parameter is encouraged for simplicity. Multiple metrics can be specified.
 }
 
@@ -70,7 +70,7 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 }
 
 \references{
-Achlioptas, Dimitris. \emph{Database-friendly random projections.} Proceedings of the Twentieth ACM SIGMOD-SIGACT-SIGART Symposium on Principles of Database Systems, 2001. 
+Achlioptas, Dimitris. \emph{Database-friendly random projections.} Proceedings of the Twentieth ACM SIGMOD-SIGACT-SIGART Symposium on Principles of Database Systems, 2001.
 p. 274-281.
 
 Pazos, F. and A. Valencia, \emph{Similarity of phylogenetic trees as indicator of protein–protein interaction.} Protein Engineering, Design and Selection, 2001. \bold{14}(9): p. 609-614.

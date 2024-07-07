@@ -116,7 +116,7 @@ MirrorTree.EvoWeaver <- function(ew, MTCorrection=c(),
           l2 <- alllabs[[j]]
           sd2 <- sd(v2, na.rm=TRUE)
           if (is.na(sd2) || sd2 == 0)
-            val <- NA
+            val <- 0
           else{
             val <- suppressWarnings(cor(v1, v2,
                                         use='pairwise.complete.obs',
@@ -241,7 +241,7 @@ TreeDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
           normval <- 0.5*(s[2] + s[3])
 
           if (is.na(normval) || normval == 0){
-            pairscoresList$CI[ctr+1] <- NA
+            pairscoresList$CI[ctr+1] <- 0
             #pairscoresList$GRF[ctr+1] <- ifelse(s[1] == 0, 0, 1)
           } else {
             s <- (normval - s[1]) / normval
@@ -272,7 +272,7 @@ TreeDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
           s <- .Call("RFDist", p1, p2, interlabs, PACKAGE="SynExtend")
           normval <- s[2] + s[3]
           if (is.na(normval) || normval == 0)
-            pairscoresList$RF[ctr+1] <- NA
+            pairscoresList$RF[ctr+1] <- 0
             #pairscoresList$RF[ctr+1] <- ifelse(s[1] == 0, 0, 1)
           else{
             s <- s[1] / normval
@@ -288,7 +288,7 @@ TreeDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
           s <- .Call("GRFInfo", p1, p2, interlabs, TRUE, JRFk, PACKAGE="SynExtend")
           normval <- (s[2] + s[3])
           if (is.na(normval) || normval == 0)
-            pairscoresList$JRF[ctr+1] <- NA
+            pairscoresList$JRF[ctr+1] <- 0
             #pairscoresList$JRF[ctr+1] <- ifelse(s[1] == 0, 0, 1)
           else
             pairscoresList$JRF[ctr+1] <- 1 - (s[1] / normval)
@@ -298,7 +298,7 @@ TreeDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
           s <- .Call("GRFInfo", p1, p2, interlabs, TRUE, 1, PACKAGE="SynExtend")
           normval <- (s[2] + s[3])
           if (is.na(normval) || normval == 0)
-            pairscoresList$Nye[ctr+1] <- NA
+            pairscoresList$Nye[ctr+1] <- 0
             #pairscoresList$Nye[ctr+1] <- ifelse(s[1] == 0, 0, 1)
           else
             pairscoresList$Nye[ctr+1] <- 1 - (s[1] / normval)
@@ -308,7 +308,7 @@ TreeDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
           s <- .Call("KFDist", p1, p2, interlabs, PACKAGE="SynExtend")
           normval <- s[2]
           if (is.na(normval) || normval == 0)
-            pairscoresList$KF[ctr+1] <- NA
+            pairscoresList$KF[ctr+1] <- 0
             #pairscoresList$KF[ctr+1] <- ifelse(s[1] == 0, 0, 1)
           else
             pairscoresList$KF[ctr+1] <- s[1] / normval
@@ -319,7 +319,7 @@ TreeDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
             s <- .Call("RFDist", p1, p2, interlabs, PACKAGE="SynExtend")
             normval <- s[2] + s[3]
             if (is.na(normval) || normval == 0)
-              pairscoresList$RFPVal[ctr+1] <- NA
+              pairscoresList$RFPVal[ctr+1] <- 0
             #pairscoresList$RF[ctr+1] <- ifelse(s[1] == 0, 0, 1)
             else{
               # p-value calculation

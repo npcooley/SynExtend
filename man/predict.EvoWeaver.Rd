@@ -11,10 +11,11 @@ matrix with some extra S3 methods to make printing cleaner.
 \usage{
 \method{predict}{EvoWeaver}(object, Method='Ensemble',
          Subset=NULL, Processors=1L,
-         MySpeciesTree=SpeciesTree(object), 
+         MySpeciesTree=SpeciesTree(object),
          PretrainedModel=NULL,
          NoPrediction=FALSE,
-         ReturnRawData=FALSE, Verbose=TRUE, ...)
+         ReturnDataFrame=TRUE,
+         Verbose=TRUE, ...)
 }
 \arguments{
   \item{object}{
@@ -25,49 +26,50 @@ matrix with some extra S3 methods to make printing cleaner.
   }
   \item{Subset}{
     Subset of data to predict on. This can either be a vector or a \code{2xN} matrix.
-    
-    
-    If a vector, prediction proceeds for all possible pairs of elements specified in the vector 
-    (either by name, for character vector, or by index, for numeric vector). For example, 
-    \code{subset=1:3} will predict for pairs \code{(1,2), (1,3), (2,3)}. 
-    
-    If a matrix, subset is interpreted as a matrix of pairs, where each row of the matrix 
-    specifies a pair to evaluate. These can also be specifed by name (character) or by index 
-    (numeric). 
-    
-    \code{subset=rbind(c(1,2),c(1,3),c(2,3))} produces equivalent functionality to 
+
+
+    If a vector, prediction proceeds for all possible pairs of elements specified in the vector
+    (either by name, for character vector, or by index, for numeric vector). For example,
+    \code{subset=1:3} will predict for pairs \code{(1,2), (1,3), (2,3)}.
+
+    If a matrix, subset is interpreted as a matrix of pairs, where each row of the matrix
+    specifies a pair to evaluate. These can also be specifed by name (character) or by index
+    (numeric).
+
+    \code{subset=rbind(c(1,2),c(1,3),c(2,3))} produces equivalent functionality to
     \code{subset=1:3}.
   }
   \item{Processors}{
-    Number of cores to use for methods that support multithreaded execution. 
-    Setting to \code{NULL} or a negative value will use the value of 
-    \code{detectCores()}, 
+    Number of cores to use for methods that support multithreaded execution.
+    Setting to \code{NULL} or a negative value will use the value of
+    \code{detectCores()},
     or one core if the number of available cores cannot be determined. See Note
-    for more information. 
+    for more information.
   }
   \item{MySpeciesTree}{
     Phylogenetic tree of all genomes in the dataset. Required for \code{Method=c('ContextTree', 'GainLoss', 'CorrGL', 'ColocMoran', 'Behdenna')}. \code{'Behdenna'} requires a rooted, bifurcating tree (other values of \code{Method} can handle arbitrary trees). Note that \code{EvoWeaver} can automatically infer a species tree if initialized with \code{dendrogram} objects.
   }
   \item{PretrainedModel}{
-    A pretrained model for use with ensemble predictions. If unspecified when 
-    \code{Method='Ensemble'}, the program will use built-in models 
+    A pretrained model for use with ensemble predictions. If unspecified when
+    \code{Method='Ensemble'}, the program will use built-in models
     (see \code{\link{BuiltInEnsembles}}). See the examples for how to train an
-    ensemble method to pass to \code{PretrainedModel}. 
-    
+    ensemble method to pass to \code{PretrainedModel}.
+
     Has no effect if \code{Method != 'Ensemble'}.
   }
   \item{NoPrediction}{
     For \code{Method='Ensemble'}, should data be returned prior to making predictions?
-    
+
     If \code{TRUE}, this will instead return a \link[base]{data.frame} object
     with predictions from each algorithm for each pair. This dataframe is typically
-    used to train an ensemble model. 
-    
+    used to train an ensemble model.
+
     If \code{FALSE}, EvoWeaver will return predictions for each pair (using user model
     if provided or a built-in otherwise).
   }
-  \item{ReturnRawData}{
-      Internal parameter used for ensemble predictions. Should not be set by the user.
+  \item{ReturnDataFrame}{
+    Logical indicating whether to return a \code{data.frame} object or a list of \code{EvoWeb} objects.
+    Defaults to \code{TRUE}. Setting this parameter to \code{FALSE} is not recommended for typical users.
   }
   \item{Verbose}{
     Logical indicating whether to print progress bars and messages. Defaults to \code{TRUE}.
@@ -78,30 +80,17 @@ matrix with some extra S3 methods to make printing cleaner.
 }
 
 \details{
-\code{predict.EvoWeaver} wraps several methods to create an easy interface for multiple prediction types. \code{Method='Ensemble'} is the default value, but each of the component analyses can also be accessed. The following is a list of all algorithms implemented in EvoWeaver (* denotes algorithms used in the EvoWeaver publication): 
+\code{predict.EvoWeaver} wraps several methods to create an easy interface for multiple prediction types. \code{Method='Ensemble'} is the default value, but each of the component analyses can also be accessed. Common arguments to \code{Method} include:
 
 \itemize{
   \item \code{'Ensemble'}: Ensemble prediction combining individual coevolutionary predictors. See \code{Note} below.
-  \item * \code{'Jaccard'}: Jaccard distance of Presence/Absence (P/A) profiles
-  \item \code{'Hamming'}: Hamming distance of P/A profiles
-  \item * \code{'MutualInformation'}: MI of P/A profiles
-  \item * \code{'PAPV'}: \code{1-p_value} of P/A profiles
-  \item \code{'ProfDCA'}: Direct Coupling Analysis of P/A profiles
-  \item \code{'Behdenna'}: Analysis of Gain/Loss events following Behdenna et al. (2016) 
-  \item * \code{'CorrGL'}: Correlation of ancestral Gain/Loss events
-  \item * \code{'GainLoss'}: Score-based method based on distance between inferred ancestral Gain/Loss events
-  \item * \code{'MirrorTree'}: MirrorTree using Random Projection for dimensionality reduction
-  \item * \code{'ContextTree'}: MirrorTree with Random Projection correcting for species tree and P/A conservation
-  \item * \code{'Coloc'}: Co-localization analysis
-  \item * \code{'ColocMoran'}: Co-localization analysis using   \link[=MoransI]{Moran's I} for phylogenetic correction and significance
-  \item * \code{'TranscripMI'}: Mutual Information of Transcriptional Direction
-  \item * \code{'NVDT'}: Correlation of distribution of sequence level residues following Zhao et al. (2022)
-  \item * \code{'ResidueMI'}: Mutual information of sites in multiple sequence alignment
+  \item \code{'PhylogeneticProfiling'}: All \link[=EvoWeaver-PPPreds]{Phylogenetic Profiling Algorithms} used in the EvoWeaver manuscript.
+  \item \code{'PhylogeneticStructure'}: All \link[=EvoWeaver-PSPreds]{EvoWeaver Phylogenetic Structure Methods}
+  \item \code{'GeneOrganization'}: All \link[=EvoWeaver-PSPreds]{EvoWeaver Gene Organization Methods}
+  \item \code{'SequenceLevel'}: All \link[=EvoWeaver-SLPreds]{EvoWeaver Sequence Level Methods} used in the EvoWeaver manuscript.
 }
 
-The best performing individual predictors are \code{c('CorrGL', 'GainLoss', 'MirrorTree', 'Jaccard')}. Users interesting in running quick analyses should use \code{c('CorrGL', 'GainLoss', 'Jaccard')}. 
-
-Additional information and references for each prediction algorithm can be found at the 
+Additional information and references for each prediction algorithm can be found at the
 following pages:
 
 \itemize{
@@ -114,27 +103,48 @@ following pages:
 \item \link[=EvoWeaver-SLPreds]{EvoWeaver Sequence-Level Methods}
 }
 
-This returns a \code{EvoWeb} object, an S3 class that makes formatting and printing of 
-results slightly nicer. See \code{\link{EvoWeb}} for more information.
+The standard return type is a \code{data.frame} object with one column per predictor and an additional two columns specifying the genes in each pair. If \code{ReturnDataFrame=FALSE}, this returns a \code{EvoWeb} object. See \code{\link{EvoWeb}} for more information. Use of this parameter is discouraged.
 
-Different methods require different types of input. The constructor 
+Different methods require different types of input. The constructor
 \code{\link{EvoWeaver}} will notify the user which methods are
-runnable with the given data. Method \code{Ensemble} automatically selects the 
-methods that can be run with the given input data. 
+runnable with the given data. Method \code{Ensemble} automatically selects the
+methods that can be run with the given input data.
 
 See \code{\link{EvoWeaver}} for more information on input data types.
 
+Complete listing of all supported methods (asterisk denotes a method used in \code{Ensemble}, if possible):
+\itemize{
+  \item \code{'Jaccard'}: Jaccard Index of Presence/Absence (P/A) profiles at extant leaves
+  \item \code{'Hamming'}: Hamming similarity of P/A profiles
+  \item * \code{'MutualInformation'}: MI of G/L profiles
+  \item \code{'PAPV'}: \code{1-p_value} of P/A profiles
+  \item \code{'ProfDCA'}: Direct Coupling Analysis of P/A profiles
+  \item \code{'Behdenna'}: Analysis of Gain/Loss events following Behdenna et al. (2016)
+  \item \code{'CorrGL'}: Correlation of ancestral Gain/Loss events
+  \item * \code{'GainLoss'}: Score-based method based on distance between inferred ancestral Gain/Loss events
+  \item * \code{'CladeCollapse'}: Centered Jaccard distance of P/A profiles with conserved clades collapsed
+  \item * \code{'ASLengths'}: Conservation of ancestral states based on P/A profiles
+  \item * \code{'MirrorTree'}: MirrorTree using Random Projection for dimensionality reduction
+  \item * \code{'ContextTree'}: MirrorTree with Random Projection correcting for species tree and P/A conservation
+  \item * \code{'Coloc'}: Co-localization analysis
+  \item * \code{'ColocMoran'}: Co-localization analysis using   \link[=MoransI]{Moran's I} for phylogenetic correction and significance
+  \item * \code{'TranscripMI'}: Mutual Information of Transcriptional Direction
+  \item * \code{'NVDT'}: Correlation of distribution of sequence level residues following Zhao et al. (2022)
+  \item * \code{'ResidueMI'}: Mutual information of sites in multiple sequence alignment
+}
 }
 \value{
-Returns a EvoWeb object. See \code{\link{EvoWeb}} for more info.
+Returns a \code{data.frame} object where each row corresponds to a single prediction for a pair of gene groups. The first two columns contain the gene group identifiers for each pair, and the remaining columns contain each prediction.
+
+If \code{ReturnDataFrame=FALSE}, the return type is a list of \code{EvoWeb} objects. See \code{\link{EvoWeb}} for more info.
 }
 \author{
 Aidan Lakshman \email{ahl27@pitt.edu}
 }
 
 \note{
-The current ensemble method included with EvoWeaver is out of date. EvoWeaver's publication used a random forest model from the \code{randomForest} package for prediction. The next release of EvoWeaver will include multiple new built-in ensemble methods, but in the interim users are recommended to rely on \code{randomForest} or \code{neuralnet}. Planned algorithms are random forests and feed-forward neural networks. Feel free to contact me regarding other models you would like to see added.
-  
+EvoWeaver's publication used a random forest model from the \code{randomForest} package for prediction. The next release of EvoWeaver will include multiple new built-in ensemble methods, but in the interim users are recommended to rely on \code{randomForest} or \code{neuralnet}. Planned algorithms are random forests and feed-forward neural networks. Feel free to contact me regarding other models you would like to see added.
+
   If \code{NumCores} is set to \code{NULL}, EvoWeaver will use one less core than is detected, or one core if \code{detectCores()}
   cannot detect the number of available cores. This is because of a recurring issue
   on my machine where the R session takes all available cores and is then locked
@@ -159,7 +169,7 @@ The current ensemble method included with EvoWeaver is out of date. EvoWeaver's 
 }
 \examples{
 ##############
-## Prediction with built-in model and data 
+## Prediction with built-in model and data
 ###############
 
 exData <- get(data("ExampleStreptomycesData"))
@@ -175,20 +185,20 @@ evoweb1
 ## Training own ensemble model
 ###############
 
-datavals <- predict(ew, NoPrediction=TRUE)
-                  
+datavals <- predict(ew)
+
 actual_values <- sample(c(0,1), nrow(datavals), replace=TRUE)
 # This example just picks random numbers
 # ***Do not do this for your own models***
 
-# Make sure the actual values correspond to the right pairs! 
-datavals[,'y'] <- actual_values                  
+# Make sure the actual values correspond to the right pairs!
+datavals[,'y'] <- actual_values
 myModel <- glm(y~., datavals[,-c(1,2)], family='binomial')
 
 testEvoWeaverObject <- EvoWeaver(exData$Genes[51:60])
-evoweb2 <- predict(testEvoWeaverObject, 
+evoweb2 <- predict(testEvoWeaverObject,
                      PretrainedModel=myModel)
-                     
+
 # Print result as a matrix of pairwise scores
 evoweb2
 }

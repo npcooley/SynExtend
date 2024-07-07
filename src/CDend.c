@@ -6,7 +6,7 @@ SEXP initCDend(SEXP dend){
   TREEMEM = install("members");
   TREELAB = install("label");
   TREELF = install("leaf");
-  treeNode *head = convertRDend(dend);
+  treeNode *head = convertRDend(dend, 0);
   // I don't know why we have to add 1 here but otherwise it's always off
   head->value = labelTreePostorder(head, 0) + 1;
   SEXP retval = PROTECT(R_MakeExternalPtr(head, R_NilValue, R_NilValue));
@@ -54,6 +54,9 @@ SEXP calcGainLoss(SEXP tnPtr, SEXP occVec, SEXP convertToGL){
   int lenOut = head->value + 1;
   int *PAvec = malloc(sizeof(int) * lenOut);
   fitchUp(head, presMap, ovLen, PAvec);
+
+  // we do have to assume rooted -- root should always be zero
+  // PAvec[head->value]=0;
   free(presMap);
 
   fitchDown(head, 0, PAvec);
@@ -70,6 +73,35 @@ SEXP calcGainLoss(SEXP tnPtr, SEXP occVec, SEXP convertToGL){
 
   UNPROTECT(1);
   return retvec;
+}
+
+SEXP cladeCollapsePA(SEXP tnPtr, SEXP ANCESTRAL_STATES){
+  treeNode *head = checkPtrExists(tnPtr);
+  int *pa = INTEGER(ANCESTRAL_STATES);
+  int palen = LENGTH(ANCESTRAL_STATES);
+
+  // setting up a return vector because I don't want to mess w the input
+  SEXP retvec = PROTECT(allocVector(INTSXP, palen));
+  int *outvec = INTEGER(retvec);
+  memcpy(outvec, pa, sizeof(int)*palen);
+
+  cladeCollapseHelper(head, outvec);
+
+  UNPROTECT(1);
+  return(retvec);
+}
+
+SEXP calcAllTreeLengths(SEXP tnPtr){
+  treeNode *head = checkPtrExists(tnPtr);
+  int num_nodes = head->value + 1;
+
+  SEXP retval = PROTECT(allocVector(REALSXP, num_nodes));
+  double *v = REAL(retval);
+
+  treeLengthsHelper(head, v);
+
+  UNPROTECT(1);
+  return(retval);
 }
 
 /**** Scoring Functions ****/
@@ -961,28 +993,33 @@ void findNodeScores(treeNode *curNode, int *v1, int *v2, double *scores, treeNod
       double mpOS, mpSS, mpCN, oshd;
 
       // midpoint of found node
-      mpCN = curNode->left ? curNode->left->height : 0;
-      mpCN = (curNode->height + mpCN) / 2;
+      // mpCN = curNode->left ? curNode->left->height : 0;
+      // mpCN = (curNode->height + mpCN) / 2;
+      mpCN = (curNode->inc_len / 2) + curNode->height;
 
       // midpoint of sameside node
-      mpSS = ssNode->left ? ssNode->left->height : 0;
-      mpSS = (ssNode->height + mpSS) / 2;
+      // mpSS = ssNode->left ? ssNode->left->height : 0;
+      // mpSS = (ssNode->height + mpSS) / 2;
+      mpSS = (ssNode->inc_len / 2) + ssNode->height;
 
 
       // check otherside
-      if (!isHead){
+      if (!isHead && useOS){
         treeNode *otherSideStart = v <= head->left->value ? head->right : head->left;
         osNode = findNextNode(otherSideStart, v2, v1, false);
       }
 
       // midpoint of otherside node
       if (osNode){
+        /*
         mpOS = osNode->left ? osNode->left->height : 0;
         mpOS = (osNode->height + mpOS) / 2;
+        */
+        mpOS = (osNode->inc_len / 2) + osNode->height;
         oshd = (2*head->height - mpOS - mpCN);
       }
 
-      if (osNode && ssNode)
+      if (useOS && (osNode && ssNode))
         useOS = oshd < (mpCN - mpSS);
 
       // just for simplicity
@@ -993,13 +1030,17 @@ void findNodeScores(treeNode *curNode, int *v1, int *v2, double *scores, treeNod
         h = 2*head->height - mpOS - mpCN;
       else{
         if (mpSS == mpCN){
+          /*
           h = curNode->left ? curNode->left->height : 0.0;
           h = (curNode->height - h) / 3;
+          */
+          //h = curNode->inc_len / 3;
+          h = 0;
         } else {
           h = fabs(mpCN - mpSS);
         }
       }
-
+      //Rprintf("Paired value %d (h=%.1f) with %d (%.1f)\n", v1[v], curNode->height, v2[ssNode->value], ssNode->height);
       h++;
       scores[v] = (sameVal ? 1 : -1) * h;
     }
@@ -1028,11 +1069,62 @@ treeNode* findNextNode(treeNode *curNode, int *v, int *selfv, bool isCur){
     rightnode = findNextNode(curNode->right, v, selfv, false);
 
   if (rightnode && leftnode){
-    double rmp = rightnode->left ? (rightnode->height + rightnode->left->height) : rightnode->height;
-    double lmp = leftnode->left ? (leftnode->height + leftnode->left->height) : rightnode->height;
-    return rmp < lmp ? rightnode : leftnode;
+    // i'm unsure about this but it seems to work
+    // why are we using left to make midpoints? must have had a reason when I wrote this
+    // double rmp = rightnode->left ? (rightnode->height + rightnode->left->height) : rightnode->height;
+    // double lmp = leftnode->left ? (leftnode->height + leftnode->left->height) : rightnode->height;
+    double rmp = (rightnode->inc_len / 2) + rightnode->height;
+    double lmp = (leftnode->inc_len / 2) + leftnode->height;
+    return rmp > lmp ? rightnode : leftnode;
   }
   return rightnode ? rightnode : leftnode;
+}
+
+void cladeCollapseHelper(treeNode* node, int *v){
+  // if a leaf, return
+  if (node->label != 0) return;
+
+  int lstate=0, rstate=0;
+  // process the children first
+  if(node->left){
+    cladeCollapseHelper(node->left, v);
+    lstate = v[node->left->value];
+  }
+  if(node->right){
+    cladeCollapseHelper(node->right, v);
+    rstate = v[node->right->value];
+  }
+
+  /*
+   * Few states to consider here. Note that a value of 0 means
+   * we'll ignore that node at the end (will be collapsed).
+   *  - if both children are the same and the same as the current value,
+   *    we will ignore the children
+   *    ( set both to zero and return without changing current value )
+   *  - if children same but different from current node, zero out current node
+   *  - if either child is zero, zero out the current value
+   *    ( there's no possible consensus if there's already discordance below )
+   *  - if both children are different, zero out the current value
+   *    ( children are different so no higher node will be consensus )
+   *
+   */
+  if(lstate*rstate == 0 || lstate != rstate || lstate != v[node->value]){
+    // cases 2-4 above
+    v[node->value] = 0;
+  } else if (lstate == rstate){
+    // case 1 above
+    v[node->right->value] = 0;
+    v[node->left->value] = 0;
+  }
+  return;
+}
+
+void treeLengthsHelper(treeNode* node, double *v){
+  v[node->value] = node->inc_len;
+  if(node->left) treeLengthsHelper(node->left, v);
+  if(node->right) treeLengthsHelper(node->right, v);
+
+  return;
 }
 
 
@@ -1141,11 +1233,12 @@ int populateVector(treeNode* node, int *container, int idx){
 
 /****** Allocation Functions ******/
 
-treeNode *allocTreeNode(double h, int v, int m, unsigned int l){
+treeNode *allocTreeNode(double h, int v, int m, unsigned int l, double parentheight){
   treeNode *newNode = Calloc(1, treeNode);
   newNode->left = NULL;
   newNode->right = NULL;
   newNode->height = h;
+  newNode->inc_len = parentheight - h; // this is the length of the incoming branch
   newNode->value = v;
   newNode->members = m;
   newNode->label = l;
@@ -1155,7 +1248,7 @@ treeNode *allocTreeNode(double h, int v, int m, unsigned int l){
 /****** Conversion Functions ******/
 
 // convert dendrogram to treeNode
-treeNode *convertRDend(SEXP dend){
+treeNode *convertRDend(SEXP dend, double parentheight){
   double h = 0.0;
   int v = -1;
   int m = 1;
@@ -1171,12 +1264,14 @@ treeNode *convertRDend(SEXP dend){
       label = hashLabel(STRING_ELT(getAttrib(dend, TREELAB), 0));
 
   if (!isNull(getAttrib(dend, TREELF))){
-    return allocTreeNode(h, v, m, label);
+    return allocTreeNode(h, v, m, label, parentheight);
   }
 
-  treeNode *cur = allocTreeNode(h, v, m, label);
-  cur->left = convertRDend(VECTOR_ELT(dend, 0));
-  cur->right = convertRDend(VECTOR_ELT(dend, 1));
+  if(parentheight == 0) parentheight = h;
+
+  treeNode *cur = allocTreeNode(h, v, m, label, parentheight);
+  cur->left = convertRDend(VECTOR_ELT(dend, 0), h);
+  cur->right = convertRDend(VECTOR_ELT(dend, 1), h);
 
   return cur;
 }

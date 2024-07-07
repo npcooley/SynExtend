@@ -1,6 +1,7 @@
 #### Helper Functions for EvoWeaver class ####
 # author: Aidan Lakshman
 # contact: ahl27@pitt.edu
+#
 
 #### S3 Generic Definitions ####
 PAProfiles <- function(ew, ...) UseMethod('PAProfiles')
@@ -202,7 +203,7 @@ RandCophProfiles.EvoWeaver <- function(ew, toEval=NULL, Verbose=TRUE,
   if (speciesCorrect && !is.null(mySpeciesTree)){
     specd <- as.vector(fastCoph(mySpeciesTree))
     #specd[specd==0] <- 1
-    spv2 <- as.vector(specd)
+    spv2 <- specd
     spv2[spv2==0] <- 1
     #nonzeros <- which(specvec != 0)
     #specvec <- .Call("randomProjection", specvec, nonzeros, length(nonzeros), outdim)
@@ -753,6 +754,7 @@ ResidueMISeqs <- function(seqs1, seqs2, lookup, Processors, ...){
   }
   s1 <- seqs1[completeSet,,drop=FALSE]
   s2 <- seqs2[completeSet,,drop=FALSE]
+
   nseqs <- length(completeSet)
   if(nseqs == 1){
     return(0)
@@ -763,16 +765,25 @@ ResidueMISeqs <- function(seqs1, seqs2, lookup, Processors, ...){
   AllMIs <- .Call("MIForSequenceSets", s1, s2, nseqs,
                   baseval, baseval, baseval+0.0, Processors)
   AllMIs <- matrix(AllMIs, ncol=ncol(s1))
-  APCm <- matrix(0, nrow=nrow(AllMIs), ncol=ncol(AllMIs))
-  APCm[] <- rowMeans(AllMIs)
-  APCm <- t(t(APCm)*colMeans(AllMIs))
-  AllMIs <- AllMIs - (APCm) / mean(AllMIs)
-  if(ncol(AllMIs) > nrow(AllMIs))
-    AllMIs <- t(AllMIs)
+  # APCm <- matrix(0, nrow=nrow(AllMIs), ncol=ncol(AllMIs))
+  # APCm[] <- rowMeans(AllMIs)
+  # APCm <- t(t(APCm)*colMeans(AllMIs))
+  # AllMIs <- AllMIs - (APCm) / mean(AllMIs)
+
+  #if(ncol(AllMIs) > nrow(AllMIs))
+  #  AllMIs <- t(AllMIs)
   meanEnt <- mean(AllMIs)
   sdEnt <- sd(AllMIs)
-  maxVals <- vapply(seq_len(ncol(AllMIs)), \(cn) max(AllMIs[,cn]),
-                    numeric(1L), USE.NAMES = FALSE)
+  #maxVals <- apply(AllMIs, 2L, max)
+
+  ## Greedy pairing
+  maxVals <- numeric(min(dim(AllMIs))/2)
+  for(i in seq_along(maxVals)){
+    p <- arrayInd(which.max(AllMIs), dim(AllMIs))
+    maxVals[i] <- AllMIs[p]
+    AllMIs <- AllMIs[-p[1],-p[2],drop=FALSE]
+  }
+
 
   pvals <- pnorm(maxVals, mean=meanEnt, sd=sdEnt, lower.tail=FALSE)
   # Fisher's Method to combine p values
@@ -1120,7 +1131,9 @@ fastCoph <- function(dend){
     if(is.leaf(x)) return(x)
     for(k in seq_along(x)){
       h <- attr(x, "height") - attr(x[[k]], "height")
-      I <- unlist(x[[k]])
+      ## sometimes the rapply loads these as char
+      ## not really sure why, but coercing to int is sufficient
+      I <- as.integer(unlist(x[[k]]))
       J <- seq_len(n)[-I]
       d <<- .Call("se_cophenetic",
                 I,

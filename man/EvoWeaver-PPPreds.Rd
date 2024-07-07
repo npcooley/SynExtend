@@ -7,17 +7,19 @@
 \alias{Behdenna.EvoWeaver}
 \alias{GainLoss.EvoWeaver}
 \alias{CorrGL.EvoWeaver}
+\alias{CladeCollapse.EvoWeaver}
+\alias{ASLengths.EvoWeaver}
 \docType{data}
 \title{
 Phylogenetic Profiling Predictions for EvoWeaver
 }
 \description{
-\code{EvoWeaver} incorporates four classes of prediction, each with multiple 
-methods and algorithms. Phylogenetic Profiling (PP) methods examine conservation 
+\code{EvoWeaver} incorporates four classes of prediction, each with multiple
+methods and algorithms. Phylogenetic Profiling (PP) methods examine conservation
 of gain/loss events within orthology groups using phylogenetic profiles
 constructed from presence/absence patterns.
 
-\code{predict.EvoWeaver} currently supports seven PP methods:
+\code{predict.EvoWeaver} currently supports nine PP methods:
 \itemize{
   \item \code{'Jaccard'}
   \item \code{'Hamming'}
@@ -27,6 +29,8 @@ constructed from presence/absence patterns.
   \item \code{'ProfDCA'}
   \item \code{'Behdenna'}
   \item \code{'GainLoss'}
+  \item \code{'CladeCollapse'}
+  \item \code{'ASLengths'}
 }
 }
 
@@ -34,16 +38,27 @@ constructed from presence/absence patterns.
 Most PP methods are compatible with a \code{EvoWeaver} object initialized
 with any input type. See \code{\link{EvoWeaver}} for more information on input data types.
 
-All of these methods use presence/absence (PA) profiles, which are binary 
+When \code{Method='Ensemble'} or \code{Method="PhylogeneticProfiling"}, EvoWeaver uses
+methods \code{MutualInformation}, \code{GainLoss}, \code{CladeCollapse}, and \code{ASLengths}.
+
+All of these methods use presence/absence (PA) profiles, which are binary
 vectors such that 1 implies the corresponding genome has that particular
 gene, and 0 implies the genome does not have that particular gene.
 
 Methods \code{Hamming} and \code{Jaccard} use Hamming and Jaccard distance
 (respectively) of PA profiles to determine overall score.
 
-\code{MutualInformation} uses mutual information of PA profiels to determine
-score, employing a weighting scheme such that \eqn{11} and \eqn{00} give
-positive information, and \eqn{10} and \eqn{01} give negative information. 
+\code{MutualInformation} uses mutual information of gain/loss (G/L) vectors to determine
+score, employing a weighting scheme such that concordant gains/losses give positive information,
+discordant gains/losses give negative information, and events that do not cooccur with a gain/loss
+in the other gene group give no information.
+
+\code{CladeCollapse} calculates the centered Jaccard index of P/A profiles, where each clade
+with identical extant patterns is collapsed to a single leaf.
+
+\code{ASLengths} calculates the proportion of time in the ancestry that both genes cooccur
+relative to the total time each individual gene occurs, based on ancestral states inferred
+with Fitch parsimony.
 
 \code{PAPV} calculates a p-value for PA profiles using Fisher's Exact Test. The returned score is provided as \code{1-p_value} so that larger scores indicate more significance, and smaller scores indicate less significance. This rescaling is consistent with the other similarity metrics in \code{EvoWeaver}. This can be used with \code{Jaccard}, \code{Hamming}, or \code{MutualInformation} to weight raw scores by statistical significance.
 
@@ -54,7 +69,7 @@ though the implementation in \code{EvoWeaver} forsakes the persistent contrasive
 Lokhov et al. (2018) for increased speed and exact solutions. Note that this algorithm is still extremely slow relative to the other methods despite the aforementioned runtime improvements.
 
 \code{Behdenna} implements the method detailed in Behdenna et al. (2016) to
-find statistically significant interactions using co-occurence of gain/loss 
+find statistically significant interactions using co-occurence of gain/loss
 events mapped to ancestral states on a species tree. This method requires
 a species tree as input. If the \code{EvoWeaver} object is initialized with \code{dendrogram} objects, \code{\link{SuperTree}} will be used to infer a species tree.
 
@@ -75,6 +90,8 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 
 \references{
 Behdenna, A., et al., \emph{Testing for Independence between Evolutionary Processes.} Systematic Biology, 2016. \bold{65}(5): p. 812-823.
+
+Chung, N.C, et al., \emph{Jaccard/Tanimoto similarity test and estimation methods for biological presence-absence data.} BMC Bioinformatics, 2019. \bold{20}(S15).
 
 Date, S.V. and E.M. Marcotte, \emph{Discovery of uncharacterized cellular systems by genome-wide analysis of functional linkages.} Nature Biotechnology, 2003. \bold{21}(9): p. 1055-1062.
 

@@ -81,6 +81,8 @@ ResidueMI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
       seqs <- vapply(seqs,
                      \(s) lookupMap[(strsplit(s, '')[[1]])[maskPos]],
                                 integer(length(maskPos)), USE.NAMES = FALSE)
+      #seqs[is.na(seqs)] <- ifelse(useDNA, 5L, 21L)
+      #seqs <- seqs-1L
       seqs[is.na(seqs)] <- 0L
       seqs <- t(seqs)
     }
@@ -319,7 +321,7 @@ Ancestral.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
         v2 <- pmlst[[j]]
         res <- pair_residues(v1,v2)
         if(is.na(res[1]) || is.nan(res$R))
-          pairscores[ctr+1] <- NA
+          pairscores[ctr+1] <- 0
         else
           pairscores[ctr+1] <- abs(res$R) * (1-res$P)
       }

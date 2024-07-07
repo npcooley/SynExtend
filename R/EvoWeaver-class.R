@@ -1,6 +1,8 @@
 ##### -- EvoWeaver Class to find clusters of functionally linked genes -------
 # author: Aidan Lakshman
 # contact: ahl27@pitt.edu
+#
+# TODO: ensure dendrogram branch lengths are numeric and not integer
 
 #### DEFINITION ####
 # Class expects as input one of the following:
@@ -79,8 +81,20 @@ validate_EvoWeaver <- function(ipt, noWarn=FALSE){
   } else {
     bitflags[['usemirrortree']] <- TRUE
     allentries <- character(0)
-    for(tree in ipt){
+    for(i in seq_along(ipt)){
+      tree <- ipt[[i]]
       allentries <- unique(c(allentries, as.character(labels(tree))))
+
+      # heights of trees must be present and numeric, if not then correct it
+      if(is.null(attr(tree, 'height'))){
+        stop("Input tree at index ", i, " is missing a height!")
+      }
+      if(is.integer(attr(tree, 'height'))){
+        ipt[[i]] <- dendrapply(tree, \(x){
+          attr(x, 'height') <- as.numeric(attr(x, 'height'))
+          x
+        })
+      }
     }
   }
 
@@ -116,7 +130,7 @@ validate_EvoWeaver <- function(ipt, noWarn=FALSE){
     bitflags[['usecoloc']] <- FALSE
     bitflags[['strandid']] <- FALSE
     if (!noWarn) message('Co-localization disabled. Labels must be in the format ',
-                         '[GENOME]_[INDEX]_[ORDER] to use co-localization ',
+                         '[GENOME]_[CONTIG]_[INDEX]_[ORDER] to use co-localization ',
                          '(where ORDER is a numeric). Consult the documentation for more info.\n')
   }
 
@@ -137,6 +151,57 @@ validate_EvoWeaver <- function(ipt, noWarn=FALSE){
     allentries <- sort(allentries)
 
   return(list(ipt=ipt, allgenomes=allentries, flags=bitflags))
+}
+
+validate_EvoWeaver_methods <- function(methodnames){
+  if(!is.character(methodnames)){
+    stop('Argument "Method" requires input of type "character"')
+  }
+  pp_preds <- c("Jaccard","Hamming","CorrGL","MutualInformation",
+    "ProfileDCA","Behdenna","GainLoss","CladeCollapse",
+    "ASLengths","PAPV")
+
+  ps_preds <- c("MirrorTree", "ContextTree", "TreeDistance")
+
+  go_preds <- c("Coloc", "ColocMoran", "TranscripMI")
+
+  sl_preds <- c("ResidueMI", "NVDT", "Ancestral")
+
+
+  all_predictors <- c(pp_preds, ps_preds, go_preds, sl_preds, "Ensemble")
+  meta_categories <- c("PhylogeneticProfiling", "PhylogeneticStructure",
+    "GeneOrganization", "SequenceLevel")
+    ## keyword inputs subset to the method categories used in manuscript\
+  if("all" %in% methodnames){
+    methodnames <- c(methodnames, meta_categories)
+    methodnames <- methodnames[methodnames != 'all']
+  }
+  if("PhylogeneticProfiling" %in% methodnames)
+    methodnames <- c(methodnames, pp_preds[c(4,7:9)])
+  if ("PhylogeneticStructure" %in% methodnames)
+    methodnames <- c(methodnames, ps_preds)
+  if ("GeneOrganization" %in% methodnames)
+    methodnames <- c(methodnames, go_preds)
+  if ("SequenceLevel" %in% methodnames)
+    methodnames <- c(methodnames, sl_preds[1:2])
+  methodnames <- unique(methodnames)
+  methodnames <- methodnames[!methodnames %in% meta_categories]
+
+  p_notin <- match(methodnames, all_predictors, nomatch=0) == 0
+  if(any(p_notin)){
+    unrecognized_methods <- methodnames[p_notin]
+    unrecognized_methods <- paste(unrecognized_methods, collapse='", "')
+    unrecognized_methods <- paste0('"', unrecognized_methods, '"')
+    stop("Invalid methods provided to 'Method' argument. The following are unrecognized: ", unrecognized_methods)
+  }
+
+  ## Things for precalculation
+  precalc_pa <- FALSE
+  if(sum(match(methodnames, pp_preds, nomatch=0) > 0)){
+    precalc_pa <- TRUE
+  }
+
+  list(Method=methodnames, precalcPA=precalc_pa)
 }
 
 ########
@@ -175,30 +240,62 @@ predict.EvoWeaver <- function(object, Method='Ensemble', Subset=NULL, Processors
                                MySpeciesTree=SpeciesTree(object),
                                PretrainedModel=NULL,
                                NoPrediction=FALSE,
-                               ReturnRawData=FALSE, Verbose=TRUE, ...){
+                               ReturnDataFrame=TRUE,
+                               Verbose=TRUE, ...){
   ew <- object
+  USEENSEMBLE <- FALSE
+  if(is.character(Method) && "Ensemble" %in% Method){
+    if(length(Method) > 1) stop("Method='Ensemble' cannot be accompanied by other methods.")
+    USEENSEMBLE <- TRUE
+    Method <- c("PhylogeneticProfiling")
+    if(attr(ew, "useMT"))
+      Method <- c(Method, "PhylogeneticStructure")
+    if(attr(ew, "useColoc"))
+      Method <- c(Method, "GeneOrganization")
+    if(attr(ew, "useResidue"))
+      Method <- c(Method, "SequenceLevel")
+  }
+  validatedMethod <- validate_EvoWeaver_methods(Method)
+  precalc_pa <- validatedMethod$precalcPA
+  Method <- validatedMethod$Method
+
+  subs <- ProcessSubset(ew, Subset)
+  n <- names(ew)
+  uvals <- subs$uvals
+  unames <- vapply(uvals, function(x) n[x], FUN.VALUE=character(1))
+  splist <- NULL
+  if (!is.null(MySpeciesTree)){
+    splist <- labels(MySpeciesTree)
+  }
+
+  if(precalc_pa){
+    if (Verbose) cat('Calculating P/A profiles:\n')
+    PAs <- PAProfiles(ew, uvals, Verbose=Verbose, speciesList=splist)
+  }
+
   multiplepredictors <- length(Method)!=1
   methodnames <- character(0L)
   lst <- list()
   ctr <- 1L
   for(methodtype in Method){
+    if(Verbose) cat("\nMethod '", methodtype, "':\n", sep='')
     func <- getS3method(methodtype, 'EvoWeaver')
-    if(Verbose && !ReturnRawData) starttime <- Sys.time()
+    if(Verbose) starttime <- Sys.time()
 
     preds <- func(ew, Subset=Subset, Verbose=Verbose,
                   MySpeciesTree=MySpeciesTree, Processors=Processors,
                   PretrainedModel=PretrainedModel,
-                  NoPrediction=NoPrediction, ...)
+                  NoPrediction=NoPrediction,
+                  precalcSubset=subs,
+                  precalcProfs=PAs, ...)
 
-    if (Verbose && !ReturnRawData){
-      cat('Done.\n\nTime difference of',
+    if (Verbose){
+      cat('Done.\nTime difference of',
           round(difftime(Sys.time(), starttime, units = 'secs'), 2),
-          'seconds.\n')
+          'seconds.\n\n')
     }
     if (is(preds, 'list') && !is.null(preds$noPostFormatting))
       return(invisible(preds$res))
-    if (ReturnRawData)
-      return(invisible(preds))
 
     pc <- ProcessSubset(ew, Subset)
     n <- names(ew)[pc$uvals]
@@ -226,12 +323,17 @@ predict.EvoWeaver <- function(object, Method='Ensemble', Subset=NULL, Processors
       lst[[ctr]] <- rs
       ctr <- ctr + 1L
     }
-    if(!multiplepredictors){
-      return(rs)
-    }
-
   }
   names(lst) <- methodnames
+
+  if(ReturnDataFrame || USEENSEMBLE){
+    if(Verbose) cat("Building Dataframe...:\n")
+    lst <- AdjMatToDf(lst, Verbose=Verbose)
+  }
+
+  if(USEENSEMBLE){
+    lst <- cbind(lst, Ensemble=EvoWeaverEnsemblePrediction(lst, NoPrediction))
+  }
   lst
 }
 
@@ -247,7 +349,15 @@ SpeciesTree.EvoWeaver <- function(ew, Verbose=TRUE, Processors=1L){
 
 #### Internal S3 Methods ####
 
-Ensemble.EvoWeaver <- function(ew,
+EvoWeaverEnsemblePrediction <- function(preds, NoPrediction=FALSE){
+  if(!NoPrediction){
+    warning("Pretrained models are not yet available, sorry!")
+  }
+  newpreds <- rep(NA_real_, nrow(preds))
+  return(newpreds)
+}
+
+OldEnsemble.EvoWeaver <- function(ew,
                                 Subset=NULL, Verbose=TRUE, MySpeciesTree=NULL,
                                 PretrainedModel=NULL,
                                 NoPrediction=FALSE, ...){

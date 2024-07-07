@@ -69,6 +69,8 @@ S3method(CorrGL, 'EvoWeaver')
 S3method(ProfileDCA, 'EvoWeaver')
 S3method(Behdenna, 'EvoWeaver')
 S3method(PAPV, 'EvoWeaver')
+S3method(CladeCollapse, 'EvoWeaver')
+S3method(ASLengths, 'EvoWeaver')
 
 S3method(MirrorTree, 'EvoWeaver')
 S3method(ContextTree, 'EvoWeaver')
