@@ -89,8 +89,9 @@ validate_EvoWeaver <- function(ipt, noWarn=FALSE){
       if(is.null(attr(tree, 'height'))){
         stop("Input tree at index ", i, " is missing a height!")
       }
-      if(is.integer(attr(tree, 'height'))){
+      if(is.integer(attr(tree, 'height')) || any(!is.character(rapply(tree, \(x) attr(x, 'label'))))){
         ipt[[i]] <- dendrapply(tree, \(x){
+          if(is.leaf(x)) attr(x, 'label') <- as.character(attr(x, 'label'))
           attr(x, 'height') <- as.numeric(attr(x, 'height'))
           x
         })
@@ -204,6 +205,87 @@ validate_EvoWeaver_methods <- function(methodnames){
   list(Method=methodnames, precalcPA=precalc_pa)
 }
 
+Standardize_Subset <- function(Subset, ew){
+  n <- names(ew)
+  if(is.matrix(Subset)){
+    Subset <- as.data.frame(Subset)
+  }
+  if(is.data.frame(Subset)){
+    if(ncol(Subset) != 2)
+      stop("If 'Subset' is of type 'data.frame', it must have exactly two columns.")
+  } else if (is.character(Subset)){
+    v <- unique(Subset)
+    vp <- match(v, n, nomatch=0)
+    if(any(vp==0)){
+      pos_missing <- v[vp==0]
+      line <- paste(pos_missing, collapse='", "')
+      line <- paste0('"', line, '"')
+      stop("Invalid gene group names in 'Subset'. The following were not found: ", line)
+    }
+    Subset <- vp
+  } else if (is.numeric(Subset)){
+    v <- unique(Subset)
+    vp <- as.integer(v)
+    if(any(vp != v))
+      warning("Some values in Subset were changed during conversion from numeric to integer.")
+    if(any(vp > length(n) | vp < 1)){
+      stop("'Subset' has values that are out of range for the EvoWeaver object.")
+    }
+    Subset <- vp
+  } else {
+    stop("'Subset' must be either an integer vector, a character vector, or a data.frame/matrix with two columns.")
+  }
+
+  if(!is.data.frame(Subset)){
+    ## by now, Subset must be either a data.frame or a 1D vector
+    ## in the latter case, it must be an integer
+    l <- length(n)
+    vp <- sort(Subset)
+    l2 <- length(vp)
+    ## first pair has l-1 pairs, second has l-2, etc...
+    ## this equals sum_{i in [1:l2]}(l - i)
+    ## = sum(l) - sum(i)
+    ## = l*l2 - TRI(l2), where TRI(n) the n'th triangular number
+    rep_times <- rep(l, l2) - seq_len(l2)
+    total_pairs <- rep_times
+    v1 <- rep(vp, times=rep_times)
+    v2 <- integer(sum(rep_times))
+    all_v <- seq_len(l)
+    rep_times <- cumsum(c(0,rep_times))
+    for(i in seq_len(l2))
+      v2[seq(rep_times[i]+1, rep_times[i+1])] <- all_v[-vp[seq_len(i)]]
+    Subset <- data.frame(Gene1=n[v1], Gene2=n[v2])
+  } else {
+    for(i in seq_len(2)){
+      if(is.numeric(Subset[,i])){
+        vp <- as.integer(Subset[,i])
+        if(any(vp != Subset[,i])){
+          warning("Some values in Subset were changed during conversion from numeric to integer.")
+        }
+        Subset[,i] <- vp
+      }
+      if(is.integer(Subset[,i])){
+        v <- unique(unlist(Subset[,i]))
+        if(any(v > length(n) | v < 1)){
+          stop("Column ", i, " has integer values that are out of range for the EvoWeaver object.")
+        }
+        Subset[,i] <- n[Subset[,i]]
+      } else if(is.character(Subset[,i])){
+        v <- unique(unlist(Subset[,i]))
+        vp <- match(v, n, nomatch=0)
+        if(any(v==0)){
+          pos_missing <- v[vp==0]
+          line <- paste(pos_missing, collapse='", "')
+          line <- paste0('"', line, '"')
+          stop("Invalid gene group names in 'Subset'. The following were not found: ", line)
+        }
+      }
+    }
+  colnames(Subset) <- c("Gene1", "Gene2")
+  }
+  Subset
+}
+
 ########
 
 #### User-Exposed S3 Methods ####
@@ -237,12 +319,14 @@ print.EvoWeaver <- function(x, ...){
 }
 
 predict.EvoWeaver <- function(object, Method='Ensemble', Subset=NULL, Processors=1L,
-                               MySpeciesTree=SpeciesTree(object),
+                               MySpeciesTree=SpeciesTree(object, Verbose=Verbose),
                                PretrainedModel=NULL,
                                NoPrediction=FALSE,
                                ReturnDataFrame=TRUE,
                                Verbose=TRUE, ...){
   ew <- object
+  if(!is.null(Subset))
+    Subset <- Standardize_Subset(Subset, ew)
   USEENSEMBLE <- FALSE
   if(is.character(Method) && "Ensemble" %in% Method){
     if(length(Method) > 1) stop("Method='Ensemble' cannot be accompanied by other methods.")
@@ -271,6 +355,8 @@ predict.EvoWeaver <- function(object, Method='Ensemble', Subset=NULL, Processors
   if(precalc_pa){
     if (Verbose) cat('Calculating P/A profiles:\n')
     PAs <- PAProfiles(ew, uvals, Verbose=Verbose, speciesList=splist)
+  } else {
+    PAs <- NULL
   }
 
   multiplepredictors <- length(Method)!=1
@@ -297,8 +383,6 @@ predict.EvoWeaver <- function(object, Method='Ensemble', Subset=NULL, Processors
     if (is(preds, 'list') && !is.null(preds$noPostFormatting))
       return(invisible(preds$res))
 
-    pc <- ProcessSubset(ew, Subset)
-    n <- names(ew)[pc$uvals]
     if (methodtype=='TreeDistance'){
       pnames <- names(preds)
       for (i in seq_along(pnames)){
@@ -328,7 +412,8 @@ predict.EvoWeaver <- function(object, Method='Ensemble', Subset=NULL, Processors
 
   if(ReturnDataFrame || USEENSEMBLE){
     if(Verbose) cat("Building Dataframe...:\n")
-    lst <- AdjMatToDf(lst, Verbose=Verbose)
+    lst <- AdjMatToDf(lst, Verbose=Verbose, Subset=Subset)
+    if(Verbose) cat("Done.\n\n")
   }
 
   if(USEENSEMBLE){
@@ -443,7 +528,7 @@ OldEnsemble.EvoWeaver <- function(ew,
     outmat[i1, i2] <- pred
     if (Verbose) setTxtProgressBar(pb, i)
   }
-  cat('\n')
+  if(Verbose) cat('\n')
   Diag(outmat) <- 1
   return(outmat)
 }

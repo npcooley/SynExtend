@@ -394,7 +394,7 @@ find_dend_distances <- function(dend, useColoc=FALSE){
   return(dend)
 }
 
-AdjMatToDf <- function(preds, Verbose=TRUE){
+AdjMatToDf <- function(preds, Verbose=TRUE, Subset=NULL){
   stopifnot(length(preds) > 0)
   n <- names(preds)
   prednames <- names(preds[[1]])
@@ -422,6 +422,13 @@ AdjMatToDf <- function(preds, Verbose=TRUE){
                 FUN.VALUE=TRUE)
   AdjDf <- AdjDf[rtk,]
   rownames(AdjDf) <- NULL
+  if(!is.null(Subset)){
+    ## What if the user wants pair c("B", "A"), but we only have c("A","B")?
+    ## This solves that
+    AdjDf[,1:2] <- t(apply(AdjDf[,1:2], 1L, sort))
+    Subset[] <- t(apply(Subset, 1L, sort))
+    AdjDf <- merge(AdjDf, Subset)
+  }
   return(AdjDf)
 }
 
