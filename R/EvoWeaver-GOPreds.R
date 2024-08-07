@@ -3,16 +3,16 @@
 # contact: ahl27@pitt.edu
 
 #### Implemented Methods: ####
-#  - Naive Coloc
+#  - Naive GeneDistance
 ##########################
 
 #### S3 Generic Definitions ####
-Coloc <- function(ew, ...) UseMethod('Coloc')
-ColocMoran <- function(ew, ...) UseMethod('ColocMoran')
-TranscripMI <- function(ew, ...) UseMethod('TranscripMI')
+GeneDistance <- function(ew, ...) UseMethod('GeneDistance')
+MoransI <- function(ew, ...) UseMethod('MoransI')
+OrientationMI <- function(ew, ...) UseMethod('OrientationMI')
 ################################
 
-Coloc.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
+GeneDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
                              precalcProfs=NULL, precalcSubset=NULL,
                              minimumGenomeSize=2500, ...){
   if (!is.null(precalcSubset))
@@ -87,7 +87,7 @@ Coloc.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   return(pairscores)
 }
 
-ColocMoran.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
+MoransI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
                                   MySpeciesTree=NULL,
                                   precalcProfs=NULL, precalcSubset=NULL, ...){
   if (!is.null(precalcSubset))
@@ -163,7 +163,7 @@ ColocMoran.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   return(pairscores)
 }
 
-TranscripMI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
+OrientationMI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
                                           precalcProfs=NULL, precalcSubset=NULL, ...){
   stopifnot('Some labels are missing strand identifiers!'=attr(ew, 'useStrand'))
   if (!is.null(precalcSubset))

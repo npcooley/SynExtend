@@ -17,19 +17,19 @@
 ##########################
 
 #### S3 Generic Definitions ####
-Jaccard <- function(ew, ...) UseMethod('Jaccard')
+ExtantJaccard <- function(ew, ...) UseMethod('ExtantJaccard')
 Hamming <- function(ew, ...) UseMethod('Hamming')
 CorrGL <- function(ew, ...) UseMethod('CorrGL')
-MutualInformation <- function(ew, ...) UseMethod('MutualInformation')
+GLMI <- function(ew, ...) UseMethod('GLMI')
 ProfileDCA <- function(ew, ...) UseMethod('ProfileDCA')
 Behdenna <- function(ew, ...) UseMethod('Behdenna')
-GainLoss <- function(ew, ...) UseMethod('GainLoss')
-CladeCollapse <- function(ew, ...) UseMethod("CladeCollapse")
-ASLengths <- function(ew, ...) UseMethod("ASLengths")
+GLDistance <- function(ew, ...) UseMethod('GLDistance')
+PAJaccard <- function(ew, ...) UseMethod("PAJaccard")
+PAOverlap <- function(ew, ...) UseMethod("PAOverlap")
 PAPV <- function(ew, ...) UseMethod('PAPV')
 ################################
 
-Jaccard.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
+ExtantJaccard.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
                                precalcProfs=NULL, precalcSubset=NULL, ...){
 
   if (!is.null(precalcSubset))
@@ -97,7 +97,7 @@ Hamming.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   return(pairscores)
 }
 
-CladeCollapse.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
+PAJaccard.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
                                     MySpeciesTree=NULL,
                                     precalcProfs=NULL, precalcSubset=NULL, ...){
   if (!is.null(precalcSubset))
@@ -107,7 +107,7 @@ CladeCollapse.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   uvals <- subs$uvals
   evalmap <- subs$evalmap
   if (is.null(MySpeciesTree)){
-    stopifnot("Method 'GainLoss' requires a species tree"=attr(ew, 'useMT'))
+    stopifnot("Method 'GLDistance' requires a species tree"=attr(ew, 'useMT'))
     if (Verbose) cat('Calculating Species Tree...\n')
     MySpeciesTree <- findSpeciesTree(ew, Verbose)
   }
@@ -213,7 +213,7 @@ CladeCollapse.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
 }
 
 
-ASLengths.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
+PAOverlap.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
                                 MySpeciesTree=NULL,
                                precalcProfs=NULL, precalcSubset=NULL, ...){
   N_PERM <- 200L
@@ -224,7 +224,7 @@ ASLengths.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   uvals <- subs$uvals
   evalmap <- subs$evalmap
   if (is.null(MySpeciesTree)){
-    stopifnot("Method 'ASLengths' requires a species tree"=attr(ew, 'useMT'))
+    stopifnot("Method 'PAOverlap' requires a species tree"=attr(ew, 'useMT'))
     if (Verbose) cat('Calculating Species Tree...\n')
     MySpeciesTree <- findSpeciesTree(ew, Verbose)
   }
@@ -356,7 +356,7 @@ CorrGL.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   uvals <- subs$uvals
   evalmap <- subs$evalmap
   if (is.null(MySpeciesTree)){
-    stopifnot("Method 'GainLoss' requires a species tree"=attr(ew, 'useMT'))
+    stopifnot("Method 'GLDistance' requires a species tree"=attr(ew, 'useMT'))
     if (Verbose) cat('Calculating Species Tree...\n')
     MySpeciesTree <- findSpeciesTree(ew, Verbose)
   }
@@ -483,7 +483,7 @@ MutualInformationPA.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   return(pairscores)
 }
 
-MutualInformation.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
+GLMI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
                                          precalcProfs=NULL, precalcSubset=NULL,
                                         MySpeciesTree=NULL, ...){
   if (!is.null(precalcSubset))
@@ -493,7 +493,7 @@ MutualInformation.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   uvals <- subs$uvals
   evalmap <- subs$evalmap
   if (is.null(MySpeciesTree)){
-    stopifnot("Method 'MutualInformation' requires a species tree"=attr(ew, 'useMT'))
+    stopifnot("Method 'GLMI' requires a species tree"=attr(ew, 'useMT'))
     if (Verbose) cat('Calculating Species Tree...\n')
     MySpeciesTree <- findSpeciesTree(ew, Verbose)
   }
@@ -703,7 +703,7 @@ Behdenna.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   return(pairscores)
 }
 
-GainLoss.EvoWeaver <- function(ew, Subset=NULL,
+GLDistance.EvoWeaver <- function(ew, Subset=NULL,
                      Verbose=TRUE, MySpeciesTree=NULL,
                      precalcProfs=NULL, precalcSubset=NULL, ...){
   if (!is.null(precalcSubset))
@@ -715,7 +715,7 @@ GainLoss.EvoWeaver <- function(ew, Subset=NULL,
   BOOTSTRAP_NUM <- 50L
 
   if (is.null(MySpeciesTree)){
-    stopifnot("Method 'GainLoss' requires a species tree"=attr(ew, 'useMT'))
+    stopifnot("Method 'GLDistance' requires a species tree"=attr(ew, 'useMT'))
     if (Verbose) cat('Calculating Species Tree...\n')
     MySpeciesTree <- findSpeciesTree(ew, Verbose)
   }
@@ -767,7 +767,7 @@ GainLoss.EvoWeaver <- function(ew, Subset=NULL,
       res1 <- .Call("calcScoreGL", ARGS$y, v1, v2, PACKAGE="SynExtend") / sum(abs(v1))
       res2 <- .Call("calcScoreGL", ARGS$y, v2, v1, PACKAGE="SynExtend") / sum(abs(v2))
       res <- res1 + res2
-      if (res==0) return(0)
+      if (is.na(res) || is.infinite(res) || res==0) return(0)
       num_bs <- ARGS$bsn
       if(num_bs > 0){
         v1 <- as.integer(v1)

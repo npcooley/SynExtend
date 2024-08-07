@@ -1,8 +1,8 @@
 \name{EvoWeaver-GOPreds}
 \alias{EvoWeaver-GOPreds}
-\alias{Coloc.EvoWeaver}
-\alias{ColocMoran.EvoWeaver}
-\alias{TranscripMI.EvoWeaver}
+\alias{GeneDistance.EvoWeaver}
+\alias{MoransI.EvoWeaver}
+\alias{OrientationMI.EvoWeaver}
 \docType{data}
 \title{
 Gene Organization Predictions for EvoWeaver
@@ -10,14 +10,14 @@ Gene Organization Predictions for EvoWeaver
 \description{
 \code{EvoWeaver} incorporates four classes of prediction, each with multiple
 methods and algorithms. Co-localization (Coloc) methods examine
-conservation of relative location and transcriptional direction of genetic
+conservation of relative location and relative orientation of genetic
 regions within the genome.
 
 \code{predict.EvoWeaver} currently supports three Coloc methods:
 \itemize{
-  \item \code{'Coloc'}
-  \item \code{'ColocMoran'}
-  \item \code{'TranscripMI'}
+  \item \code{'GeneDistance'}
+  \item \code{'MoransI'}
+  \item \code{'OrientationMI'}
 }
 }
 
@@ -25,7 +25,7 @@ regions within the genome.
 All distance matrix methods require a \code{EvoWeaver} object initialized
 with gene locations using the a four number code. See \code{\link{EvoWeaver}} for more information on input data types.
 
-The built-in \code{Coloc} examines relative location of genes within genomes
+The built-in \code{GeneDistance} examines relative location of genes within genomes
 as evidence of interaction. For a given pair of genes, the score is given by
 \eqn{\sum_{G}e^{1-|dI_G|}}, where \eqn{G} the set of genomes and \eqn{dI_G} the
 difference in index between the two genes in genome \eqn{G}. Using gene index
@@ -34,9 +34,9 @@ If a given gene is found multiple times in the same genome, the maximal score ac
 all possible pairings for that gene is used. The score for a pair of gene groups
 is the mean score of all gene pairings across the groups.
 
-\code{ColocMoran} measures the extent to which gene distances are preserved across a phylogeny. This function uses the same initial scoring scheme as \code{Coloc}. The raw scores are passed into \code{\link{MoransI}} to calculate spatial autocorrelation. "Space" is taken as \eqn{e^{-C}}, where \eqn{C} is the Cophenetic distance matrix calculated from the species tree of the inputs. As such, this method requires a species tree as input, which can be calculated from a set of gene trees using \code{\link{SuperTree}}.
+\code{MoransI} measures the extent to which gene distances are preserved across a phylogeny. This function uses the same initial scoring scheme as \code{GeneDistance}. The raw scores are passed into \code{\link{MoransI}} to calculate spatial autocorrelation. "Space" is taken as \eqn{e^{-C}}, where \eqn{C} is the Cophenetic distance matrix calculated from the species tree of the inputs. As such, this method requires a species tree as input, which can be calculated from a set of gene trees using \code{\link{SuperTree}}.
 
-\code{TranscripMI} uses mutual information of the transcriptional direction of each pair of genes. Conservation of relative transcriptional direction between gene pairs has been shown to imply functional association in prior work. This algorithm requires that the \code{EvoWeaver} object is initialized with a four number code, with the third number either \code{0} or \code{1}, denoting whether the gene is on the forward or reverse strand. The mutual information is calculated as:
+\code{OrientationMI} uses mutual information of the relative orientation of each pair of genes. Conservation of relative orientation between gene pairs has been shown to imply functional association in prior work. This algorithm requires that the \code{EvoWeaver} object is initialized with a four number code, with the third number either \code{0} or \code{1}, denoting whether the gene is on the forward or reverse strand. The mutual information is calculated as:
 
 \deqn{\sum_{x \in X}\sum_{y \in Y}(-1)^{(x!=y)}P_{(X,Y)}(x,y)\; \log\left(\frac{P_{(X,Y)}(x,y)}{P_X(x)P_Y(y)}\right)}
 

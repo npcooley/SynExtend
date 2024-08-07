@@ -8,12 +8,12 @@
 ##########################
 
 #### S3 Generic Definitions ####
-ResidueMI <- function(ew, ...) UseMethod('ResidueMI')
-NVDT <- function(ew, ...) UseMethod('NVDT')
+SequenceInfo <- function(ew, ...) UseMethod('SequenceInfo')
+GeneVector <- function(ew, ...) UseMethod('GeneVector')
 Ancestral <- function(ew, ...) UseMethod('Ancestral')
 ################################
 
-ResidueMI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
+SequenceInfo.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
                                  precalcSubset=NULL, gapCutoff=0.5,
                                  useDNA=FALSE, Processors=1L, useWeights=TRUE, ...){
   useResidue <- attr(ew, 'useResidue')
@@ -129,7 +129,7 @@ ResidueMI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   return(pairscores)
 }
 
-NVDT.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
+GeneVector.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
                             precalcSubset=NULL, extended=TRUE,
                             DNAseqs=TRUE, centerObservations=FALSE,
                             sqrtCorrelation=TRUE, ...){

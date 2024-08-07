@@ -1,3 +1,16 @@
+# SynExtend 1.17.1
+* Major updates to `EvoWeaver`:
+  * `predict.EvoWeaver` now returns a `data.frame` by default
+  * `Method` arguments are updated to match their names in the associated EvoWeaver manuscript
+  * Above changes have propagated to documentation files
+  * New Phylogenetic Profiling methods with improved accuracy
+  * New meta-methods `PhylogeneticProfiling`, `PhylogeneticStructure`, `GeneOrganization`, `SequenceLevel` for `predict.EvoWeaver`
+  * New pre-trained Ensemble models have been included
+* Updates to `ExoLabel` for better status printing
+
+# SynExtend 1.16.0
+* Bioc 3.19 release
+
 # SynExtend 1.15.3
 * Addition of `FastLabelOOM` function to find communities in graphs/networks on disk space.
 

@@ -85,8 +85,8 @@ exData <- get(data("ExampleStreptomycesData"))
 ew <- EvoWeaver(exData$Genes)
 
 # Subset isn't necessary but is faster for a working example
-# Same w/ method='Jaccard'
-evoweb <- predict(ew, Method='Jaccard', Subset=1:50)
+# Same w/ method='ExtantJaccard'
+evoweb <- predict(ew, Method='ExtantJaccard', Subset=1:50)
 
 plot(evoweb)
 }

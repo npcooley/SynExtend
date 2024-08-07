@@ -1,7 +1,7 @@
 \name{EvoWeaver-PSPreds}
 \alias{EvoWeaver-PSPreds}
-\alias{MirrorTree.EvoWeaver}
-\alias{ContextTree.EvoWeaver}
+\alias{RPMirrorTree.EvoWeaver}
+\alias{RPContextTree.EvoWeaver}
 \alias{TreeDistance.EvoWeaver}
 \docType{data}
 \title{
@@ -15,8 +15,8 @@ constructed from each gene tree.
 
 \code{predict.EvoWeaver} currently supports three PS methods:
 \itemize{
-  \item \code{'MirrorTree'}
-  \item \code{'ContextTree'}
+  \item \code{'RPMirrorTree'}
+  \item \code{'RPContextTree'}
   \item \code{'TreeDistance'}
 }
 }
@@ -25,7 +25,7 @@ constructed from each gene tree.
 All distance matrix methods require a \code{EvoWeaver} object initialized
 with \code{dendrogram} objects. See \code{\link{EvoWeaver}} for more information on input data types.
 
-The \code{MirrorTree} method was introduced by Pazos et al. (2001). This method
+The \code{RPMirrorTree} method was introduced by Pazos et al. (2001). This method
 builds distance matrices using a nucleotide substitution model, and then
 calculates coevolution between gene families using the Pearson correlation
 coefficient of the upper triangle of the two corresponding matrices.
@@ -44,7 +44,7 @@ multiple ways to improve predictions from the initial \code{MirrorTree} method.
 These methods incorporate additional phylogenetic context, and are thus
 called \code{ContextTree} methods. These improvements include correcting
 for overall evolutionary rate using a species tree and/or using projection vectors.
-The built-in \code{ContextTree} method implements a species tree correction, and weights the resulting score by the normalized Hamming distance of the presence/absence profiles. This can correct for gene trees with low overlap that achieve spuriously high scores via random projection. Additional correction measures are implemented in the \code{MTCorrection} argument.
+The built-in \code{RPContextTree} method implements a species tree correction, and weights the resulting score by the normalized Hamming distance of the presence/absence profiles. This can correct for gene trees with low overlap that achieve spuriously high scores via random projection. Additional correction measures are implemented in the \code{MTCorrection} argument.
 
 The \code{TreeDistance} method uses phylogenetic tree distance to quantify differences between gene trees. This method implements a number of metrics and groups them together to improve overall runtime. The default tree distance method is normalized Robinson-Foulds distance due to its lower computational complexity. Other methods can be specified using the \code{TreeMethods} argument, which expects a character vector containing one or more of the following:
 \itemize{

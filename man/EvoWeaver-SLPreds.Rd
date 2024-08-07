@@ -1,7 +1,7 @@
 \name{EvoWeaver-SLPreds}
 \alias{EvoWeaver-SLPreds}
-\alias{ResidueMI.EvoWeaver}
-\alias{NVDT.EvoWeaver}
+\alias{SequenceInfo.EvoWeaver}
+\alias{GeneVector.EvoWeaver}
 \alias{Ancestral.EvoWeaver}
 \docType{data}
 \title{
@@ -14,8 +14,8 @@ between proteins.
 
 \code{predict.EvoWeaver} currently supports three SL methods:
 \itemize{
-  \item \code{'ResidueMI'}
-  \item \code{'NVDT'}
+  \item \code{'SequenceInfo'}
+  \item \code{'GeneVector'}
   \item \code{'Ancestral'}
 }
 }
@@ -25,11 +25,11 @@ All residue methods require a \code{EvoWeaver} object initialized
 with \code{dendrogram} objects and ancestral states. See \code{\link{EvoWeaver}} for more information on input data types.
 
 When \code{Method='Ensemble'} or \code{Method="SequenceLevel"}, EvoWeaver uses
-methods \code{ResidueMI} and \code{NVDT}.
+methods \code{SequenceInfo} and \code{GeneVector}.
 
-The \code{ResidueMI} method looks at mutual information between sites in a multiple sequence alignment (MSA). This approach extends prior work in Martin et al. (2005). Each site from the first gene group is paired with the site from the second gene group that maximizes their mutual information.
+The \code{SequenceInfo} method looks at mutual information between sites in a multiple sequence alignment (MSA). This approach extends prior work in Martin et al. (2005). Each site from the first gene group is paired with the site from the second gene group that maximizes their mutual information.
 
-The \code{NVDT} method uses the natural vector encoding method introduced in Zhao et al. (2022). This encodes each gene sequences as a 92-dimensional vector, with the following entries:
+The \code{GeneVector} method uses the natural vector encoding method introduced in Zhao et al. (2022). This encodes each gene sequences as a 92-dimensional vector, with the following entries:
 
 \deqn{N(S) = (n_A,n_C,n_G,n_T,\\
               \qquad\qquad\;\,\mu_A,\mu_C,\mu_G,\mu_T,\\

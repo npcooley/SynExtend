@@ -947,16 +947,16 @@ CalcMIReduced <- function(trimmedXStringSet, start2,
 
 predictWithBuiltins <- function(preds){
   # Key: (val is binary + 1)
-  # 000 => 1: Jaccard, Hamming, MI, ProfileDCA (base)
+  # 000 => 1: ExtantJaccard, Hamming, MI, ProfileDCA (base)
   # 001 => 2: base and MT
   # 010 => 3: base and Behdenna
   # 011 => 4: base and Behdenna, MT
-  # 100 => 5: base and Coloc
-  # 101 => 6: base and Coloc, MT
-  # 110 => 7: base and Behdenna, Coloc
-  # 111 => 8: base and Behdenna, Coloc, MT
+  # 100 => 5: base and GeneDistance
+  # 101 => 6: base and GeneDistance, MT
+  # 110 => 7: base and Behdenna, GeneDistance
+  # 111 => 8: base and Behdenna, GeneDistance, MT
   modelsToUse <- rep(1, nrow(preds))
-  relevant_cnames <- c('MirrorTree', 'Behdenna', 'Coloc')
+  relevant_cnames <- c('RPMirrorTree', 'Behdenna', 'GeneDistance')
   pred_cnames <- colnames(preds)
   for (i in seq_along(relevant_cnames)){
     rcn <- relevant_cnames[i]

@@ -47,7 +47,7 @@ matrix with some extra S3 methods to make printing cleaner.
     for more information.
   }
   \item{MySpeciesTree}{
-    Phylogenetic tree of all genomes in the dataset. Required for \code{Method=c('ContextTree', 'GainLoss', 'CorrGL', 'ColocMoran', 'Behdenna')}. \code{'Behdenna'} requires a rooted, bifurcating tree (other values of \code{Method} can handle arbitrary trees). Note that \code{EvoWeaver} can automatically infer a species tree if initialized with \code{dendrogram} objects.
+    Phylogenetic tree of all genomes in the dataset. Required for \code{Method=c('RPContextTree', 'GLDistance', 'CorrGL', 'MoransI', 'Behdenna')}. \code{'Behdenna'} requires a rooted, bifurcating tree (other values of \code{Method} can handle arbitrary trees). Note that \code{EvoWeaver} can automatically infer a species tree if initialized with \code{dendrogram} objects.
   }
   \item{PretrainedModel}{
     A pretrained model for use with ensemble predictions. If unspecified when
@@ -114,23 +114,23 @@ See \code{\link{EvoWeaver}} for more information on input data types.
 
 Complete listing of all supported methods (asterisk denotes a method used in \code{Ensemble}, if possible):
 \itemize{
-  \item \code{'Jaccard'}: Jaccard Index of Presence/Absence (P/A) profiles at extant leaves
+  \item \code{'ExtantJaccard'}: Jaccard Index of Presence/Absence (P/A) profiles at extant leaves
   \item \code{'Hamming'}: Hamming similarity of P/A profiles
-  \item * \code{'MutualInformation'}: MI of G/L profiles
+  \item * \code{'GLMI'}: MI of G/L profiles
   \item \code{'PAPV'}: \code{1-p_value} of P/A profiles
   \item \code{'ProfDCA'}: Direct Coupling Analysis of P/A profiles
   \item \code{'Behdenna'}: Analysis of Gain/Loss events following Behdenna et al. (2016)
   \item \code{'CorrGL'}: Correlation of ancestral Gain/Loss events
-  \item * \code{'GainLoss'}: Score-based method based on distance between inferred ancestral Gain/Loss events
-  \item * \code{'CladeCollapse'}: Centered Jaccard distance of P/A profiles with conserved clades collapsed
-  \item * \code{'ASLengths'}: Conservation of ancestral states based on P/A profiles
-  \item * \code{'MirrorTree'}: MirrorTree using Random Projection for dimensionality reduction
-  \item * \code{'ContextTree'}: MirrorTree with Random Projection correcting for species tree and P/A conservation
-  \item * \code{'Coloc'}: Co-localization analysis
-  \item * \code{'ColocMoran'}: Co-localization analysis using   \link[=MoransI]{Moran's I} for phylogenetic correction and significance
-  \item * \code{'TranscripMI'}: Mutual Information of Transcriptional Direction
-  \item * \code{'NVDT'}: Correlation of distribution of sequence level residues following Zhao et al. (2022)
-  \item * \code{'ResidueMI'}: Mutual information of sites in multiple sequence alignment
+  \item * \code{'GLDistance'}: Score-based method based on distance between inferred ancestral Gain/Loss events
+  \item * \code{'PAJaccard'}: Centered Jaccard distance of P/A profiles with conserved clades collapsed
+  \item * \code{'PAOverlap'}: Conservation of ancestral states based on P/A profiles
+  \item * \code{'RPMirrorTree'}: MirrorTree using Random Projection for dimensionality reduction
+  \item * \code{'RPContextTree'}: MirrorTree with Random Projection correcting for species tree and P/A conservation
+  \item * \code{'GeneDistance'}: Co-localization analysis
+  \item * \code{'MoransI'}: Co-localization analysis using   \link[=MoransI]{Moran's I} for phylogenetic correction and significance
+  \item * \code{'OrientationMI'}: Mutual Information of Gene Relative Orientation
+  \item * \code{'GeneVector'}: Correlation of distribution of sequence level residues following Zhao et al. (2022)
+  \item * \code{'SequenceInfo'}: Mutual information of sites in multiple sequence alignment
 }
 }
 \value{

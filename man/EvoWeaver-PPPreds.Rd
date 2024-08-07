@@ -1,14 +1,14 @@
 \name{EvoWeaver-PPPreds}
 \alias{EvoWeaver-PPPreds}
-\alias{Jaccard.EvoWeaver}
+\alias{ExtantJaccard.EvoWeaver}
 \alias{Hamming.EvoWeaver}
-\alias{MutualInformation.EvoWeaver}
+\alias{GLMI.EvoWeaver}
 \alias{ProfDCA.EvoWeaver}
 \alias{Behdenna.EvoWeaver}
-\alias{GainLoss.EvoWeaver}
+\alias{GLDistance.EvoWeaver}
 \alias{CorrGL.EvoWeaver}
-\alias{CladeCollapse.EvoWeaver}
-\alias{ASLengths.EvoWeaver}
+\alias{PAJaccard.EvoWeaver}
+\alias{PAOverlap.EvoWeaver}
 \docType{data}
 \title{
 Phylogenetic Profiling Predictions for EvoWeaver
@@ -21,16 +21,16 @@ constructed from presence/absence patterns.
 
 \code{predict.EvoWeaver} currently supports nine PP methods:
 \itemize{
-  \item \code{'Jaccard'}
+  \item \code{'ExtantJaccard'}
   \item \code{'Hamming'}
-  \item \code{'MutualInformation'}
+  \item \code{'GLMI'}
   \item \code{'PAPV'}
   \item \code{'CorrGL'}
   \item \code{'ProfDCA'}
   \item \code{'Behdenna'}
-  \item \code{'GainLoss'}
-  \item \code{'CladeCollapse'}
-  \item \code{'ASLengths'}
+  \item \code{'GLDistance'}
+  \item \code{'PAJaccard'}
+  \item \code{'PAOverlap'}
 }
 }
 
@@ -39,28 +39,28 @@ Most PP methods are compatible with a \code{EvoWeaver} object initialized
 with any input type. See \code{\link{EvoWeaver}} for more information on input data types.
 
 When \code{Method='Ensemble'} or \code{Method="PhylogeneticProfiling"}, EvoWeaver uses
-methods \code{MutualInformation}, \code{GainLoss}, \code{CladeCollapse}, and \code{ASLengths}.
+methods \code{GLMI}, \code{GLDistance}, \code{PAJaccard}, and \code{PAOverlap}.
 
 All of these methods use presence/absence (PA) profiles, which are binary
 vectors such that 1 implies the corresponding genome has that particular
 gene, and 0 implies the genome does not have that particular gene.
 
-Methods \code{Hamming} and \code{Jaccard} use Hamming and Jaccard distance
+Methods \code{Hamming} and \code{ExtantJaccard} use Hamming and Jaccard distance
 (respectively) of PA profiles to determine overall score.
 
-\code{MutualInformation} uses mutual information of gain/loss (G/L) vectors to determine
+\code{GLMI} uses mutual information of gain/loss (G/L) vectors to determine
 score, employing a weighting scheme such that concordant gains/losses give positive information,
 discordant gains/losses give negative information, and events that do not cooccur with a gain/loss
 in the other gene group give no information.
 
-\code{CladeCollapse} calculates the centered Jaccard index of P/A profiles, where each clade
+\code{PAJaccard} calculates the centered Jaccard index of P/A profiles, where each clade
 with identical extant patterns is collapsed to a single leaf.
 
-\code{ASLengths} calculates the proportion of time in the ancestry that both genes cooccur
+\code{PAOverlap} calculates the proportion of time in the ancestry that both genes cooccur
 relative to the total time each individual gene occurs, based on ancestral states inferred
 with Fitch parsimony.
 
-\code{PAPV} calculates a p-value for PA profiles using Fisher's Exact Test. The returned score is provided as \code{1-p_value} so that larger scores indicate more significance, and smaller scores indicate less significance. This rescaling is consistent with the other similarity metrics in \code{EvoWeaver}. This can be used with \code{Jaccard}, \code{Hamming}, or \code{MutualInformation} to weight raw scores by statistical significance.
+\code{PAPV} calculates a p-value for PA profiles using Fisher's Exact Test. The returned score is provided as \code{1-p_value} so that larger scores indicate more significance, and smaller scores indicate less significance. This rescaling is consistent with the other similarity metrics in \code{EvoWeaver}. This can be used with \code{ExtantJaccard}, \code{Hamming}, or \code{GLMI} to weight raw scores by statistical significance.
 
 \code{ProfDCA} uses the direct coupling analysis algorithm introduced by
 Weigt et al. (2005) to determine direct information between PA profiles.
@@ -73,11 +73,11 @@ find statistically significant interactions using co-occurence of gain/loss
 events mapped to ancestral states on a species tree. This method requires
 a species tree as input. If the \code{EvoWeaver} object is initialized with \code{dendrogram} objects, \code{\link{SuperTree}} will be used to infer a species tree.
 
-\code{GainLoss} uses a similar method to \code{Behdenna}. This method uses Fitch Parsimony to infer where events were gained or lost on a species tree, and then looks for distance between these gain/loss events. Unlike \code{Behdenna}, this method takes into account the types of events (ex. gain/gain and loss/loss are treated differently than gain/loss). This method requires
+\code{GLDistance} uses a similar method to \code{Behdenna}. This method uses Fitch Parsimony to infer where events were gained or lost on a species tree, and then looks for distance between these gain/loss events. Unlike \code{Behdenna}, this method takes into account the types of events (ex. gain/gain and loss/loss are treated differently than gain/loss). This method requires
 a species tree as input. If the \code{EvoWeaver} object is initialized with \code{dendrogram} objects, \code{\link{SuperTree}} will be used to infer a species tree.
 
 \code{CorrGL} infers where events were gained or lost on a species tree as in method
-\code{GainLoss}, then uses a Pearson's correlation coefficient weighted by p-value to infer similarity.
+\code{GLDistance}, then uses a Pearson's correlation coefficient weighted by p-value to infer similarity.
 }
 
 \value{

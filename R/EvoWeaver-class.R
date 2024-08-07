@@ -9,7 +9,7 @@
 #   1. A list of dendrograms
 #      a) Dendrograms with labels [ORG]_[INDEX]_[POS] will use co-loc code
 #      b) Dendrograms without will not use co-loc
-#   2. A list of character vectors defining COGs (will not use MirrorTree)
+#   2. A list of character vectors defining COGs (will not use RPMirrorTree)
 #   3. A list of character vectors defining COGs with labels like 1(a)
 ####################
 
@@ -158,15 +158,15 @@ validate_EvoWeaver_methods <- function(methodnames){
   if(!is.character(methodnames)){
     stop('Argument "Method" requires input of type "character"')
   }
-  pp_preds <- c("Jaccard","Hamming","CorrGL","MutualInformation",
-    "ProfileDCA","Behdenna","GainLoss","CladeCollapse",
-    "ASLengths","PAPV")
+  pp_preds <- c("ExtantJaccard","Hamming","CorrGL","GLMI",
+    "ProfileDCA","Behdenna","GLDistance","PAJaccard",
+    "PAOverlap","PAPV")
 
-  ps_preds <- c("MirrorTree", "ContextTree", "TreeDistance")
+  ps_preds <- c("RPMirrorTree", "RPContextTree", "TreeDistance")
 
-  go_preds <- c("Coloc", "ColocMoran", "TranscripMI")
+  go_preds <- c("GeneDistance", "MoransI", "OrientationMI")
 
-  sl_preds <- c("ResidueMI", "NVDT", "Ancestral")
+  sl_preds <- c("SequenceInfo", "GeneVector", "Ancestral")
 
 
   all_predictors <- c(pp_preds, ps_preds, go_preds, sl_preds, "Ensemble")
@@ -411,7 +411,7 @@ predict.EvoWeaver <- function(object, Method='Ensemble', Subset=NULL, Processors
   names(lst) <- methodnames
 
   if(ReturnDataFrame || USEENSEMBLE){
-    if(Verbose) cat("Building Dataframe...:\n")
+    if(Verbose) cat("Building Dataframe:\n")
     lst <- AdjMatToDf(lst, Verbose=Verbose, Subset=Subset)
     if(Verbose) cat("Done.\n\n")
   }
@@ -461,9 +461,9 @@ OldEnsemble.EvoWeaver <- function(ew,
   if (Verbose) cat('Calculating P/A profiles:\n')
   PAs <- PAProfiles(ew, uvals, Verbose=Verbose, speciesList=splist)
   CPs <- NULL
-  takesCP <- c('MirrorTree') # Just using MirrorTree for prediction
+  takesCP <- c('RPMirrorTree') # Just using MirrorTree for prediction
 
-  submodels <- c('ProfileDCA', 'Jaccard', 'Hamming', 'MutualInformation')
+  submodels <- c('ProfileDCA', 'ExtantJaccard', 'Hamming', 'GLMI')
   if (attr(ew, 'useMT')){
     if (Verbose) cat('Calculating Cophenetic profiles:\n')
     CPs <- CophProfiles(ew, uvals, Verbose=Verbose, speciesList=splist)
@@ -475,7 +475,7 @@ OldEnsemble.EvoWeaver <- function(ew,
   }
 
   if (attr(ew, 'useColoc')){
-    submodels <- c(submodels, 'Coloc')
+    submodels <- c(submodels, 'GeneDistance')
   }
 
   if (attr(ew, 'useResidue')){

@@ -3,8 +3,8 @@
 # contact: ahl27@pitt.edu
 
 #### Implemented Methods: ####
-#  - MirrorTree
-#  - ContextTree
+#  - RPMirrorTree
+#  - RPContextTree
 #  - TreeDistance
 #     -> RF, RF w/ pvalue, Jaccard RF, Cluster Info RF
 #     -> Nye Similarity
@@ -12,12 +12,12 @@
 ##########################
 
 #### S3 Generic Definitions ####
-MirrorTree <- function(ew, ...) UseMethod('MirrorTree')
-ContextTree <- function(ew, ...) UseMethod('ContextTree')
+RPMirrorTree <- function(ew, ...) UseMethod('RPMirrorTree')
+RPContextTree <- function(ew, ...) UseMethod('RPContextTree')
 TreeDistance <- function(ew, ...) UseMethod('TreeDistance')
 ################################
 
-MirrorTree.EvoWeaver <- function(ew, MTCorrection=c(),
+RPMirrorTree.EvoWeaver <- function(ew, MTCorrection=c(),
                                   Subset=NULL, Verbose=TRUE,
                                   MySpeciesTree=NULL,
                                   precalcProfs=NULL, precalcSubset=NULL, ...){
@@ -142,7 +142,7 @@ MirrorTree.EvoWeaver <- function(ew, MTCorrection=c(),
   return(pairscores)
 }
 
-ContextTree.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE, precalcProfs=NULL,
+RPContextTree.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE, precalcProfs=NULL,
                                    MySpeciesTree=NULL, ...){
 
   if ( is.null(MySpeciesTree) || !is(MySpeciesTree, 'dendrogram')){
@@ -152,7 +152,7 @@ ContextTree.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE, precalcProfs=NU
   #MTCorrection <- c('speciestree', 'normalize', 'partialcorrelation')
   MTCorrection <- c('speciestree', 'paoverlap')
 
-  return(MirrorTree(ew, MTCorrection=MTCorrection,
+  return(RPMirrorTree(ew, MTCorrection=MTCorrection,
                     Verbose=Verbose,
                     precalcCProfs=precalcProfs,
                     MySpeciesTree=MySpeciesTree))
