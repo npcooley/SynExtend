@@ -3,16 +3,16 @@
 # contact: ahl27@pitt.edu
 
 #### Implemented Methods: ####
-#  - Naive Coloc
+#  - Naive GeneDistance
 ##########################
 
 #### S3 Generic Definitions ####
-Coloc <- function(ew, ...) UseMethod('Coloc')
-ColocMoran <- function(ew, ...) UseMethod('ColocMoran')
-TranscripMI <- function(ew, ...) UseMethod('TranscripMI')
+GeneDistance <- function(ew, ...) UseMethod('GeneDistance')
+MoransI <- function(ew, ...) UseMethod('MoransI')
+OrientationMI <- function(ew, ...) UseMethod('OrientationMI')
 ################################
 
-Coloc.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
+GeneDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
                              precalcProfs=NULL, precalcSubset=NULL,
                              minimumGenomeSize=2500, ...){
   if (!is.null(precalcSubset))
@@ -29,38 +29,52 @@ Coloc.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   }
   l <- length(labvecs)
 
-  allsp <- lapply(labvecs, \(x) gsub('(.*)_.*$', '\\1', x))
+  allsp <- lapply(labvecs, \(x) gsub('([^_]+)_.*$', '\\1', x))
   n <- names(ew)
 
   ARGS <- list(allsp=allsp)
   FXN <- function(lab1, lab2, ARGS, ii, jj){
-    l1sp <- gsub('(.*)_.*$', '\\1', lab1)
-    l2sp <- gsub('(.*)_.*$', '\\1', lab2)
+    l1sp <- gsub('([^_]+)_.*$', '\\1', lab1)
+    l2sp <- gsub('([^_]+)_.*$', '\\1', lab2)
+    l1chrom <- gsub("([^_]+_[^_]+)_.*", '\\1', lab1)
+    l2chrom <- gsub("([^_]+_[^_]+)_.*", '\\1', lab2)
     shared <- intersect(l1sp, l2sp)
-    score <- 0
-    mult <- ifelse(length(shared)==0, NA, 1/length(shared))
+    if(length(shared) == 0) return(0)
+    score <- numeric(length(shared))
     for ( k in seq_along(shared) ){
       spk <- shared[k]
-      vec1 <- lab1[match(spk, l1sp)]
-      vec2 <- lab2[match(spk, l2sp)]
+      match1 <- match(spk, l1sp)
+      match2 <- match(spk, l2sp)
+      vec1 <- lab1[match1]
+      chrom1 <- l1chrom[match1]
+      vec2 <- lab2[match2]
+      chrom2 <- l2chrom[match2]
       idx1 <- as.integer(gsub('.*_([0-9]*)$', '\\1', vec1, useBytes=TRUE))
       idx2 <- as.integer(gsub('.*_([0-9]*)$', '\\1', vec2, useBytes=TRUE))
       # Double loop is SIGNIFICANTLY faster than expand.grid
       # ...even though it looks so gross :(
-      diffs <- 0
-      for (v1i in idx1)
-        for (v2i in idx2)
-          diffs <- diffs + exp(1 - abs(v1i - v2i))
-      score <- score + sum(diffs) / (length(vec1) * length(vec2))
+      diffs <- Inf
+      for(i in seq_along(idx1)){
+        for(j in seq_along(idx2)){
+          if(chrom1[i] == chrom2[j]){
+            diffs <- min(diffs, abs(idx1[i] - idx2[j]))
+          }
+        }
+      }
+      if(diffs==0) diffs <- 1
+      score[k] <- ifelse(is.infinite(diffs), 0, exp(1-diffs))
     }
-    score <- score * mult
-    pval <- NA_real_
-    if(!is.na(score)){
-      rawscore <- ifelse(score==0, 0, -1*log(score) + 1)
-      pval <- (1-(rawscore / minimumGenomeSize))**2
-      pval <- vapply(pval, \(x) max(x, 0), numeric(1L))
+    pval <- 0
+    if(length(score) > 0){
+      rawscore <- -1*log(score)
+      rawscore[is.infinite(rawscore)] <- minimumGenomeSize
+      pvals <- (1-(rawscore / minimumGenomeSize))**2
+      pvals <- pmax(pvals, 0)
+      score <- mean(score * pvals)
+    } else {
+      score <- 0
     }
-    return(score*(1-pval))
+    return(score)
   }
 
   pairscores <- BuildSimMatInternal(labvecs, uvals, evalmap, l, n,
@@ -73,7 +87,7 @@ Coloc.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   return(pairscores)
 }
 
-ColocMoran.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
+MoransI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
                                   MySpeciesTree=NULL,
                                   precalcProfs=NULL, precalcSubset=NULL, ...){
   if (!is.null(precalcSubset))
@@ -94,7 +108,7 @@ ColocMoran.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     labvecs <- ew[uvals]
   }
   l <- length(labvecs)
-  specCoph <- as.matrix(Cophenetic(MySpeciesTree))
+  specCoph <- as.matrix(fastCoph(MySpeciesTree))
 
   allsp <- lapply(labvecs, \(x) gsub('(.*)_.*$', '\\1', x))
   n <- names(ew)
@@ -108,7 +122,6 @@ ColocMoran.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
       return(0)
     }
     score <- 0
-    mult <- 1/length(shared)
     vals <- rep(NA_real_, length(shared))
     for ( k in seq_along(shared) ){
       spk <- shared[k]
@@ -133,9 +146,10 @@ ColocMoran.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     w <- as.dist(exp(-w))
     # two.sided or less ?
     # 1-greater is better
-    res <- MoransI(vals, w, alternative = 'greater')
-    score <- mean(vals)
-    pval <- res$p.value
+    res <- MoranI(vals, w, alternative = 'greater')
+    #score <- mean(vals)
+    score <- res$observed - res$expected
+    pval <- 1-res$p.value
     return(score*pval)
   }
 
@@ -149,7 +163,7 @@ ColocMoran.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   return(pairscores)
 }
 
-TranscripMI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
+OrientationMI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
                                           precalcProfs=NULL, precalcSubset=NULL, ...){
   stopifnot('Some labels are missing strand identifiers!'=attr(ew, 'useStrand'))
   if (!is.null(precalcSubset))
@@ -166,17 +180,19 @@ TranscripMI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   }
   l <- length(labvecs)
 
-  allsp <- lapply(labvecs, \(x) gsub('(.*)_.*$', '\\1', x))
+  allsp <- lapply(labvecs, \(x) gsub('([^_]+)_.*$', '\\1', x))
   n <- names(ew)
 
   ARGS <- list(allsp=allsp)
   FXN <- function(lab1, lab2, ARGS, ii, jj){
-    l1sp <- gsub('([^_]*_[0-9]*)_.*$', '\\1', lab1)
-    l2sp <- gsub('([^_]*_[0-9]*)_.*$', '\\1', lab2)
+    l1sp <- gsub('([^_]*_[^_]*)_.*$', '\\1', lab1)
+    l2sp <- gsub('([^_]*_[^_]*)_.*$', '\\1', lab2)
     shared <- intersect(l1sp, l2sp)
+    if(length(shared) == 0) return(0)
     score <- 0
-    mult <- ifelse(length(shared)==0, NA, 1/length(shared))
     vals <- rep(NA_real_, length(shared))
+
+    ## a pseudocount of 1 is added
     conttable <- matrix(rep(1,4), nrow=2)
     for ( k in seq_along(shared) ){
       spk <- shared[k]
@@ -201,20 +217,27 @@ TranscripMI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     px1 <- sum(conttable[1,]) / totalc
     py1 <- sum(conttable[1,]) / totalc
     pmf <- conttable / totalc
-    mutinf <- pmf[1,1]*log2(pmf[1,1] / (px1*py1)) +
-      -1*pmf[1,2]*log2(pmf[1,2] / (px1*(1-py1))) +
-      -1*pmf[2,1]*log2(pmf[2,1] / ((1-px1)*py1)) +
-      pmf[2,2]*log2(pmf[2,2] / ((1-px1)*(1-py1)))
+    mutinf <- 0
+    vx1 <- rep(c(px1, 1-px1), times=2)
+    vy1 <- rep(c(py1, 1-py1), 2)
+    jointent <- 0
+    for(i in seq_len(4L)){
+      if(pmf[i] != 0){
+        mutinf <- mutinf +
+          ifelse(i%in%2:3,-1,1)*pmf[i]*log2(pmf[i] / (vx1[i]*vy1[i]))
+        jointent <- jointent + pmf[i]*log2(pmf[i])
+      }
+    }
+    # mutinf <- pmf[1,1]*log2(pmf[1,1] / (px1*py1)) +
+    #   -1*pmf[1,2]*log2(pmf[1,2] / (px1*(1-py1))) +
+    #   -1*pmf[2,1]*log2(pmf[2,1] / ((1-px1)*py1)) +
+    #   pmf[2,2]*log2(pmf[2,2] / ((1-px1)*(1-py1)))
 
-    jointentropy <- -1*sum(pmf*log2(pmf))
-    mutinf <- mutinf / jointentropy
+    #jointentropy <- -1*sum(pmf*log2(pmf))
+    mutinf <- ifelse(jointent==0, mutinf, mutinf / jointent)
 
-    # mutinf <- ifelse(pmf[1,1]==0, 0, pmf[1,1]*log(pmf[1,1] / (px1*py1)))
-    # mutinf <- mutinf - ifelse(pmf[1,2]==0, 0, pmf[1,2]*log(pmf[1,2] / (px1*(1-py1))))
-    # mutinf <- mutinf - ifelse(pmf[2,1]==0, 0, pmf[2,1]*log(pmf[2,1] / ((1-px1)*py1)))
-    # mutinf <- mutinf + ifelse(pmf[2,2]==0, 0, pmf[2,2]*log(pmf[2,2] / ((1-px1)*(1-py1))))
     pval <- 1-fisher.test(conttable)$p.value
-    return(mutinf*pval)
+    return(abs(mutinf)*pval)
   }
 
   pairscores <- BuildSimMatInternal(labvecs, uvals, evalmap, l, n,

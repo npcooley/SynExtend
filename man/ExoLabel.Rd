@@ -102,8 +102,6 @@ Traag, V.A., Subelj, L. Large network community detection by fast label propagat
 \author{
 Aidan Lakshman <AHL27@pitt.edu>
 }
-
-%% ~Make other sections like Warning with \section{Warning }{....} ~
 \section{Warning }{
 While this algorithm can scale to very large graphs, it does have some internal limitations. First, nodes must be comprised of no more than 254 characters. If this limitation is restrictive, please feel free to contact me. Alternatively, you can increase the size yourself by changing the definition of \code{MAX_NODE_NAME_SIZE} in \code{src/outmem_graph.c}. This limitation is provided to decrease memory overhead and improve runtime, but arbitrary values are possible.
 

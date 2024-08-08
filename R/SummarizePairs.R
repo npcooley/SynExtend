@@ -580,7 +580,7 @@ SummarizePairs <- function(SynExtendObject,
           if (RetainAnchors) {
             # set the anchors
             # start with nucleotide positions 
-            hitsets <- SynExtendObject[[m2, m1]][, 1:2, drop = FALSE]
+            hitsets <- SynExtendObject[[m2, m1]][, seq_len(2L), drop = FALSE]
             WithinQueryNucs <- mapply(USE.NAMES = FALSE,
                                       SIMPLIFY = FALSE,
                                       FUN = function(i1,
@@ -641,7 +641,7 @@ SummarizePairs <- function(SynExtendObject,
               o2 <- order(WithinQueryNucs[[m3]][3L, , drop = FALSE])
               if (length(o1) > 1L) {
                 if (o1[1L] > o1[2L]) {
-                  WithinQueryNucs[[m3]][1:2, ] <- WithinQueryNucs[[m3]][1:2, o1, drop = FALSE]
+                  WithinQueryNucs[[m3]][seq_len(2L), ] <- WithinQueryNucs[[m3]][seq_len(2L), o1, drop = FALSE]
                 }
                 
                 if (o2[1L] > o2[2L]) {
@@ -667,9 +667,9 @@ SummarizePairs <- function(SynExtendObject,
                   size_check <- apply(X = WithinQueryAAs[[m3]],
                                       MARGIN = 2L,
                                       FUN = function(x) {
-                                        x[c(F, T)] - x[c(T, F)] + 1L
+                                        x[c(FALSE, TRUE)] - x[c(TRUE, FALSE)] + 1L
                                       }) %% 3L == 0L
-                  frame_check <- apply(X = WithinQueryAAs[[m3]][c(T,F), , drop = FALSE],
+                  frame_check <- apply(X = WithinQueryAAs[[m3]][c(TRUE,FALSE), , drop = FALSE],
                                        MARGIN = 2L,
                                        FUN = function(x) {
                                          ((x + 2L) %% 3L) == 0L

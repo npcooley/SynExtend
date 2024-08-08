@@ -1,6 +1,6 @@
 SuperTree <- function(myDendList, NAMEFUN=NULL, Verbose=TRUE, Processors=1){
   # error checking
-  if (!is(myDendList, 'list') || 
+  if (!is(myDendList, 'list') ||
       !all(vapply(myDendList, \(x) is(x, 'dendrogram') || is.null(x), FUN.VALUE=TRUE))){
     stop("SuperTree requires input to be a list of dendrograms")
   }
@@ -10,9 +10,9 @@ SuperTree <- function(myDendList, NAMEFUN=NULL, Verbose=TRUE, Processors=1){
   stopifnot("'Processors' must be a positive integer"=
               (Processors >=1 && Processors == as.integer(Processors)))
   if (!is(Processors, 'integer')) Processors <- as.integer(Processors)
-  
+
   useNFUN <- is(NAMEFUN, 'function')
-  
+
   if (useNFUN){
     #l1 <- flatdendrapply(myDendList[[1]], LEAFFUN=attr, which='label')
     l1 <- labels(myDendList[[1L]])
@@ -22,10 +22,10 @@ SuperTree <- function(myDendList, NAMEFUN=NULL, Verbose=TRUE, Processors=1){
            vector of the same size as input.")
     }
   }
-  
+
   # Get list of species
   allspecies <- character(0)
-  if (Verbose){ 
+  if (Verbose){
     cat("  Compiling species...\n")
     pb <- txtProgressBar(max=length(myDendList), style=3)
     start <- Sys.time()
@@ -36,14 +36,14 @@ SuperTree <- function(myDendList, NAMEFUN=NULL, Verbose=TRUE, Processors=1){
     lst <- myDendList[[i]]
     if (is.null(lst)) next
     specs <- labels(lst)
-    
+
     if (useNFUN)
       specs <- NAMEFUN(specs)
-    
+
     allspecies <- unique(c(allspecies, specs))
     ctr <- ctr + 1
   }
-  
+
   # Initialize distance matrix and counts matrix
   #dmat <- countmat <- matrix(0, nrow=length(allspecies), ncol=length(allspecies))
   #rownames(dmat) <- colnames(dmat) <- allspecies
@@ -56,8 +56,8 @@ SuperTree <- function(myDendList, NAMEFUN=NULL, Verbose=TRUE, Processors=1){
   attr(dholder, "Upper") <- TRUE
   attr(dholder, "Labels") <- allspecies
   dmat <- countmat <- dholder
-  
-  if (Verbose){ 
+
+  if (Verbose){
     cat("\n  Done.\n\n  Constructing species-level distance matrix...\n")
     pb <- txtProgressBar(max = ctr, style=3)
   }
@@ -72,7 +72,7 @@ SuperTree <- function(myDendList, NAMEFUN=NULL, Verbose=TRUE, Processors=1){
     dmat <- combineDist(dmat, cp)
     cp[] <- 1
     countmat <- combineDist(countmat, cp)
-    
+
     # d <- as.matrix(Cophenetic(dend))
     # # Get rownames
     # if (useNFUN)
@@ -97,7 +97,7 @@ SuperTree <- function(myDendList, NAMEFUN=NULL, Verbose=TRUE, Processors=1){
     ctr <- ctr + 1
     if (Verbose) setTxtProgressBar(pb, ctr)
   }
-  
+
   # Impute missing entries
   if(Verbose) cat("\n  Done.\n")
   posmissing <- which(countmat==0)
@@ -111,14 +111,14 @@ SuperTree <- function(myDendList, NAMEFUN=NULL, Verbose=TRUE, Processors=1){
   } else {
     dmat <- dmat / countmat
   }
-  
+
   # Build species tree with NJ
   if(Verbose){
     cat("\n\n  Building species tree...\n")
   }
-  newTree <- TreeLine(myDistMatrix=dmat, method="NJ", 
+  newTree <- TreeLine(myDistMatrix=dmat, method="NJ",
                       verbose=Verbose, processors = Processors)
-  
+
   if (Verbose){
     dt <- difftime(start, Sys.time())
     cat("  Done.\n  Time difference of", round(abs(dt), 2), attr(dt, "units"), '\n', sep=' ')
