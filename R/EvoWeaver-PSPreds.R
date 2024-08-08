@@ -3,23 +3,23 @@
 # contact: ahl27@pitt.edu
 
 #### Implemented Methods: ####
-#  - MirrorTree
-#  - ContextTree
-#  - TreeDistance 
+#  - RPMirrorTree
+#  - RPContextTree
+#  - TreeDistance
 #     -> RF, RF w/ pvalue, Jaccard RF, Cluster Info RF
 #     -> Nye Similarity
 #     -> Kuhner-Felsenstein
 ##########################
 
 #### S3 Generic Definitions ####
-MirrorTree <- function(ew, ...) UseMethod('MirrorTree')
-ContextTree <- function(ew, ...) UseMethod('ContextTree')
+RPMirrorTree <- function(ew, ...) UseMethod('RPMirrorTree')
+RPContextTree <- function(ew, ...) UseMethod('RPContextTree')
 TreeDistance <- function(ew, ...) UseMethod('TreeDistance')
 ################################
 
-MirrorTree.EvoWeaver <- function(ew, MTCorrection=c(),
+RPMirrorTree.EvoWeaver <- function(ew, MTCorrection=c(),
                                   Subset=NULL, Verbose=TRUE,
-                                  MySpeciesTree=NULL, 
+                                  MySpeciesTree=NULL,
                                   precalcProfs=NULL, precalcSubset=NULL, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
@@ -28,7 +28,7 @@ MirrorTree.EvoWeaver <- function(ew, MTCorrection=c(),
   uvals <- subs$uvals
   evalmap <- subs$evalmap
   pl <- length(uvals)
-  
+
   DIM_LENGTH <- min(80L, length(attr(ew, "allOrgs")))
   alllabs <- lapply(uvals, \(x) labels(ew[[x]]))
   MTCorrection <- tolower(MTCorrection)
@@ -41,14 +41,14 @@ MirrorTree.EvoWeaver <- function(ew, MTCorrection=c(),
     stopifnot('MySpeciesTree must be a dendrogram'=is(MySpeciesTree, 'dendrogram'))
     useSpecCorr <- TRUE
   }
-  
+
   if (is.null(precalcProfs)){
     if (Verbose) cat('Pre-processing distance matrices...\n')
     spl <- NULL
     if (!is.null(MySpeciesTree)){
       spl <- labels(MySpeciesTree)
       DIM_LENGTH <- min(80L, length(spl))
-    } 
+    }
     #CPs <- CophProfiles(ew, uvals, Verbose=Verbose, speciesList=spl)
     CPs <- RandCophProfiles(ew, uvals, Verbose=Verbose,
                               speciesList=spl, outdim=as.integer(DIM_LENGTH),
@@ -58,14 +58,14 @@ MirrorTree.EvoWeaver <- function(ew, MTCorrection=c(),
   } else {
     CPs <- precalcProfs
   }
-  
+
   l <- ncol(CPs)
   if ( l == 1 ){
     mat <- matrix(1, nrow=1, ncol=1)
     rownames(mat) <- colnames(mat) <- uvals
     return(mat)
   }
-  
+
   if (Verbose) cat('Normalizing profiles...\n')
   means <- colMeans(CPs, na.rm=TRUE)
   vars <- apply(CPs, MARGIN=2, var, na.rm=TRUE)
@@ -75,11 +75,11 @@ MirrorTree.EvoWeaver <- function(ew, MTCorrection=c(),
     if (Verbose) setTxtProgressBar(pb, i)
   }
   if(Verbose) cat('\n')
-  
+
   if ('satoaverage' %in% MTCorrection){
     means <- rowMeans(CPs, na.rm = TRUE)
     if (Verbose) cat('Calculating Sato projection vectors...\n')
-    
+
     # Big profiles lead to space issues that crash R
     if (Verbose) pb <- txtProgressBar(max=ncol(CPs), style=3)
     proj_op <- diag(nrow=nrow(CPs)) - (means %*% t(means))
@@ -89,7 +89,7 @@ MirrorTree.EvoWeaver <- function(ew, MTCorrection=c(),
     }
     if (Verbose) cat('\n')
   }
-  
+
   useOverlap <- ('paoverlap' %in% MTCorrection)
   pairscores <- rep(NA_real_, pl*(pl-1) / 2)
   ctr <- 0
@@ -103,8 +103,8 @@ MirrorTree.EvoWeaver <- function(ew, MTCorrection=c(),
     sd1 <- sd(v1, na.rm=TRUE)
     # Should only be NA if there's only one entry
     if (is.na(sd1) || sd1 == 0){
-      pairscores[(ctr+1):endOfRow] <- NA_real_
-      ctr <- endOfRow + 1
+      pairscores[(ctr+1):endOfRow] <- 0
+      ctr <- endOfRow
       if (Verbose) setTxtProgressBar(pb, ctr)
     } else {
       for ( j in (i+1):pl ){
@@ -116,10 +116,10 @@ MirrorTree.EvoWeaver <- function(ew, MTCorrection=c(),
           l2 <- alllabs[[j]]
           sd2 <- sd(v2, na.rm=TRUE)
           if (is.na(sd2) || sd2 == 0)
-            val <- NA
+            val <- 0
           else{
-            val <- suppressWarnings(cor(v1, v2, 
-                                        use='pairwise.complete.obs', 
+            val <- suppressWarnings(cor(v1, v2,
+                                        use='pairwise.complete.obs',
                                         method='spearman'))
             num_branch <- length(v1)
             pval <- 1 - exp(pt(val, num_branch-2, lower.tail=FALSE, log.p=TRUE))
@@ -138,28 +138,28 @@ MirrorTree.EvoWeaver <- function(ew, MTCorrection=c(),
   if (Verbose) cat('\n')
   pairscores <- as.simMat(pairscores, NAMES=names(ew)[uvals], DIAG=FALSE)
   Diag(pairscores) <- 1
-  
+
   return(pairscores)
 }
 
-ContextTree.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE, precalcProfs=NULL, 
+RPContextTree.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE, precalcProfs=NULL,
                                    MySpeciesTree=NULL, ...){
-  
+
   if ( is.null(MySpeciesTree) || !is(MySpeciesTree, 'dendrogram')){
     MySpeciesTree <- findSpeciesTree(ew, Verbose)
   }
-  
+
   #MTCorrection <- c('speciestree', 'normalize', 'partialcorrelation')
   MTCorrection <- c('speciestree', 'paoverlap')
-  
-  return(MirrorTree(ew, MTCorrection=MTCorrection,
-                    Verbose=Verbose, 
+
+  return(RPMirrorTree(ew, MTCorrection=MTCorrection,
+                    Verbose=Verbose,
                     precalcCProfs=precalcProfs,
                     MySpeciesTree=MySpeciesTree))
 }
 
 TreeDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
-                                      precalcSubset=NULL, 
+                                      precalcSubset=NULL,
                                       TreeMethods="RF", JRFk=4, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
@@ -169,7 +169,7 @@ TreeDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   evalmap <- subs$evalmap
   if(!is.numeric(JRFk)) stop("JRFk value must be numeric")
   if(is.integer(JRFk)) JRFk <- as.numeric(JRFk)
-  
+
   useColoc <- attr(ew, "useColoc")
   l <- length(uvals)
   n <- names(ew)
@@ -178,8 +178,8 @@ TreeDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     rownames(mat) <- colnames(mat) <- n
     return(mat)
   }
-  
-  
+
+
   bmn <- c("CI", "RF", "JRF", "Nye", "KF", "RFPVal")
   if ('all' %in% TreeMethods){
     bitmask <- rep(TRUE, length(bmn))
@@ -187,12 +187,12 @@ TreeDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     bitmask <- rep(FALSE, length(bmn))
     bitmask <- vapply(bmn, \(x) x %in% TreeMethods, logical(1))
   }
-  
+
   if(bitmask[1]){
     CI_DISTANCE_INTERNAL <- NULL
     data('CIDist_NullDist', package="SynExtend", envir=environment())
   }
-  
+
   bmn <- bmn[bitmask]
   pairscoresList <- vector('list', length=length(bmn))
   for(i in seq_along(bmn))
@@ -222,7 +222,7 @@ TreeDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     rm(ptr)
     return(0L)
   }, integer(1)))
-  
+
   if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
   for ( i in seq_len(l-1) ){
     p1 <- pArray[[i]]
@@ -241,7 +241,7 @@ TreeDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
           normval <- 0.5*(s[2] + s[3])
 
           if (is.na(normval) || normval == 0){
-            pairscoresList$CI[ctr+1] <- NA
+            pairscoresList$CI[ctr+1] <- 0
             #pairscoresList$GRF[ctr+1] <- ifelse(s[1] == 0, 0, 1)
           } else {
             s <- (normval - s[1]) / normval
@@ -272,7 +272,7 @@ TreeDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
           s <- .Call("RFDist", p1, p2, interlabs, PACKAGE="SynExtend")
           normval <- s[2] + s[3]
           if (is.na(normval) || normval == 0)
-            pairscoresList$RF[ctr+1] <- NA
+            pairscoresList$RF[ctr+1] <- 0
             #pairscoresList$RF[ctr+1] <- ifelse(s[1] == 0, 0, 1)
           else{
             s <- s[1] / normval
@@ -288,7 +288,7 @@ TreeDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
           s <- .Call("GRFInfo", p1, p2, interlabs, TRUE, JRFk, PACKAGE="SynExtend")
           normval <- (s[2] + s[3])
           if (is.na(normval) || normval == 0)
-            pairscoresList$JRF[ctr+1] <- NA
+            pairscoresList$JRF[ctr+1] <- 0
             #pairscoresList$JRF[ctr+1] <- ifelse(s[1] == 0, 0, 1)
           else
             pairscoresList$JRF[ctr+1] <- 1 - (s[1] / normval)
@@ -298,7 +298,7 @@ TreeDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
           s <- .Call("GRFInfo", p1, p2, interlabs, TRUE, 1, PACKAGE="SynExtend")
           normval <- (s[2] + s[3])
           if (is.na(normval) || normval == 0)
-            pairscoresList$Nye[ctr+1] <- NA
+            pairscoresList$Nye[ctr+1] <- 0
             #pairscoresList$Nye[ctr+1] <- ifelse(s[1] == 0, 0, 1)
           else
             pairscoresList$Nye[ctr+1] <- 1 - (s[1] / normval)
@@ -308,7 +308,7 @@ TreeDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
           s <- .Call("KFDist", p1, p2, interlabs, PACKAGE="SynExtend")
           normval <- s[2]
           if (is.na(normval) || normval == 0)
-            pairscoresList$KF[ctr+1] <- NA
+            pairscoresList$KF[ctr+1] <- 0
             #pairscoresList$KF[ctr+1] <- ifelse(s[1] == 0, 0, 1)
           else
             pairscoresList$KF[ctr+1] <- s[1] / normval
@@ -319,13 +319,13 @@ TreeDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
             s <- .Call("RFDist", p1, p2, interlabs, PACKAGE="SynExtend")
             normval <- s[2] + s[3]
             if (is.na(normval) || normval == 0)
-              pairscoresList$RFPVal[ctr+1] <- NA
+              pairscoresList$RFPVal[ctr+1] <- 0
             #pairscoresList$RF[ctr+1] <- ifelse(s[1] == 0, 0, 1)
             else{
               # p-value calculation
               s <- ppois(length(interlabs) - 3 - 0.5*s[1],
-                          lambda=1/8, 
-                          log.p=TRUE, 
+                          lambda=1/8,
+                          log.p=TRUE,
                           lower.tail=FALSE)
               # This probability is p(trees are unrelated), so have to take 1-p
               pairscoresList$RFPVal[ctr+1] <- 1 - exp(s)
@@ -337,7 +337,7 @@ TreeDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     }
   }
   if (Verbose) cat('\n')
-  
+
   if (bitmask[5]){
     pairscoresList$KF <- pairscoresList$KF - min(pairscoresList$KF, na.rm=TRUE)
     pairscoresList$KF <- pairscoresList$KF / max(pairscoresList$KF, na.rm=TRUE)
@@ -348,5 +348,5 @@ TreeDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     pairscoresList[[i]] <- as.simMat(pairscoresList[[i]], NAMES=n, DIAG=FALSE)
   }
 
-  return(pairscoresList) 
+  return(pairscoresList)
 }

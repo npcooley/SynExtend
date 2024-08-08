@@ -36,6 +36,8 @@ static const R_CallMethodDef callMethods[] = { // method call, pointer, num args
   CALLDEF(calcScoreGL, 3),
   CALLDEF(calcScoreJaccard, 3),
   CALLDEF(calcScoreHamming, 4),
+  CALLDEF(cladeCollapsePA, 2),
+  CALLDEF(calcAllTreeLengths, 1),
   CALLDEF(printTree, 1),
   CALLDEF(GRFInfo, 5),
   CALLDEF(RFDist, 3),

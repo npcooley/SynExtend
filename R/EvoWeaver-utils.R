@@ -1,6 +1,7 @@
 #### Helper Functions for EvoWeaver class ####
 # author: Aidan Lakshman
 # contact: ahl27@pitt.edu
+#
 
 #### S3 Generic Definitions ####
 PAProfiles <- function(ew, ...) UseMethod('PAProfiles')
@@ -202,7 +203,7 @@ RandCophProfiles.EvoWeaver <- function(ew, toEval=NULL, Verbose=TRUE,
   if (speciesCorrect && !is.null(mySpeciesTree)){
     specd <- as.vector(fastCoph(mySpeciesTree))
     #specd[specd==0] <- 1
-    spv2 <- as.vector(specd)
+    spv2 <- specd
     spv2[spv2==0] <- 1
     #nonzeros <- which(specvec != 0)
     #specvec <- .Call("randomProjection", specvec, nonzeros, length(nonzeros), outdim)
@@ -393,7 +394,7 @@ find_dend_distances <- function(dend, useColoc=FALSE){
   return(dend)
 }
 
-AdjMatToDf <- function(preds, Verbose=TRUE){
+AdjMatToDf <- function(preds, Verbose=TRUE, Subset=NULL){
   stopifnot(length(preds) > 0)
   n <- names(preds)
   prednames <- names(preds[[1]])
@@ -421,6 +422,13 @@ AdjMatToDf <- function(preds, Verbose=TRUE){
                 FUN.VALUE=TRUE)
   AdjDf <- AdjDf[rtk,]
   rownames(AdjDf) <- NULL
+  if(!is.null(Subset)){
+    ## What if the user wants pair c("B", "A"), but we only have c("A","B")?
+    ## This solves that
+    AdjDf[,seq_len(2L)] <- t(apply(AdjDf[,seq_len(2L)], 1L, sort))
+    Subset[] <- t(apply(Subset, 1L, sort))
+    AdjDf <- merge(AdjDf, Subset)
+  }
   return(AdjDf)
 }
 
@@ -753,6 +761,7 @@ ResidueMISeqs <- function(seqs1, seqs2, lookup, Processors, ...){
   }
   s1 <- seqs1[completeSet,,drop=FALSE]
   s2 <- seqs2[completeSet,,drop=FALSE]
+
   nseqs <- length(completeSet)
   if(nseqs == 1){
     return(0)
@@ -763,16 +772,25 @@ ResidueMISeqs <- function(seqs1, seqs2, lookup, Processors, ...){
   AllMIs <- .Call("MIForSequenceSets", s1, s2, nseqs,
                   baseval, baseval, baseval+0.0, Processors)
   AllMIs <- matrix(AllMIs, ncol=ncol(s1))
-  APCm <- matrix(0, nrow=nrow(AllMIs), ncol=ncol(AllMIs))
-  APCm[] <- rowMeans(AllMIs)
-  APCm <- t(t(APCm)*colMeans(AllMIs))
-  AllMIs <- AllMIs - (APCm) / mean(AllMIs)
-  if(ncol(AllMIs) > nrow(AllMIs))
-    AllMIs <- t(AllMIs)
+  # APCm <- matrix(0, nrow=nrow(AllMIs), ncol=ncol(AllMIs))
+  # APCm[] <- rowMeans(AllMIs)
+  # APCm <- t(t(APCm)*colMeans(AllMIs))
+  # AllMIs <- AllMIs - (APCm) / mean(AllMIs)
+
+  #if(ncol(AllMIs) > nrow(AllMIs))
+  #  AllMIs <- t(AllMIs)
   meanEnt <- mean(AllMIs)
   sdEnt <- sd(AllMIs)
-  maxVals <- vapply(seq_len(ncol(AllMIs)), \(cn) max(AllMIs[,cn]),
-                    numeric(1L), USE.NAMES = FALSE)
+  #maxVals <- apply(AllMIs, 2L, max)
+
+  ## Greedy pairing
+  maxVals <- numeric(min(dim(AllMIs))/2)
+  for(i in seq_along(maxVals)){
+    p <- arrayInd(which.max(AllMIs), dim(AllMIs))
+    maxVals[i] <- AllMIs[p]
+    AllMIs <- AllMIs[-p[1],-p[2],drop=FALSE]
+  }
+
 
   pvals <- pnorm(maxVals, mean=meanEnt, sd=sdEnt, lower.tail=FALSE)
   # Fisher's Method to combine p values
@@ -927,37 +945,39 @@ CalcMIReduced <- function(trimmedXStringSet, start2,
   return(scores)
 }
 
-predictWithBuiltins <- function(preds){
+predictWithBuiltins <- function(preds, model=c("KEGG", "CORUM")){
   # Key: (val is binary + 1)
-  # 000 => 1: Jaccard, Hamming, MI, ProfileDCA (base)
-  # 001 => 2: base and MT
-  # 010 => 3: base and Behdenna
-  # 011 => 4: base and Behdenna, MT
-  # 100 => 5: base and Coloc
-  # 101 => 6: base and Coloc, MT
-  # 110 => 7: base and Behdenna, Coloc
-  # 111 => 8: base and Behdenna, Coloc, MT
-  modelsToUse <- rep(1, nrow(preds))
-  relevant_cnames <- c('MirrorTree', 'Behdenna', 'Coloc')
+  # 000 => PP
+  # 001 => PP + PS
+  # 010 => PP + GO
+  # 011 => PP + PS + GO
+  # 100 => PP + SL
+  # 101 => PP + PS + SL
+  # 110 => PP + GO + SL
+  # 111 => PP + PS + GO + SL
+  .check_allin <- \(x,y){!(any(match(x,y,nomatch=0L)==0L))}
+  model <- match.arg(model)
+
+  pp_algs <- validate_EvoWeaver_methods("PhylogeneticProfiling")$Method
+  ps_algs <- validate_EvoWeaver_methods("PhylogeneticStructure")$Method
+  go_algs <- validate_EvoWeaver_methods("GeneOrganization")$Method
+  sl_algs <- validate_EvoWeaver_methods("SequenceLevel")$Method
+  alg_flags <- 0L
   pred_cnames <- colnames(preds)
-  for (i in seq_along(relevant_cnames)){
-    rcn <- relevant_cnames[i]
-    if (rcn %in% pred_cnames){
-      idxs <- !is.na(preds[,rcn])
-      modelsToUse[idxs] <- modelsToUse[idxs] + (2**(i-1))
-    }
+  if(!all(pp_algs %in% pred_cnames)){
+    stop("Phylogenetic profiling algorithms are required for ensemble prediction.")
   }
+  if(.check_allin(ps_algs, pred_cnames))
+    alg_flags <- alg_flags + 1L
+  if(.check_allin(go_algs, pred_cnames))
+    alg_flags <- alg_flags + 2L
+  if(.check_allin(sl_algs, pred_cnames))
+    alg_flags <- alg_flags + 4L
+
   builtins <- get(data('BuiltInEnsembles', envir=environment()))
-  if (all(modelsToUse == modelsToUse[1])){
-    return(predict(builtins[[modelsToUse[1]]], preds, type='response'))
-  } else {
-    builtInPredictions <- rep(NA, nrow(preds))
-    for (i in seq_along(builtInPredictions)){
-      model <- builtins[[modelsToUse[i]]]
-      builtInPredictions[i] <- predict(model, preds[i,], type='response')
-    }
-    return(builtInPredictions)
-  }
+  model <- builtins[[model]][[alg_flags+1L]]
+
+  predict(model, preds, type='response')
 }
 
 findSpeciesTree <- function(ew, Verbose=TRUE, NameFun=NULL, Processors=1L){
@@ -1120,7 +1140,9 @@ fastCoph <- function(dend){
     if(is.leaf(x)) return(x)
     for(k in seq_along(x)){
       h <- attr(x, "height") - attr(x[[k]], "height")
-      I <- unlist(x[[k]])
+      ## sometimes the rapply loads these as char
+      ## not really sure why, but coercing to int is sufficient
+      I <- as.integer(unlist(x[[k]]))
       J <- seq_len(n)[-I]
       d <<- .Call("se_cophenetic",
                 I,

@@ -12,13 +12,13 @@
 #include "SEutils.h"
 
 /*** R .C Functions ***/
-void shuffleRInt(int *v, int *l){ 
+void shuffleRInt(int *v, int *l){
   GetRNGstate();
-  shuffle(int, v, *l); 
+  shuffle(int, v, *l);
   PutRNGstate();
 }
 
-void shuffleRRepl(int *v, int *l){ 
+void shuffleRRepl(int *v, int *l){
   GetRNGstate();
   struct RNGstate32 *r = malloc(sizeof(struct RNGstate32));
   uint64_t seed = (((uint64_t)irand()) << 32) | ((uint64_t)irand());

@@ -38,17 +38,13 @@ This function provides a rough estimate of the total disk space required to run 
 \value{
 Returns a vector of length three, showing the estimated total edgelist file size, estimated disk consumption, and ratio of the two. All sizes are shown in bytes.
 }
-\references{
-%% ~put references to the literature/web site here ~
-}
+
 \author{
 Aidan Lakshman <AHL27@pitt.edu>
 }
 \note{
 Estimating the average node label size is challenging, and unfortunately it does have a relatively large effect on the estimated edgelist file size. This function should be used for \bold{rough} estimations of sizing, not absolute values. Errors in estimation of rough node name size will have a larger impact on edgelist file estimation than on the ExoLabel disk usage, so users can have higher confidence in estimated ExoLabel consumption.
 }
-
-%% ~Make other sections like Warning with \section{Warning }{....} ~
 
 \seealso{
 \code{\link{ExoLabel}}

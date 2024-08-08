@@ -49,7 +49,7 @@ Nicholas Cooley \email{npc19@pitt.edu}
 }
 \examples{
 # this function will be deprecated soon...
-\dontrun{
+\donttest{
 data("Endosymbionts_Pairs02", package = "SynExtend")
 Pairs03 <- BlockReconciliation(Pairs = Endosymbionts_Pairs02,
                                ConservativeRejection = FALSE,

@@ -19,8 +19,8 @@ EvoWeaver(ListOfData, MySpeciesTree=NULL, NoWarn=FALSE)
 \arguments{
   \item{ListOfData}{
 A list of gene data, where each entry corresponds to information on a particular
-gene. List must contain either dendrograms or vectors, and cannot contain a mixture. 
-If list is composed of dendrograms, each dendrogram is a gene tree for the corresponding entry. If list is composed of vectors, vectors should be numeric or character vectors denoting the genomes containing that gene. 
+gene. List must contain either dendrograms or vectors, and cannot contain a mixture.
+If list is composed of dendrograms, each dendrogram is a gene tree for the corresponding entry. If list is composed of vectors, vectors should be numeric or character vectors denoting the genomes containing that gene.
 }
 \item{MySpeciesTree}{
 An object of class \code{'dendrogram'} representing the overall species tree for
@@ -47,31 +47,25 @@ EvoWeaver expects input data to be a list. All entries must be one of the follow
     \code{ListOfData[[i]] = c('ID#1', 'ID#2', ..., 'ID#k')}
   }
   \item{
-  (a) \code{ListOfData[[i]] = c('i1_d1_p1', 'i2_d2_p2', ..., 'ik_dk_pk') }
-  
-  
-    (b) \code{ListOfData[[i]] = c('i1_d1_s1_p1', 'i2_d2_s2_p2', ..., 'ik_dk_sk_pk') }}
-    
+    \code{ListOfData[[i]] = c('i1_d1_s1_p1', 'i2_d2_s2_p2', ..., 'ik_dk_sk_pk') }}
+
   \item{
   \code{ListOfData[[i]] = dendrogram(...)}
   }
 }
-In (1), each ID#i corresponds to the unique identifier for genome #i. For entry #j in the list, the presence of 'ID#i' means genome #i has an ortholog for gene/protein #j. 
+In (1), each ID#i corresponds to the unique identifier for genome #i. For entry #j in the list, the presence of 'ID#i' means genome #i has an ortholog for gene/protein #j.
 
-Case (2a) is the same as (1), just with the formatting of names slightly different. Each entry is of the form \code{i_d_p}, where \code{i} is the unique identifier for the genome, \code{d} is which chromosome the ortholog is located, and \code{p} is what position the ortholog appears in on that chromosome. \code{p} must be a \code{numeric}, while the other entries can be any value.
-
-Case (2b) is a variation on (2a), adding in an identifier \code{s}. This value must be \code{0} or \code{1}, corresponding to whether the gene is on the forward or reverse strand. Whether \code{0} denotes forward or reverse is inconsequential as long as the scheme is consistent.
+Case (2) is the same as (1), just with the formatting of names slightly different. Each entry is of the form \code{i_d_p}, where \code{i} is the unique identifier for the genome, \code{d} is which chromosome the ortholog is located, \code{s} indicates whether the gene is on the forward or reverse strand, and \code{p} is what position the ortholog appears in on that chromosome. \code{p} must be a \code{numeric}. \code{s} must be \code{0} or \code{1}, corresponding to whether the gene is on the forward or reverse strand. Whether \code{0} denotes forward or reverse is inconsequential as long as the scheme is consistent. \code{i,d} can be any value as long as it doesn't contain an underscore (\code{'_'}).
 
 Case (3) expects gene trees for each gene, with labeled leaves corresponding to each source genome. If \code{ListOfData} is in this format, taking \code{labels(ListOfData[[i]])} should produce a character vector that matches the format of one of the previous cases.
 
 \emph{See the Examples section for illustrative examples.}
 
-\emph{Whenever possible, provide a full set of \code{dendrogram} objects with leaf labels in form (2b). This will allow the most algorithms to run. What follows is a more detailed description of which inputs allow which algorithms.}
+\emph{Whenever possible, provide a full set of \code{dendrogram} objects with leaf labels in form (2). This will allow the most algorithms to run. What follows is a more detailed description of which inputs allow which algorithms.}
 
-EvoWeaver requires input of scenario (3) to use distance matrix methods, and requires input of scenario (2) (or (3) with leaves labeled according to (2)) for gene organization analyses. Transcriptional direction analysis requires input of scenario (2b).
-Sequence-level methods require dendrograms with sequence information included as the \code{state} attribute in each leaf node.
+EvoWeaver requires input of scenario (3) to use distance matrix methods, and requires input of scenario (2) (or (3) with leaves labeled according to (2)) for gene organization analyses. Sequence-level methods require dendrograms with sequence information included as the \code{state} attribute in each leaf node.
 
-Note that ALL entries must belong to the same category--a combination of character vectors and dendrograms is not allowed. 
+Note that ALL entries must belong to the same category--a combination of character vectors and dendrograms is not allowed.
 
 Prediction of a functional association network is done using \code{predict(EvoWeaverObject)}. See \code{\link{predict.EvoWeaver}} for more information.
 
@@ -86,7 +80,7 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 \seealso{
 \code{\link{predict.EvoWeaver}},
 \code{\link{ExampleStreptomycesData}},
-\code{\link{BuiltInEnsembles}}, 
+\code{\link{BuiltInEnsembles}},
 \code{\link{SuperTree}}
 }
 \examples{
@@ -96,7 +90,7 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 ## (each letter denotes a distinct gene)
 ##    Genome 1: a b c d
 ##    Genome 2: d c e
-##    Genome 3: b a e 
+##    Genome 3: b a e
 ##    Genome 4: a e
 
 ## We have 5 total genes: (a,b,c,d,e)
@@ -108,43 +102,32 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 
 ## Constructing a EvoWeaver object according to (1):
 l <- list()
-l[['a']] <- c('1', '3', '4') 
-l[['b']] <- c('1', '3') 
-l[['c']] <- c('1', '2') 
-l[['d']] <- c('1', '2') 
-l[['e']] <- c('2', '3', '4') 
+l[['a']] <- c('1', '3', '4')
+l[['b']] <- c('1', '3')
+l[['c']] <- c('1', '2')
+l[['d']] <- c('1', '2')
+l[['e']] <- c('2', '3', '4')
 
 ## Each value of the list corresponds to a gene
 ## The associated vector shows which genomes have that gene
 pwCase1 <- EvoWeaver(l)
 
 ## Constructing a EvoWeaver object according to (2):
-##  Here we need to add in the chromosome and the position
-##  As we only have one chromosome, 
+##  Here we need to add in the genome, chromosome, direction, and position
+##  As we only have one chromosome,
 ##  we can just set that to 1 for all.
 ##  Position can be identified with knowledge, or with
 ##  FindGenes(...) from DECIPHER.
 
 ## In this toy case, genomes are small so it's simple.
 l <- list()
-l[['a']] <- c('1_1_1', '3_1_2', '4_1_1') 
-l[['b']] <- c('1_1_2', '3_1_1') 
-l[['c']] <- c('1_1_3', '2_1_2') 
-l[['d']] <- c('1_1_4', '2_1_1') 
-l[['e']] <- c('2_1_3', '3_1_3', '4_1_2') 
+l[['a']] <- c('a_1_0_1', 'c_1_1_2', 'd_1_0_1')
+l[['b']] <- c('a_1_1_2', 'c_1_1_1')
+l[['c']] <- c('a_1_1_3', 'b_1_0_2')
+l[['d']] <- c('a_1_0_4', 'b_1_0_1')
+l[['e']] <- c('b_1_0_3', 'c_1_0_3', 'd_1_0_2')
 
-pwCase2a <- EvoWeaver(l)
-
-## If we want transcriptional information, we need an 
-## value corresponding to the strand of each gene
-## Notice that the genome identifer need not be numeric,
-## but the strand identifer must be 0 or 1
-l <- list()
-l[['a']] <- c('a_1_0_1', 'c_1_1_2', 'd_1_0_1') 
-l[['b']] <- c('a_1_1_2', 'c_1_1_1') 
-l[['c']] <- c('a_1_1_3', 'b_1_0_2') 
-l[['d']] <- c('a_1_0_4', 'b_1_0_1') 
-l[['e']] <- c('b_1_0_3', 'c_1_0_3', 'd_1_0_2') 
+pwCase2 <- EvoWeaver(l)
 
 ## For Case 3, we just need dendrogram objects for each
 # l[['a']] <- dendrogram(...)
@@ -153,6 +136,6 @@ l[['e']] <- c('b_1_0_3', 'c_1_0_3', 'd_1_0_2')
 # l[['d']] <- dendrogram(...)
 # l[['e']] <- dendrogram(...)
 
-## Leaf labels for these will be the same as the 
+## Leaf labels for these will be the same as the
 ##  entries in Case 1.
 }

@@ -18,20 +18,23 @@ typedef unsigned long ulong;
 
 typedef struct tree {
   double height;
+  double inc_len;
   int value;
   int members;
   unsigned int label;
   struct tree *left, *right;
 } treeNode;
 
-treeNode *allocTreeNode(double h, int v, int m, unsigned int l);
-treeNode *convertRDend(SEXP dend);
+treeNode *allocTreeNode(double h, int v, int m, unsigned int l, double parentheight);
+treeNode *convertRDend(SEXP dend, double parentheight);
 
 /* helpers for external functions */
 const char *convertRChar(SEXP chars);
 unsigned int hashLabel(SEXP label);
 void findNodeScores(treeNode* curNode, int* v1, int* v2, double* scores, treeNode* head, bool isHead);
 treeNode* findNextNode(treeNode *curNode, int *v, int *selfv, bool isCur);
+void cladeCollapseHelper(treeNode* node, int *v);
+void treeLengthsHelper(treeNode* head, double *v);
 
 /* D value on Trees */
 void calcSisterClades(treeNode *node, unsigned int *pmap, int pmaplen, double *scoreArr);

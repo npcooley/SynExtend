@@ -12,7 +12,7 @@ simMat <- function(VALUE=NA_real_, nelem, NAMES=NULL, DIAG=FALSE){
   else
     num_vals <- nelem*(nelem-1) / 2
   if (num_vals %% length(VALUE) != 0)
-    warning("number of elements provided (", length(VALUE), 
+    warning("number of elements provided (", length(VALUE),
             ") is not a multiple of requested length (", num_vals, ")")
   v <- rep(VALUE, length.out=num_vals)
   return(as.simMat(v, NAMES=NAMES, DIAG=DIAG))
@@ -41,7 +41,7 @@ as.simMat.vector <- function(x, NAMES=NULL, DIAG=TRUE, ...){
   val <- (sqrt(deter) + b) / 2
   stopifnot('x is not a valid length!'=val%%1==0)
   stopifnot('incorrect NAMES length!'=(is.null(NAMES) || length(NAMES)==val))
-  
+
   if ( !DIAG ){
     total_num <- (val) * (val+1) / 2
     outvec <- numeric(total_num)
@@ -50,12 +50,12 @@ as.simMat.vector <- function(x, NAMES=NULL, DIAG=TRUE, ...){
     outvec[svals] <- 1
     x <- outvec
   }
-  
+
   if (is.null(NAMES)){
     NAMES <- as.character(seq_len(val))
   }
-  
-  structure(x, 
+
+  structure(x,
             nrow=val,
             NAMES=NAMES,
             class='simMat')
@@ -68,7 +68,7 @@ as.simMat.matrix <- function(x, ...){
   if (all(x[upper.tri(x)] != t(x)[upper.tri(x)])){
     warning("Matrix is not symmetric, using upper triangle.")
   }
-  
+
   if (is.null(rownames(x)) || is.null(colnames(x))){
     NAMES <- as.character(seq_len(nr))
   } else if(!setequal(rownames(x),colnames(x))){
@@ -95,7 +95,7 @@ show.simMat <- function(object){
   CUTOFF <- FALSE
   if (nr > n){
     CUTOFF <- TRUE
-    
+
   }
   ns <- attr(object, 'NAMES')
   NAMEWIDTH <- min(NAMEWIDTH, max(nchar(ns)))
@@ -110,12 +110,12 @@ show.simMat <- function(object){
     }, character(1L))
   }
   object <- unclass(object)
-  format_vals <- function(x, j='right') paste(format(x, justify=j, 
-                                                     width=NAMEWIDTH+1L), 
+  format_vals <- function(x, j='right') paste(format(x, justify=j,
+                                                     width=NAMEWIDTH+1L),
                                               collapse='')
   nstr <- ns
   if (CUTOFF){
-    nstr <- c(ns[seq_len(n-1)], '', ns[nr]) 
+    nstr <- c(ns[seq_len(n-1)], '', ns[nr])
   }
   outstr <- c(format_vals(c('  ', nstr), j='centre'), '\n')
   ctr <- 1L
@@ -126,9 +126,9 @@ show.simMat <- function(object){
         linestr <- c(linestr, sprintf('%.2f', object[ctr]))
         ctr <- ctr + 1L
       }
-      
+
       if (CUTOFF){
-        linestr <- c(linestr[seq_len(n)], '\u22EF', linestr[nr+1]) 
+        linestr <- c(linestr[seq_len(n)], '\u22EF', linestr[nr+1])
       }
       if (CUTOFF && i == nr){
         linestr[n+1] <- ''
@@ -154,7 +154,7 @@ as.matrix.simMat <- function(x, ...){
   ns <- attr(x, 'NAMES')
   outmat <- diag(1, nrow=nr)
   colnames(outmat) <- rownames(outmat) <- ns
-  
+
   # have to do it this way due to column-wise ordering
   outmat[lower.tri(outmat, diag=TRUE)] <- x
   outmat <- t(outmat)
@@ -171,7 +171,7 @@ as.matrix.simMat <- function(x, ...){
   COLOUT <- FALSE
   if (!hasi && !hasj)
     return(x)
-  
+
   class(x) <- 'vector'
   # These are in to quash a warning
   # I can't figure out how to differentiate x[i,] from x[i]
@@ -208,12 +208,12 @@ as.matrix.simMat <- function(x, ...){
       stop('Indices out of bounds')
     }
   }
-  
+
   if (hasj){
     stopifnot("indices must be character or numeric"=
                 is(j, 'character') || is(j, 'numeric') || is(j, 'logical'))
     if(is(j, 'logical')){
-      if(nr %% length(j) != 0) 
+      if(nr %% length(j) != 0)
         warning("T/F positions specified not multiple of number of rows.")
       stopifnot("No columns specified!"=any(j))
       j <- rep(j, length.out=nr)
@@ -237,7 +237,7 @@ as.matrix.simMat <- function(x, ...){
       stop('Indices out of bounds')
     }
   }
-  
+
   if (hasj && !hasi){
     i <- j
     hasj <- FALSE
@@ -270,7 +270,7 @@ as.matrix.simMat <- function(x, ...){
       idxvec[idx] <- svals[i2] + (i1 - i2)
     } else if ( i1 == i2 ){
       namevec[idx] <- paste(ns[i1], ns[i1], sep=',')
-      idxvec[idx] <- svals[i1] 
+      idxvec[idx] <- svals[i1]
     } else {
       namevec[idx] <- paste(ns[i1], ns[i2], sep=',')
       idxvec[idx] <- svals[i1] + (i2 - i1)
@@ -288,7 +288,7 @@ as.matrix.simMat <- function(x, ...){
   class(x) <- c('vector')
   hasi <- !missing(i)
   hasj <- !missing(j)
-  
+
   if (hasi){
     stopifnot("indices must be character or numeric"=
                 is(i, 'character') || is(i, 'numeric'))
@@ -310,7 +310,7 @@ as.matrix.simMat <- function(x, ...){
       stop('Indices out of bounds')
     }
   }
-  
+
   if (hasj){
     stopifnot("indices must be character or numeric"=
                 is(j, 'character') || is(j, 'numeric'))
@@ -332,21 +332,21 @@ as.matrix.simMat <- function(x, ...){
       stop('Indices out of bounds')
     }
   }
-  
+
   # Symmetric so we can do this to simplify
   if (hasj && !hasi){
     i <- j
     hasi <- TRUE
     hasj <- FALSE
   }
-  
+
   ## Checking for valid inputs
   # 3 cases: none given, only i given, i and j both given
   num_given <- length(value)
   if (!hasi && !hasj){
     if (length(x) %% num_given != 0){
       warning("number of items to replace is not a multiple of replacement length")
-    } 
+    }
     value <- rep(value, length.out=length(x))
     return(as.simMat(value, NAMES=ns))
   }
@@ -357,12 +357,12 @@ as.matrix.simMat <- function(x, ...){
     lj <- length(j)
     num_req <- li * lj
   }
-  
+
   if (num_req %% num_given != 0){
     warning("number of items to replace is not a multiple of replacement length")
-  } 
+  }
   value <- rep(value, length.out=num_req)
-  
+
   if (!hasj){
     for ( idxi in seq_along(i) ){
       idx <- i[idxi]
@@ -374,7 +374,7 @@ as.matrix.simMat <- function(x, ...){
     class(x) <- 'simMat'
     return(x)
   }
-  
+
   all_accessed <- expand.grid(i, j)
   idxvec <- integer(nrow(all_accessed))
   for (idx in seq_len(nrow(all_accessed))){
@@ -383,17 +383,17 @@ as.matrix.simMat <- function(x, ...){
     if ( i1 > i2 ){
       idxvec[idx] <- svals[i2] + (i1 - i2)
     } else if ( i1 == i2 ){
-      idxvec[idx] <- svals[i1] 
+      idxvec[idx] <- svals[i1]
     } else {
       idxvec[idx] <- svals[i1] + (i2 - i1)
     }
   }
-  
+
   x[idxvec] <- value
   class(x) <- 'simMat'
   return(x)
   #return(as.simMat(v, NAMES=ns, DIAG=TRUE))
-  
+
 }
 
 Diag <- function(x, ...) UseMethod('Diag')
@@ -445,6 +445,6 @@ as.data.frame.simMat <- function(x, ...) {
       ctr <- ctr + 1
     }
   }
-  
+
   return(data.frame(row=i1, col=i2, value=v))
 }
