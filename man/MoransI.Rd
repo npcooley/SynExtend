@@ -1,5 +1,5 @@
-\name{MoransI}
-\alias{MoransI}
+\name{MoranI}
+\alias{MoranI}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
 Moran's \emph{I} Spatial Autocorrelation Index
@@ -8,7 +8,7 @@ Moran's \emph{I} Spatial Autocorrelation Index
 Calculates Moran's \emph{I} to measure spatial autocorrelation for a set of signals dispersed in space.
 }
 \usage{
-MoransI(values, weights, alternative='two.sided')
+MoranI(values, weights, alternative='two.sided')
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -73,7 +73,7 @@ distmat <- as.dist(matrix(runif(NUM_POINTS**2, 0.1, 2),
 vals <- runif(NUM_POINTS, 0, 3) 
 
 # Calculate Moran's I
-MoransI(vals, distmat, alternative='two.sided')
+MoranI(vals, distmat, alternative='two.sided')
 
 # effect size should be pretty small
 # and p-value close to 0.5

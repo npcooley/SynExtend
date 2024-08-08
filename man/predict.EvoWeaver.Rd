@@ -127,7 +127,7 @@ Complete listing of all supported methods (asterisk denotes a method used in \co
   \item * \code{'RPMirrorTree'}: MirrorTree using Random Projection for dimensionality reduction
   \item * \code{'RPContextTree'}: MirrorTree with Random Projection correcting for species tree and P/A conservation
   \item * \code{'GeneDistance'}: Co-localization analysis
-  \item * \code{'MoransI'}: Co-localization analysis using   \link[=MoransI]{Moran's I} for phylogenetic correction and significance
+  \item * \code{'MoransI'}: Co-localization analysis using   \link[=MoranI]{Moran's I} for phylogenetic correction and significance
   \item * \code{'OrientationMI'}: Mutual Information of Gene Relative Orientation
   \item * \code{'GeneVector'}: Correlation of distribution of sequence level residues following Zhao et al. (2022)
   \item * \code{'SequenceInfo'}: Mutual information of sites in multiple sequence alignment
@@ -173,10 +173,10 @@ EvoWeaver's publication used a random forest model from the \code{randomForest} 
 ###############
 
 exData <- get(data("ExampleStreptomycesData"))
-ew <- EvoWeaver(exData$Genes[1:50])
+ew <- EvoWeaver(exData$Genes[1:50], MySpeciesTree=exData$Tree)
 
 # Subset isn't necessary but is faster for a working example
-evoweb1 <- predict(ew, Subset=1:10, MySpeciesTree=exData$Tree)
+evoweb1 <- predict(ew, Subset=1:10)
 
 # print out results as an adjacency matrix
 evoweb1

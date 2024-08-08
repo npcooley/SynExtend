@@ -945,37 +945,39 @@ CalcMIReduced <- function(trimmedXStringSet, start2,
   return(scores)
 }
 
-predictWithBuiltins <- function(preds){
+predictWithBuiltins <- function(preds, model=c("KEGG", "CORUM")){
   # Key: (val is binary + 1)
-  # 000 => 1: ExtantJaccard, Hamming, MI, ProfileDCA (base)
-  # 001 => 2: base and MT
-  # 010 => 3: base and Behdenna
-  # 011 => 4: base and Behdenna, MT
-  # 100 => 5: base and GeneDistance
-  # 101 => 6: base and GeneDistance, MT
-  # 110 => 7: base and Behdenna, GeneDistance
-  # 111 => 8: base and Behdenna, GeneDistance, MT
-  modelsToUse <- rep(1, nrow(preds))
-  relevant_cnames <- c('RPMirrorTree', 'Behdenna', 'GeneDistance')
+  # 000 => PP
+  # 001 => PP + PS
+  # 010 => PP + GO
+  # 011 => PP + PS + GO
+  # 100 => PP + SL
+  # 101 => PP + PS + SL
+  # 110 => PP + GO + SL
+  # 111 => PP + PS + GO + SL
+  .check_allin <- \(x,y){!(any(match(x,y,nomatch=0L)==0L))}
+  model <- match.arg(model)
+
+  pp_algs <- validate_EvoWeaver_methods("PhylogeneticProfiling")$Method
+  ps_algs <- validate_EvoWeaver_methods("PhylogeneticStructure")$Method
+  go_algs <- validate_EvoWeaver_methods("GeneOrganization")$Method
+  sl_algs <- validate_EvoWeaver_methods("SequenceLevel")$Method
+  alg_flags <- 0L
   pred_cnames <- colnames(preds)
-  for (i in seq_along(relevant_cnames)){
-    rcn <- relevant_cnames[i]
-    if (rcn %in% pred_cnames){
-      idxs <- !is.na(preds[,rcn])
-      modelsToUse[idxs] <- modelsToUse[idxs] + (2**(i-1))
-    }
+  if(!all(pp_algs %in% pred_cnames)){
+    stop("Phylogenetic profiling algorithms are required for ensemble prediction.")
   }
+  if(.check_allin(ps_algs, pred_cnames))
+    alg_flags <- alg_flags + 1L
+  if(.check_allin(go_algs, pred_cnames))
+    alg_flags <- alg_flags + 2L
+  if(.check_allin(sl_algs, pred_cnames))
+    alg_flags <- alg_flags + 4L
+
   builtins <- get(data('BuiltInEnsembles', envir=environment()))
-  if (all(modelsToUse == modelsToUse[1])){
-    return(predict(builtins[[modelsToUse[1]]], preds, type='response'))
-  } else {
-    builtInPredictions <- rep(NA, nrow(preds))
-    for (i in seq_along(builtInPredictions)){
-      model <- builtins[[modelsToUse[i]]]
-      builtInPredictions[i] <- predict(model, preds[i,], type='response')
-    }
-    return(builtInPredictions)
-  }
+  model <- builtins[[model]][[alg_flags+1L]]
+
+  predict(model, preds, type='response')
 }
 
 findSpeciesTree <- function(ew, Verbose=TRUE, NameFun=NULL, Processors=1L){

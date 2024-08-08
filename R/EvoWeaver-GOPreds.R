@@ -146,7 +146,7 @@ MoransI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     w <- as.dist(exp(-w))
     # two.sided or less ?
     # 1-greater is better
-    res <- MoransI(vals, w, alternative = 'greater')
+    res <- MoranI(vals, w, alternative = 'greater')
     #score <- mean(vals)
     score <- res$observed - res$expected
     pval <- 1-res$p.value

@@ -320,7 +320,7 @@ print.EvoWeaver <- function(x, ...){
 
 predict.EvoWeaver <- function(object, Method='Ensemble', Subset=NULL, Processors=1L,
                                MySpeciesTree=SpeciesTree(object, Verbose=Verbose),
-                               PretrainedModel=NULL,
+                               PretrainedModel="KEGG",
                                NoPrediction=FALSE,
                                ReturnDataFrame=TRUE,
                                Verbose=TRUE, ...){
@@ -416,8 +416,8 @@ predict.EvoWeaver <- function(object, Method='Ensemble', Subset=NULL, Processors
     if(Verbose) cat("Done.\n\n")
   }
 
-  if(USEENSEMBLE){
-    lst <- cbind(lst, Ensemble=EvoWeaverEnsemblePrediction(lst, NoPrediction))
+  if(USEENSEMBLE && !NoPrediction){
+    lst <- cbind(lst, Ensemble=EvoWeaverEnsemblePrediction(lst, PretrainedModel))
   }
   lst
 }
@@ -434,12 +434,18 @@ SpeciesTree.EvoWeaver <- function(ew, Verbose=TRUE, Processors=1L){
 
 #### Internal S3 Methods ####
 
-EvoWeaverEnsemblePrediction <- function(preds, NoPrediction=FALSE){
-  if(!NoPrediction){
-    warning("Pretrained models are not yet available, sorry!")
+EvoWeaverEnsemblePrediction <- function(preds, PretrainedModel="KEGG"){
+  if(is.null(PretrainedModel)){
+    stop("No model provided to 'PretrainedModel'. Try specifying PretrainedModel=\"KEGG\" or \"CORUM\"")
   }
-  newpreds <- rep(NA_real_, nrow(preds))
-  return(newpreds)
+  if (is.character(PretrainedModel)){
+    predictions <- predictWithBuiltins(preds, PretrainedModel)
+  } else if(is(PretrainedModel, 'glm')) {
+    predictions <- predict(PretrainedModel, preds, type='response')
+  } else {
+    predictions <- predict(PretrainedModel, preds)
+  }
+  predictions
 }
 
 OldEnsemble.EvoWeaver <- function(ew,
