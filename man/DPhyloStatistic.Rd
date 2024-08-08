@@ -33,7 +33,7 @@ The input \code{PAProfile} supports a number of formatting options:
   \item{Integer vector of length equivalent to the number of leaves, comprised of 0s and 1s. 0 indicates absence in the corresponding leaf, and 1 indicates presence.}
   \item{Logical vector of length equivalent to number of leaves. \code{FALSE} indicates absence in the corresponding leaf, and \code{TRUE} indicates presence.}
   }
-  
+
 See Examples for a demonstration of each case.
 }
 \value{
@@ -52,7 +52,7 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 ##########################################################
 
 # creates a dendrogram with 16 leaves and branch lengths all 1
-distMat <- suppressWarnings(matrix(1:17, nrow=16, ncol=16))
+distMat <- suppressWarnings(matrix(seq_len(17L), nrow=16, ncol=16))
 testDend <- as.dendrogram(hclust(as.dist(distMat)))
 testDend <- dendrapply(testDend, \(x){
                       attr(x, 'height') <- attr(x, 'height') / 2
@@ -82,8 +82,8 @@ DPhyloStatistic(testDend, as.character(seq(2,16,by=2)))
 
 allLabs <- as.character(labels(testDend))
 
-# All these ways create a PAProfile with 
-# presence in members 1:4 
+# All these ways create a PAProfile with
+# presence in members 1:4
 # and absence in members 5:16
 
 # numeric vector:

@@ -34,7 +34,7 @@ If a given gene is found multiple times in the same genome, the maximal score ac
 all possible pairings for that gene is used. The score for a pair of gene groups
 is the mean score of all gene pairings across the groups.
 
-\code{MoransI} measures the extent to which gene distances are preserved across a phylogeny. This function uses the same initial scoring scheme as \code{GeneDistance}. The raw scores are passed into \code{\link{MoransI}} to calculate spatial autocorrelation. "Space" is taken as \eqn{e^{-C}}, where \eqn{C} is the Cophenetic distance matrix calculated from the species tree of the inputs. As such, this method requires a species tree as input, which can be calculated from a set of gene trees using \code{\link{SuperTree}}.
+\code{MoransI} measures the extent to which gene distances are preserved across a phylogeny. This function uses the same initial scoring scheme as \code{GeneDistance}. The raw scores are passed into \code{\link{MoranI}} to calculate spatial autocorrelation. "Space" is taken as \eqn{e^{-C}}, where \eqn{C} is the Cophenetic distance matrix calculated from the species tree of the inputs. As such, this method requires a species tree as input, which can be calculated from a set of gene trees using \code{\link{SuperTree}}.
 
 \code{OrientationMI} uses mutual information of the relative orientation of each pair of genes. Conservation of relative orientation between gene pairs has been shown to imply functional association in prior work. This algorithm requires that the \code{EvoWeaver} object is initialized with a four number code, with the third number either \code{0} or \code{1}, denoting whether the gene is on the forward or reverse strand. The mutual information is calculated as:
 

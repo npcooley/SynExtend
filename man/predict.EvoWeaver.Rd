@@ -11,11 +11,11 @@ matrix with some extra S3 methods to make printing cleaner.
 \usage{
 \method{predict}{EvoWeaver}(object, Method='Ensemble',
          Subset=NULL, Processors=1L,
-         MySpeciesTree=SpeciesTree(object),
-         PretrainedModel=NULL,
+         MySpeciesTree=SpeciesTree(object, Verbose=Verbose),
+         PretrainedModel="KEGG",
          NoPrediction=FALSE,
          ReturnDataFrame=TRUE,
-         Verbose=TRUE, ...)
+         Verbose=interactive(), ...)
 }
 \arguments{
   \item{object}{
@@ -50,9 +50,12 @@ matrix with some extra S3 methods to make printing cleaner.
     Phylogenetic tree of all genomes in the dataset. Required for \code{Method=c('RPContextTree', 'GLDistance', 'CorrGL', 'MoransI', 'Behdenna')}. \code{'Behdenna'} requires a rooted, bifurcating tree (other values of \code{Method} can handle arbitrary trees). Note that \code{EvoWeaver} can automatically infer a species tree if initialized with \code{dendrogram} objects.
   }
   \item{PretrainedModel}{
-    A pretrained model for use with ensemble predictions. If unspecified when
-    \code{Method='Ensemble'}, the program will use built-in models
-    (see \code{\link{BuiltInEnsembles}}). See the examples for how to train an
+    A pretrained model for use with ensemble predictions. The default
+    value is \code{"KEGG"}, corresponding to a built-in ensemble model
+    trained on the KEGG MODULE database. Alternative values allowed
+    are \code{"CORUM"}, for a built-in ensemble model trained on the
+    CORUM database, or any user-trained model.
+    See the examples for how to train an
     ensemble method to pass to \code{PretrainedModel}.
 
     Has no effect if \code{Method != 'Ensemble'}.
@@ -172,21 +175,21 @@ EvoWeaver's publication used a random forest model from the \code{randomForest} 
 ## Prediction with built-in model and data
 ###############
 
+set.seed(555L)
 exData <- get(data("ExampleStreptomycesData"))
 ew <- EvoWeaver(exData$Genes[1:50], MySpeciesTree=exData$Tree)
 
 # Subset isn't necessary but is faster for a working example
-evoweb1 <- predict(ew, Subset=1:10)
+evoweb1 <- predict(ew, Subset=1:2)
 
 # print out results as an adjacency matrix
-evoweb1
+if(interactive()) print(evoweb1)
 
 ###############
 ## Training own ensemble model
 ###############
 
-datavals <- predict(ew)
-
+datavals <- evoweb1[,-c(1,2,10)]
 actual_values <- sample(c(0,1), nrow(datavals), replace=TRUE)
 # This example just picks random numbers
 # ***Do not do this for your own models***
@@ -195,10 +198,10 @@ actual_values <- sample(c(0,1), nrow(datavals), replace=TRUE)
 datavals[,'y'] <- actual_values
 myModel <- glm(y~., datavals[,-c(1,2)], family='binomial')
 
-testEvoWeaverObject <- EvoWeaver(exData$Genes[51:60])
+testEvoWeaverObject <- EvoWeaver(exData$Genes[51:60], MySpeciesTree=exData$Tree)
 evoweb2 <- predict(testEvoWeaverObject,
                      PretrainedModel=myModel)
 
-# Print result as a matrix of pairwise scores
-evoweb2
+# Print result as a data.frame of pairwise scores
+if(interactive()) print(evoweb2)
 }

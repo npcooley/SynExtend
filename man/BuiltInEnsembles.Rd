@@ -28,8 +28,8 @@ See the examples for how to train your own ensemble model.
 ## using built-ins
 
 exData <- get(data("ExampleStreptomycesData"))
-ew <- EvoWeaver(exData$Genes[1:50])
-datavals <- predict(ew, NoPrediction=TRUE)
+ew <- EvoWeaver(exData$Genes[seq_len(50L)], MySpeciesTree=exData$Tree)
+datavals <- predict(ew, NoPrediction=TRUE, Verbose=interactive())
 
 # Make sure the actual values correspond to the right pairs!
 # This example just picks random numbers
@@ -38,8 +38,8 @@ actual_values <- sample(c(0,1), nrow(datavals), replace=TRUE)
 datavals[,'y'] <- actual_values
 myModel <- glm(y~., datavals[,-c(1,2)], family='binomial')
 
-predictionPW <- EvoWeaver(exData$Genes[51:60])
+predictionPW <- EvoWeaver(exData$Genes[51:60], MySpeciesTree=exData$Tree)
 predict(predictionPW,
-          PretrainedModel=myModel)
+          PretrainedModel=myModel, Verbose=interactive())
 }
 \keyword{datasets}

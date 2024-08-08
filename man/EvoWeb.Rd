@@ -5,7 +5,7 @@ EvoWeb: Predictions from EvoWeaver
 }
 \docType{data}
 \description{
-EvoWeb objects are outputted from \code{\link{predict.EvoWeaver}}. 
+EvoWeb objects are outputted from \code{\link{predict.EvoWeaver}}.
 
 This class wraps the \code{\link{simMat}} object with some other diagnostic
 information intended to help interpret the output of \code{\link{EvoWeaver}}
@@ -33,7 +33,7 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 }
 \examples{
 ##############
-## Prediction with built-in model and data 
+## Prediction with built-in model and data
 ###############
 
 exData <- get(data("ExampleStreptomycesData"))

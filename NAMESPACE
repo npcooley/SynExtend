@@ -9,10 +9,10 @@ import(DBI)
 import(RSQLite)
 
 importFrom("utils", "setTxtProgressBar", "txtProgressBar", "data", "object.size", "getS3method", "read.table")
-importFrom("stats", "predict", "runif", "setNames", "rnorm", "optim", "kmeans", "density", "nls", "ppois", "pt", "pnorm", "as.dist", "fisher.test", "is.leaf", "pchisq")
+importFrom("stats", "predict", "runif", "setNames", "rnorm", "optim", "kmeans", "density", "nls", "ppois", "pt", "pnorm", "as.dist", "fisher.test", "is.leaf", "pchisq", "rbinom")
 importFrom("parallel", "mclapply", "detectCores")
-importFrom("graphics", "hist", "points", "abline", "axis", "layout", "lines", "par")
-importFrom("grDevices", "topo.colors")
+importFrom("graphics", "hist", "points", "abline", "axis", "layout", "lines", "par", "text")
+importFrom("grDevices", "topo.colors", "colorRampPalette")
 
 export(NucleotideOverlap)
 export(gffToDataFrame)

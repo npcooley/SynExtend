@@ -9,7 +9,7 @@ Authors@R: c(
 	person("Erik", "Wright", email = "ESWRIGHT@pitt.edu", role = "aut"))
 biocViews: Genetics, Clustering, ComparativeGenomics, DataImport
 Description: Shared order between genomic sequences provide a great deal of information. Synteny objects produced by the R package DECIPHER provides quantitative information about that shared order. SynExtend provides tools for extracting information from Synteny objects.
-Depends: R (>= 4.3.0), DECIPHER (>= 2.28.0)
+Depends: R (>= 4.4.0), DECIPHER (>= 2.28.0)
 Imports: methods, Biostrings, S4Vectors, IRanges, utils, stats, parallel, graphics, grDevices, RSQLite, DBI
 Suggests: BiocStyle, knitr, igraph, markdown, rmarkdown
 License: GPL-3
@@ -17,3 +17,5 @@ ByteCompile: true
 Encoding: UTF-8
 NeedsCompilation: yes
 VignetteBuilder: knitr
+URL: https://github.com/npcooley/SynExtend
+BugReports: https://github.com/npcooley/SynExtend/issues/new/

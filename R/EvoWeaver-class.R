@@ -184,7 +184,7 @@ validate_EvoWeaver_methods <- function(methodnames){
   if ("GeneOrganization" %in% methodnames)
     methodnames <- c(methodnames, go_preds)
   if ("SequenceLevel" %in% methodnames)
-    methodnames <- c(methodnames, sl_preds[1:2])
+    methodnames <- c(methodnames, sl_preds[seq_len(2L)])
   methodnames <- unique(methodnames)
   methodnames <- methodnames[!methodnames %in% meta_categories]
 
@@ -323,7 +323,7 @@ predict.EvoWeaver <- function(object, Method='Ensemble', Subset=NULL, Processors
                                PretrainedModel="KEGG",
                                NoPrediction=FALSE,
                                ReturnDataFrame=TRUE,
-                               Verbose=TRUE, ...){
+                               Verbose=interactive(), ...){
   ew <- object
   if(!is.null(Subset))
     Subset <- Standardize_Subset(Subset, ew)

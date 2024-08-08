@@ -425,7 +425,7 @@ AdjMatToDf <- function(preds, Verbose=TRUE, Subset=NULL){
   if(!is.null(Subset)){
     ## What if the user wants pair c("B", "A"), but we only have c("A","B")?
     ## This solves that
-    AdjDf[,1:2] <- t(apply(AdjDf[,1:2], 1L, sort))
+    AdjDf[,seq_len(2L)] <- t(apply(AdjDf[,seq_len(2L)], 1L, sort))
     Subset[] <- t(apply(Subset, 1L, sort))
     AdjDf <- merge(AdjDf, Subset)
   }

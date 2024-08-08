@@ -4,7 +4,7 @@
 Plot predictions in a EvoWeb object
 }
 \description{
-EvoWeb objects are outputted from \code{\link{predict.EvoWeaver}}. 
+EvoWeb objects are outputted from \code{\link{predict.EvoWeaver}}.
 
 This function plots the predictions in the object using a force-directed embedding
 of connections in the adjacency matrix.
@@ -12,9 +12,9 @@ of connections in the adjacency matrix.
 \emph{This function is still a work in progress.}
 }
 \usage{
-\method{plot}{EvoWeb}(x, NumSims=10, 
-      Gravity=0.05, Coulomb=0.1, Connection=5, 
-      MoveRate=0.25, Cutoff=0.2, ColorPalette=topo.colors, 
+\method{plot}{EvoWeb}(x, NumSims=10,
+      Gravity=0.05, Coulomb=0.1, Connection=5,
+      MoveRate=0.25, Cutoff=0.2, ColorPalette=topo.colors,
       Verbose=TRUE, ...)
 }
 \arguments{
@@ -59,14 +59,14 @@ of connections in the adjacency matrix.
   \item Coulomb Force: Repulsive force pushing close nodes away from each other
   \item Connective Force: Tries to push node connections to equal corresponding values in the adjacency matrix
   }
-  
+
   The parameters in the function are sufficient to get an embedding, though users
   are welcome to try to tune them for a better visualization. This function is meant
   to aid with visualization of the adjacency matrix, not for concrete analyses of clusters.
-  
+
   The function included in this release is early stage.
-  Next release cycle will update this function with an updated version of this 
-  algorithm to improve plotting, visualization, and runtime. 
+  Next release cycle will update this function with an updated version of this
+  algorithm to improve plotting, visualization, and runtime.
 }
 \value{
 No return value; creates a plot in the graphics window.
