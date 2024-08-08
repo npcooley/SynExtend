@@ -7,10 +7,13 @@
 # this function will always align, unlike PairSummaries
 # TODO:
 # implement ShowPlot Processors and elipses
+# It's not necessarily good to store the structure calls that align profiles needs
+# so we're going to generate them on the fly
+# we're switching the DataBase that we're pulling from because we shouldn't need
+# the raw genome
 
 SummarizePairs <- function(SynExtendObject,
-                           FeatureSeqs,
-                           DataBase,
+                           DataBase01,
                            AlignmentFun = "AlignProfiles",
                            RetainAnchors = FALSE,
                            DefaultTranslationTable = "11",
@@ -19,12 +22,15 @@ SummarizePairs <- function(SynExtendObject,
                            Verbose = FALSE,
                            ShowPlot = FALSE,
                            Processors = 1,
+                           Storage = 2,
                            ...) {
   
   if (Verbose) {
     TimeStart <- Sys.time()
     pBar <- txtProgressBar(style = 1L)
   }
+  
+  
   # overhead checking
   # object types
   if (!is(object = SynExtendObject,
@@ -32,29 +38,27 @@ SummarizePairs <- function(SynExtendObject,
     stop ("'SynExtendObject' is not an object of class 'LinkedPairs'.")
   }
   Size <- nrow(SynExtendObject)
-  if (!is(object = FeatureSeqs,
-          class2 = "FeatureSeqs")) {
-    stop ("'FeatureSeqs' is not an object of class 'FeatureSeqs'.")
-  }
+  # if (!is(object = FeatureSeqs,
+  #         class2 = "FeatureSeqs")) {
+  #   stop ("'FeatureSeqs' is not an object of class 'FeatureSeqs'.")
+  # }
   # we should only need to talk to the DataBase IF FeatureSeqs is not the right length
-  if (nrow(SynExtendObject) != length(FeatureSeqs$IDs)) {
-    # check DBPATH first, it makes some sense?
-    if (is.character(DataBase)) {
-      if (!requireNamespace(package = "RSQLite",
-                            quietly = TRUE)) {
-        stop("Package 'RSQLite' must be installed.")
-      }
-      if (!("package:RSQLite" %in% search())) {
-        print("Eventually character vector access to DECIPHER DBs will be deprecated.")
-        require(RSQLite, quietly = TRUE)
-      }
-      dbConn <- dbConnect(dbDriver("SQLite"), DataBase)
-      on.exit(dbDisconnect(dbConn))
-    } else {
-      dbConn <- DataBase
-      if (!dbIsValid(dbConn)) {
-        stop("The connection has expired.")
-      }
+  
+  if (is.character(DataBase01)) {
+    if (!requireNamespace(package = "RSQLite",
+                          quietly = TRUE)) {
+      stop("Package 'RSQLite' must be installed.")
+    }
+    if (!("package:RSQLite" %in% search())) {
+      print("Eventually character vector access to DECIPHER DBs will be deprecated.")
+      require(RSQLite, quietly = TRUE)
+    }
+    dbConn <- dbConnect(dbDriver("SQLite"), DataBase01)
+    on.exit(dbDisconnect(dbConn))
+  } else {
+    dbConn <- DataBase01
+    if (!dbIsValid(dbConn)) {
+      stop("The connection has expired.")
     }
   }
   if (!is.character(AlignmentFun) |
@@ -68,6 +72,12 @@ SummarizePairs <- function(SynExtendObject,
   if (!is.character(DefaultTranslationTable) |
       length(DefaultTranslationTable) > 1) {
     stop("DefaultTranslationTable must be a character of length 1.")
+  }
+  # check storage
+  if (Storage < 0) {
+    stop("Storage must be greater than zero.")
+  } else {
+    Storage <- Storage * 1e9 # conversion to gigabytes
   }
   # deal with Processors, this mimics Erik's error checking
   if (!is.null(Processors) && !is.numeric(Processors)) {
@@ -124,6 +134,10 @@ SummarizePairs <- function(SynExtendObject,
   }
   IDMatch <- match(x = ObjectIDs,
                    table = GeneCallIDs)
+  GeneCalls <- GeneCalls[IDMatch]
+  # we're only going to scroll through the cells that are supplied in the object
+  DataPool <- vector(mode = "list",
+                     length = length(ObjectIDs))
   
   # set initial progress bars and iterators
   # PH is going to be the container that 'res' eventually gets constructed from
@@ -158,6 +172,7 @@ SummarizePairs <- function(SynExtendObject,
                                    -1.298, 0.2, -2.062, 1.275),
                                  nrow = 4,
                                  dimnames = list(DNA_BASES, DNA_BASES))
+    
     # read this message after neighbors and k-mer dists ?
     if (Verbose) {
       cat("Aligning pairs.\n")
@@ -197,7 +212,8 @@ SummarizePairs <- function(SynExtendObject,
   # lower key!
   # same minus max and total, but for individual linking kmers
   # not all linking kmers
-  
+  block_uid <- 1L
+  Prev_m1 <- 0L
   for (m1 in seq_len(Size - 1L)) {
     for (m2 in (m1 + 1L):Size) {
       ###### -- only evaluate valid positions ---------------------------------
@@ -334,6 +350,8 @@ SummarizePairs <- function(SynExtendObject,
             L01 <- length(Blocks)
             AbsBlockSize <- rep(1L,
                                 nrow(FeaturesMat))
+            BlockID_Map <- rep(-1L,
+                               nrow(FeaturesMat))
             # only bother with this if there are blocks remaining
             # otherwise AbsBlockSize, which is initialized as a vector of 1s
             # will be left as a vector of 1s, all pairs are singleton pairs in this scenario
@@ -348,6 +366,9 @@ SummarizePairs <- function(SynExtendObject,
                 keep <- AbsBlockSize[pos] < val
                 if (any(keep)) {
                   AbsBlockSize[pos[keep]] <- val[keep]
+                  BlockID_Map[pos[keep]] <- rep(block_uid,
+                                                sum(keep))
+                  block_uid <- block_uid + 1L
                 }
               } # end m3 loop
             } # end logical check for block size
@@ -355,9 +376,12 @@ SummarizePairs <- function(SynExtendObject,
             # no blocks observed, all pairs present are singleton pairs
             AbsBlockSize <- rep(1L,
                                 nrow(FeaturesMat))
+            BlockID_Map <- rep(-1L,
+                               nrow(FeaturesMat))
           }
         } else {
           AbsBlockSize <- 1L
+          BlockID_Map <- -1L
         }
         # BlockSize evaluation is complete
         
@@ -369,63 +393,112 @@ SummarizePairs <- function(SynExtendObject,
         # if either or both is missing, they need to be pulled from the DB
         # this functionality needs to be expanded eventually to take in cases where the
         # we're overlaying something with gene calls on something that doesn't have gene calls
-        if (!all(ObjectIDs[c(m1, m2)] %in% FeatureSeqs$IDs)) {
-          # an object ID does not have a seqs present, pull them
-          # this is not a priority so we're leaving this blank for a second
-        } else {
-          TMPSeqs01 <- FALSE
-          TMPSeqs02 <- FALSE
-        }
+        # if (!all(ObjectIDs[c(m1, m2)] %in% FeatureSeqs$IDs)) {
+        #   # an object ID does not have a seqs present, pull them
+        #   # this is not a priority so we're leaving this blank for a second
+        # } else {
+        #   TMPSeqs01 <- FALSE
+        #   TMPSeqs02 <- FALSE
+        # }
         
         # regardless of how we align, we need to prepare and collect
         # the same basic statistics and look aheads
-        QueryMatch <- which(FeatureSeqs$IDs == ObjectIDs[m1])
-        if (length(QueryMatch) == 0L) {
-          # just call Prepare seqs and divy out the objects
-          z1 <- PrepareSeqs(SynExtendObject = SynExtendObject,
-                            DataBase = DataBase,
-                            Identifiers = ObjectIDs[m1],
-                            Verbose = FALSE)
-          QueryDNA <- z1$DNA[[1]]
-          QueryAA <- z1$AA[[1]]
-          QNTCount <- z1$NTCount[[1]]
-          QMod <- z1$CodingVal1[[1]]
-          QCode <- z1$CodingVal2[[1]]
-          QCDSCount <- z1$CDSCount[[1]]
-          QueryStruct <- z1$Struct[[1]]
+        # this needs to change a little,
+        # I'll be pulling the seqs from a DB, and the integers and things as well
+        if (is.null(DataPool[[m1]])) {
+          # the pool position is empty, pull from the DB
+          # and generate the AAStructures
+          DataPool[[m1]]$DNA <- SearchDB(dbFile = dbConn,
+                                         tblName = "NTs",
+                                         identifier = ObjectIDs[m1],
+                                         verbose = FALSE,
+                                         nameBy = "description")
+          DataPool[[m1]]$AA <- SearchDB(dbFile = dbConn,
+                                        tblName = "AAs",
+                                        identifier = ObjectIDs[m1],
+                                        verbose = FALSE,
+                                        nameBy = "description")
+          DataPool[[m1]]$len <- width(DataPool[[m1]]$DNA)
+          DataPool[[m1]]$mod <- DataPool[[m1]]$len %% 3L == 0
+          DataPool[[m1]]$code <- GeneCalls[[m1]]$Coding
+          # DBQUERY <- paste("select len, mod, code, cds from NTs where identifier is",
+          #                  ObjectIDs[m1])
+          # DBOUT <- dbGetQuery(conn = dbConn,
+          #                     statement = DBQUERY)
+          # DataPool[[m1]]$len <- DBOUT$len
+          # DataPool[[m1]]$mod <- DBOUT$mod
+          # DataPool[[m1]]$code <- DBOUT$code
+          # DataPool[[m1]]$cds <- DBOUT$cds
+          DataPool[[m1]]$struct <- PredictHEC(myAAStringSet = DataPool[[m1]]$AA,
+                                              type = "probabilities",
+                                              HEC_MI1 = MAT1,
+                                              HEC_MI2 = MAT2)
+          
         } else {
-          QueryDNA <- FeatureSeqs$DNA[[QueryMatch]]
-          QueryAA <- FeatureSeqs$AA[[QueryMatch]]
-          QNTCount <- FeatureSeqs$NTCount[[QueryMatch]]
-          QMod <- FeatureSeqs$CodingVal1[[QueryMatch]]
-          QCode <- FeatureSeqs$CodingVal2[[QueryMatch]]
-          QCDSCount <- FeatureSeqs$CDSCount[[QueryMatch]]
-          QueryStruct <- FeatureSeqs$Struct[[QueryMatch]]
+          # the pool position is not empty, assume that it's populated with all the information
+          # that it needs
+          # DataPool[[m1]]$struct <- PredictHEC(myAAStringSet = DataPool[[m1]]$QueryAA,
+          #                                     type = "probabilities",
+          #                                     HEC_MI1 = MAT1,
+          #                                     HEC_MI2 = MAT2)
         }
         
-        SubjectMatch <- which(FeatureSeqs$IDs == ObjectIDs[m2])
-        if (length(SubjectMatch) == 0L) {
-          # just call Prepare seqs and divy out the objects
-          z1 <- PrepareSeqs(SynExtendObject = SynExtendObject,
-                            DataBase = DataBase,
-                            Identifiers = ObjectIDs[m2],
-                            Verbose = FALSE)
-          SubjectDNA <- z1$DNA[[1]]
-          SubjectAA <- z1$AA[[1]]
-          SNTCount <- z1$NTCount[[1]]
-          SMod <- z1$CodingVal1[[1]]
-          SCode <- z1$CodingVal2[[1]]
-          SCDSCount <- z1$CDSCount[[1]]
-          SubjectStruct <- z1$Struct[[1]]
+        if (is.null(DataPool[[m2]])) {
+          # the pool position is empty, pull from DB
+          # and generate the AAStructures
+          DataPool[[m2]]$DNA <- SearchDB(dbFile = dbConn,
+                                         tblName = "NTs",
+                                         identifier = ObjectIDs[m2],
+                                         verbose = FALSE,
+                                         nameBy = "description")
+          DataPool[[m2]]$AA <- SearchDB(dbFile = dbConn,
+                                        tblName = "AAs",
+                                        identifier = ObjectIDs[m2],
+                                        verbose = FALSE,
+                                        nameBy = "description")
+          DataPool[[m2]]$len <- width(DataPool[[m2]]$DNA)
+          DataPool[[m2]]$mod <- DataPool[[m2]]$len %% 3L == 0
+          DataPool[[m2]]$code <- GeneCalls[[m2]]$Coding
+          # DBQUERY <- paste("select len, mod, code, cds from NTs where identifier is",
+          #                  ObjectIDs[m2])
+          # DBOUT <- dbGetQuery(conn = dbConn,
+          #                     statement = DBQUERY)
+          # DataPool[[m2]]$len <- DBOUT$len
+          # DataPool[[m2]]$mod <- DBOUT$mod
+          # DataPool[[m2]]$code <- DBOUT$code
+          # DataPool[[m2]]$cds <- DBOUT$cds
+          DataPool[[m2]]$struct <- PredictHEC(myAAStringSet = DataPool[[m2]]$AA,
+                                              type = "probabilities",
+                                              HEC_MI1 = MAT1,
+                                              HEC_MI2 = MAT2)
         } else {
-          SubjectDNA <- FeatureSeqs$DNA[[SubjectMatch]]
-          SubjectAA <- FeatureSeqs$AA[[SubjectMatch]]
-          SNTCount <- FeatureSeqs$NTCount[[SubjectMatch]]
-          SMod <- FeatureSeqs$CodingVal1[[SubjectMatch]]
-          SCode <- FeatureSeqs$CodingVal2[[SubjectMatch]]
-          SCDSCount <- FeatureSeqs$CDSCount[[SubjectMatch]]
-          SubjectStruct <- FeatureSeqs$Struct[[SubjectMatch]]
+          # the pool position is not empty, assume that it's populated with all the information
+          # that it needs
+          # DataPool[[m2]]$struct <- PredictHEC(myAAStringSet = DataPool[[m2]]$QueryAA,
+          #                                     type = "probabilities",
+          #                                     HEC_MI1 = MAT1,
+          #                                     HEC_MI2 = MAT2)
         }
+        
+        if (Prev_m1 != m1) {
+          QueryDNA <- DataPool[[m1]]$DNA
+          QueryAA <- DataPool[[m1]]$AA
+          QNTCount <- DataPool[[m1]]$len
+          QMod <- DataPool[[m1]]$mod
+          QCode <- DataPool[[m1]]$code
+          # QCDSCount <- DataPool[[m1]]$cds
+          QueryStruct <- DataPool[[m1]]$struct
+        } else {
+          # do something else?
+        }
+        
+        SubjectDNA <- DataPool[[m2]]$DNA
+        SubjectAA <- DataPool[[m2]]$AA
+        SNTCount <- DataPool[[m2]]$len
+        SMod <- DataPool[[m2]]$mod
+        SCode <- DataPool[[m2]]$code
+        # SCDSCount <- DataPool[[m2]]$cds
+        SubjectStruct <- DataPool[[m2]]$struct
         
         # align everyone as AAs who can be, i.e. modulo of 3, is coding, etc
         # then align everyone else as nucs
@@ -693,6 +766,17 @@ SummarizePairs <- function(SynExtendObject,
                          length(QCode))
           }
           AASelect <- QCode[PMatrix[, 1L]] & QMod[PMatrix[, 1L]] & SCode[PMatrix[, 2L]] & SMod[PMatrix[, 2L]]
+          # return(list("AASelect" = AASelect,
+          #             "QCode" = QCode[PMatrix[, 1L]],
+          #             "QMod" = QMod[PMatrix[, 1L]],
+          #             "SCode" = SCode[PMatrix[, 2L]],
+          #             "SMod" = SMod[PMatrix[, 2L]],
+          #             "PMatrix" = PMatrix,
+          #             "DataPool" = DataPool,
+          #             "m1" = m1,
+          #             "m2" = m2,
+          #             "ws1" = ws1,
+          #             "ws2" = ws2))
           for (m3 in seq_along(NucDist)) {
             
             NucDist[m3] <- sqrt(sum((nuc1[m3, ] - nuc2[m3, ])^2)) / ((sum(nuc1[m3, ]) + sum(nuc2[m3, ])) / 2)
@@ -749,7 +833,8 @@ SummarizePairs <- function(SynExtendObject,
                                   "Score" = vec2,
                                   "Alignment" = ifelse(test = AASelect,
                                                        yes = "AA",
-                                                       no = "NT"))
+                                                       no = "NT"),
+                                  "Block_UID" = BlockID_Map)
       } else {
         # link table is not populated
         PH[[Count]] <- data.frame("p1" = character(),
@@ -764,15 +849,37 @@ SummarizePairs <- function(SynExtendObject,
                                   "UniqueMatches" = integer(),
                                   "PID" = numeric(),
                                   "Score" = numeric(),
-                                  "Alignment" = character())
+                                  "Alignment" = character(),
+                                  "Block_UID" = integer())
       }
       # Count and PBCount are unlinked,
       # iterate through both separately and correctly
       Count <- Count + 1L
+      
+      if (object.size(DataPool) > Storage) {
+        sw1 <- sapply(X = DataPool,
+                      FUN = function(x) {
+                        is.null(x)
+                      })
+        sw2 <- which(sw1)
+        if (length(sw2) > 0) {
+          # bonk the first one ... this might realistically need to happen in a while loop, but for now we can live with this
+          DataPool[[sw2[1L]]] <- NULL
+        } else {
+          # i don't know if this case can happen, but we're putting a print statement here just in case
+          print("Unexpected case occured while managing storage. Please contact maintainer.")
+        }
+      }
+      Prev_m1 <- m1
     } # end m2
   } # end m1
   res <- do.call(rbind,
                  PH)
+  # return(res)
+  All_UIDs <- unique(res$Block_UID)
+  res$Block_UID[res$Block_UID == -1L] <- seq(from = max(All_UIDs) + 1L,
+                                             by = 1L,
+                                             length.out = sum(res$Block_UID == -1L))
   attr(x = res,
        which = "GeneCalls") <- GeneCalls
   class(res) <- c("data.frame",

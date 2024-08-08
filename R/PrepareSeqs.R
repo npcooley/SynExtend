@@ -3,13 +3,13 @@
 # maintainer: nicholas cooley
 # contact: npc19@pitt.edu
 
-# given an object that has a GeneCalls attribute
+# TODO
+# instead of storing these as an object in the R session, send them to a DB
 
 PrepareSeqs <- function(SynExtendObject,
-                        DataBase,
+                        DataBase01,
                         DefaultTranslationTable = "11",
                         Identifiers = NULL,
-                        Storage = 1,
                         Verbose = FALSE) {
   
   if (Verbose) {
@@ -19,13 +19,11 @@ PrepareSeqs <- function(SynExtendObject,
   
   # check object type -- currently only PairSummaries and LinkedPairs
   if (!is(object = SynExtendObject,
-          class2 = "PairSummaries") &
-      !is(object = SynExtendObject,
           class2 = "LinkedPairs")) {
-    stop("'SynExtendObject' must be an object of class 'PairSummaries' or 'LinkedPairs'.")
+    stop("'SynExtendObject' must be an object of class 'LinkedPairs'.")
   }
-  # initialize database
-  if (is.character(DataBase)) {
+  # initialize database01
+  if (is.character(DataBase01)) {
     if (!requireNamespace(package = "RSQLite",
                           quietly = TRUE)) {
       stop("Package 'RSQLite' must be installed.")
@@ -34,19 +32,13 @@ PrepareSeqs <- function(SynExtendObject,
       print("Eventually character vector access to DECIPHER DBs will be deprecated.")
       require(RSQLite, quietly = TRUE)
     }
-    dbConn <- dbConnect(dbDriver("SQLite"), DataBase)
-    on.exit(dbDisconnect(dbConn))
+    dbConn01 <- dbConnect(dbDriver("SQLite"), DataBase01)
+    on.exit(dbDisconnect(dbConn01))
   } else {
-    dbConn <- DataBase
-    if (!dbIsValid(dbConn)) {
+    dbConn01 <- DataBase01
+    if (!dbIsValid(dbConn01)) {
       stop("The connection has expired.")
     }
-  }
-  # check storage
-  if (Storage < 0) {
-    stop("Storage must be greater than zero.")
-  } else {
-    Storage <- Storage * 1e9 # conversion to gigabytes
   }
   
   # get the genecalls!
@@ -69,6 +61,8 @@ PrepareSeqs <- function(SynExtendObject,
     } else {
       stop ("Identifiers must be supplied as characters.")
     }
+  } else {
+    Identifiers <- names(GeneCalls)
   }
   if (length(GeneCalls) < 1) {
     stop("Requested subset not found.")
@@ -79,37 +73,41 @@ PrepareSeqs <- function(SynExtendObject,
   if (Verbose) {
     cat("Preparing overhead data.\n")
   }
+  # it's too expensive to store anything but the seqs in the db
   # load in structure matrices once for PredictHEC
   # these hardcoded values come from Erik ... AlignProfiles maybe?
-  MAT1 <- get(data("HEC_MI1",
-                   package = "DECIPHER",
-                   envir = environment()))
-  MAT2 <- get(data("HEC_MI2",
-                   package = "DECIPHER",
-                   envir = environment()))
-  structureMatrix <- matrix(c(0.187, -0.8, -0.873,
-                              -0.8, 0.561, -0.979,
-                              -0.873, -0.979, 0.221),
-                            3,
-                            3,
-                            dimnames=list(c("H", "E", "C"),
-                                          c("H", "E", "C")))
-  substitutionMatrix <- matrix(c(1.5, -2.134, -0.739, -1.298,
-                                 -2.134, 1.832, -2.462, 0.2,
-                                 -0.739, -2.462, 1.522, -2.062,
-                                 -1.298, 0.2, -2.062, 1.275),
-                               nrow = 4,
-                               dimnames = list(DNA_BASES, DNA_BASES))
-  Features01 <- Features02 <- AAStruct <- FeatureLengths <- FeatureMods <- FeatureCode <- FeatureCDSCount <- vector("list",
-                                                                                                                    length = length(GeneCalls))
-  L <- length(GeneCalls)
+  # MAT1 <- get(data("HEC_MI1",
+  #                  package = "DECIPHER",
+  #                  envir = environment()))
+  # MAT2 <- get(data("HEC_MI2",
+  #                  package = "DECIPHER",
+  #                  envir = environment()))
+  # structureMatrix <- matrix(c(0.187, -0.8, -0.873,
+  #                             -0.8, 0.561, -0.979,
+  #                             -0.873, -0.979, 0.221),
+  #                           3,
+  #                           3,
+  #                           dimnames=list(c("H", "E", "C"),
+  #                                         c("H", "E", "C")))
+  # substitutionMatrix <- matrix(c(1.5, -2.134, -0.739, -1.298,
+  #                                -2.134, 1.832, -2.462, 0.2,
+  #                                -0.739, -2.462, 1.522, -2.062,
+  #                                -1.298, 0.2, -2.062, 1.275),
+  #                              nrow = 4,
+  #                              dimnames = list(DNA_BASES,
+  #                                              DNA_BASES))
+  # Features01 <- Features02 <- AAStruct <- FeatureLengths <- FeatureMods <- FeatureCode <- FeatureCDSCount <- vector("list",
+  #                                                                                                                   length = length(GeneCalls))
   
+  # test <- vector(mode = "list",
+  #                length = length(GeneCalls))
+  L <- length(GeneCalls)
   Count <- 1L
-  while (object.size(Features01) < Storage &
-         Count <= L) {
+  while (Count <= L) {
     # print(object.size(Features01))
     # print(Count)
-    Genome <- SearchDB(dbFile = dbConn,
+    Genome <- SearchDB(dbFile = dbConn01,
+                       tblName = "Seqs",
                        identifier = names(GeneCalls[Count]),
                        nameBy = "description",
                        type = "DNAStringSet",
@@ -127,7 +125,7 @@ PrepareSeqs <- function(SynExtendObject,
     if (length(PresentIndices) > 1L) {
       # many indices, loop through present indices and extract
       # slam together at the end
-      Features01[[Count]] <- vector(mode = "list",
+      Features01 <- vector(mode = "list",
                                     length = length(PresentIndices))
       for (m3 in seq_along(PresentIndices)) {
         ph <- GeneCalls[[Count]]$Index == PresentIndices[m3]
@@ -139,7 +137,7 @@ PrepareSeqs <- function(SynExtendObject,
         # convert IRangesList to IRanges object for simple extractAt
         z1 <- unlist(z1,
                      recursive = FALSE)
-        Features01[[Count]][[m3]] <- extractAt(x = Genome[[PresentIndices[m3]]],
+        Features01[[m3]] <- extractAt(x = Genome[[PresentIndices[m3]]],
                                                at = z1)
         CollapseCount <- 0L
         w <- which(z2 > 1L)
@@ -150,19 +148,19 @@ PrepareSeqs <- function(SynExtendObject,
           remove <- vector(mode = "integer",
                            length = sum(z2[w]) - length(w))
           for (m4 in w) {
-            Features01[[Count]][[m3]][[m4 + CollapseCount]] <- unlist(Features01[[Count]][[m3]][m4:(m4 + z2[m4] - 1L) + CollapseCount])
+            Features01[[m3]][[m4 + CollapseCount]] <- unlist(Features01[[m3]][m4:(m4 + z2[m4] - 1L) + CollapseCount])
             remove[(CollapseCount + 1L):(CollapseCount + z2[m4] - 1L)] <- (m4 + 1L):(m4 + z2[m4] - 1L) + CollapseCount
             CollapseCount <- CollapseCount + z2[m4] - 1L
           }
-          Features01[[Count]][[m3]][remove] <- NULL
+          Features01[[m3]][remove] <- NULL
         }
         FlipMe <- GeneCalls[[Count]]$Strand[ph] == 1L
         if (any(FlipMe)) {
-          Features01[[Count]][[m3]][FlipMe] <- reverseComplement(Features01[[Count]][[m3]][FlipMe])
+          Features01[[m3]][FlipMe] <- reverseComplement(Features01[[m3]][FlipMe])
         }
       }
-      Features01[[Count]] <- do.call(c,
-                                     Features01[[Count]])
+      Features01 <- do.call(c,
+                            Features01)
       
     } else {
       # implementation 3 - shortest possible collapse loops and fewest copies - so far
@@ -170,7 +168,7 @@ PrepareSeqs <- function(SynExtendObject,
       z2 <- lengths(z1)
       z1 <- unlist(z1,
                    recursive = FALSE)
-      Features01[[Count]] <- extractAt(x = Genome[[PresentIndices]],
+      Features01 <- extractAt(x = Genome[[PresentIndices]],
                                        at = z1)
       CollapseCount <- 0L
       w <- which(z2 > 1)
@@ -178,27 +176,27 @@ PrepareSeqs <- function(SynExtendObject,
         remove <- vector(mode = "integer",
                          length = sum(z2[w]) - length(w))
         for (m4 in w) {
-          Features01[[Count]][[m4 + CollapseCount]] <- unlist(Features01[[Count]][m4:(m4 + z2[m4] - 1L) + CollapseCount])
+          Features01[[m4 + CollapseCount]] <- unlist(Features01[m4:(m4 + z2[m4] - 1L) + CollapseCount])
           remove[(CollapseCount + 1L):(CollapseCount + z2[m4] - 1L)] <- (m4 + 1L):(m4 + z2[m4] - 1L) + CollapseCount
           CollapseCount <- CollapseCount + z2[m4] - 1L
         }
-        Features01[[Count]][remove] <- NULL
+        Features01[remove] <- NULL
       }
       
       FlipMe <- GeneCalls[[Count]]$Strand == 1L
       if (any(FlipMe)) {
-        Features01[[Count]][FlipMe] <- reverseComplement(Features01[[Count]][FlipMe])
+        Features01[FlipMe] <- reverseComplement(Features01[FlipMe])
       }
       
     }
-    names(Features01[[Count]]) <- paste(rep(names(GeneCalls)[Count], length(Features01[[Count]])),
+    names(Features01) <- paste(rep(names(GeneCalls)[Count], length(Features01)),
                                         GeneCalls[[Count]]$Index,
-                                        seq(length(Features01[[Count]])),
+                                        seq(length(Features01)),
                                         sep = "_")
-    FeatureLengths[[Count]] <- width(Features01[[Count]])
-    FeatureMods[[Count]] <- (FeatureLengths[[Count]] %% 3L) == 0L
-    FeatureCode[[Count]] <- GeneCalls[[Count]]$Coding
-    FeatureCDSCount[[Count]] <- lengths(GeneCalls[[Count]]$Range)
+    # FeatureLengths <- width(Features01)
+    # FeatureMods <- (FeatureLengths %% 3L) == 0L
+    # FeatureCode <- GeneCalls[[Count]]$Coding
+    # FeatureCDSCount <- lengths(GeneCalls[[Count]]$Range)
     
     # translate all translatable features with as few calls as possible
     ph <- unique(GeneCalls[[Count]]$Translation_Table)
@@ -211,13 +209,13 @@ PrepareSeqs <- function(SynExtendObject,
       CurrentGeneticCode <- getGeneticCode(id_or_name2 = ph,
                                            full.search = FALSE,
                                            as.data.frame = FALSE)
-      Features02[[Count]] <- suppressWarnings(translate(x = Features01[[Count]][phkey],
+      Features02 <- suppressWarnings(translate(x = Features01[phkey],
                                                         genetic.code = CurrentGeneticCode,
                                                         if.fuzzy.codon = "solve"))
-      Features02[[Count]] <- Features02[[Count]][order(phkey)]
-      # print(length(Features02[[Count]]))
+      Features02 <- Features02[order(phkey)]
+      # print(length(Features02))
     } else {
-      Features02[[Count]] <- vector(mode = "list",
+      Features02 <- vector(mode = "list",
                                     length = length(ph))
       phkey <- vector(mode = "list",
                       length = length(ph))
@@ -230,32 +228,60 @@ PrepareSeqs <- function(SynExtendObject,
         CurrentGeneticCode <- getGeneticCode(id_or_name2 = ph[m4],
                                              full.search = FALSE,
                                              as.data.frame = FALSE)
-        Features02[[Count]][[m4]] <- suppressWarnings(translate(x = Features01[[Count]][matchph],
+        Features02[[m4]] <- suppressWarnings(translate(x = Features01[matchph],
                                                                 genetic.code = CurrentGeneticCode,
                                                                 if.fuzzy.codon = "solve"))
       }
-      Features02[[Count]] <- do.call(c,
-                                     Features02[[Count]])
+      Features02 <- do.call(c,
+                                     Features02)
       phkey <- unlist(phkey)
-      Features02[[Count]] <- Features02[[Count]][order(phkey)]
+      Features02 <- Features02[order(phkey)]
       
     }
     # rewrite ph to provide the correct names for the features
     ph <- GeneCalls[[Count]]$Coding & (GeneCalls[[Count]]$Type == "gene" | GeneCalls[[Count]]$Type == "pseudogene")
     
-    names(Features02[[Count]]) <- paste(rep(names(GeneCalls)[Count], length(Features02[[Count]])),
+    names(Features02) <- paste(rep(names(GeneCalls)[Count], length(Features02)),
                                         GeneCalls[[Count]]$Index[ph],
-                                        seq(length(Features01[[Count]]))[ph],
+                                        seq(length(Features01))[ph],
                                         sep = "_")
     
-    # generate structures for aa alignments if there are 
-    if (!is.null(Features02[[Count]])) {
-      AAStruct[[Count]] <- PredictHEC(myAAStringSet = Features02[[Count]],
-                                      type = "probabilities",
-                                      HEC_MI1 = MAT1,
-                                      HEC_MI2 = MAT2)
-      names(AAStruct[[Count]]) <- names(Features02[[Count]])
-    }
+    Seqs2DB(seqs = Features01,
+            dbFile = dbConn01,
+            tblName = "NTs",
+            type = "XStringSet",
+            verbose = FALSE,
+            identifier = Identifiers[Count])
+    Seqs2DB(seqs = Features02,
+            dbFile = dbConn01,
+            tblName = "AAs",
+            type = "XStringSet",
+            verbose = FALSE,
+            identifier = Identifiers[Count])
+    # new_rows <- dbGetQuery(conn = dbConn01,
+    #                        statement = paste("select row_names from NTs where identifier is",
+    #                                          Identifiers[Count]))$row_names
+    # # print(length(new_rows))
+    # # print(head(new_rows))
+    # dat01 <- data.frame("len" = FeatureLengths,
+    #                     "mod" = as.integer(FeatureMods),
+    #                     "code" = as.integer(FeatureCode),
+    #                     "cds" = FeatureCDSCount,
+    #                     row.names = new_rows)
+    # Add2DB(myData = dat01,
+    #        dbFile = dbConn01,
+    #        tblName = "NTs",
+    #        verbose = FALSE)
+    # print(Count)
+    # print(Identifiers[Count])
+    # print(head(dat01))
+    # print(dim(dat01))
+    # print(length(Features01))
+    # print(paste("identifier is",
+    #             Identifiers[Count]))
+    # test[[Count]] <- list("aa" = Features01,
+    #                       "nt" = Features02,
+    #                       "dat" = dat01)
     
     if (Verbose) {
       setTxtProgressBar(pb = pBar,
@@ -263,39 +289,16 @@ PrepareSeqs <- function(SynExtendObject,
     }
     
     Count <- Count + 1L
-    # will extract till storage is exceeded
-    # will not cap at storage
   } # end while loop
   
   if (Verbose) {
     close(pBar)
-    if (Count < L) {
-      cat("Overhead is larger than storage request.\nSearch loops will require database lookups.\n")
-      # RemoveWhenAble <- TRUE
-    } else {
-      cat("Complete!\n")
-      # RemoveWhenAble <- FALSE
-    }
+    cat("Complete!\n")
     TimeEnd <- Sys.time()
     print(TimeEnd - TimeStart)
   }
-  
-  w1 <- sapply(X = Features01,
-               FUN = function(x) {
-                 !is.null(x)
-               },
-               simplify = TRUE)
-  
-  res <- list("DNA" = Features01[w1],
-              "AA" = Features02[w1],
-              "Struct" = AAStruct[w1],
-              "IDs" = names(GeneCalls)[w1],
-              "NTCount" = FeatureLengths[w1],
-              "CodingVal1" = FeatureMods[w1],
-              "CodingVal2" = FeatureCode[w1],
-              "CDSCount" = FeatureCDSCount[w1])
-  class(res) <- c("list", "FeatureSeqs")
-  return(res)
+  # return(test)
+  invisible(Count)
 }
 
 

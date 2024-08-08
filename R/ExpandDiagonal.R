@@ -3,7 +3,6 @@
 # contact: npc19@pitt.edu / npcooley@gmail.com
 
 ExpandDiagonal <- function(SynExtendObject,
-                           FeatureSeqs,
                            DataBase,
                            InheritConfidence = TRUE,
                            GapTolerance = 100L,
@@ -89,7 +88,7 @@ ExpandDiagonal <- function(SynExtendObject,
   # build overhead data in a way that makes sense
   GeneCalls <- attr(x = SynExtendObject,
                     which = "GeneCalls")
-  SuppliedFeatures <- as.integer(FeatureSeqs$IDs)
+  # SuppliedFeatures <- as.integer(FeatureSeqs$IDs)
   GCIDs <- as.integer(names(GeneCalls))
   L <- length(GeneCalls)
   L2 <- (L * (L - 1L)) / 2L
@@ -117,6 +116,8 @@ ExpandDiagonal <- function(SynExtendObject,
   # we have to scroll through each occupied cell of the upper triangle, like before
   # now instead of figuring out our edges based on hits, we're seeing whether any
   # 'adjacent' edges along the diagonals fit a user defined criteria for a positive edge
+  prev_w1 <- 0L
+  prev_w2 <- 0L
   for (m1 in seq(nrow(GMat))) {
     # what is the current comparison
     w1 <- GMat[m1, 1L]
@@ -197,38 +198,78 @@ ExpandDiagonal <- function(SynExtendObject,
                         }
                       },
                       simplify = TRUE)
-    if (w1 %in% SuppliedFeatures) {
-      CurrentW1Seqs <- lapply(X = FeatureSeqs,
-                              FUN = function(x) {
-                                x[w1]
-                              })
-    } else {
-      CurrentW1Seqs <- PrepareSeqs(SynExtendObject = SynExtendObject,
-                                   Identifiers = as.character(w1),
-                                   DataBase = DataBase,
-                                   Verbose = FALSE)
+    
+    # pull seqs, this needs to be more efficient in the future
+    if (prev_w1 != w1) {
+      out1 <- SearchDB(dbFile = dbConn,
+                       tblName = "NTs",
+                       identifier = as.character(w1),
+                       verbose = FALSE,
+                       nameBy = "description")
+      out2 <- SearchDB(dbFile = dbConn,
+                       tblName = "AAs",
+                       identifier = as.character(w1),
+                       verbose = FALSE,
+                       nameBy = "description")
+      
+      # DBQUERY <- paste("select length, mod, code, cds from NTs where identifier is",
+      #                  w1)
+      # out3 <- dbGetQuery(conn = dbConn,
+      #                    statement = DBQUERY)
+      CurrentW1Seqs <- list("DNA" = out1,
+                            "AA" = out2,
+                            "Struct" = PredictHEC(myAAStringSet = out2,
+                                                  type = "probabilities",
+                                                  HEC_MI1 = MAT1,
+                                                  HEC_MI2 = MAT2),
+                            "NTCount" = width(out1),
+                            "CodingVal1" = GeneCalls[[match(x = w1,
+                                                            table = GCIDs)]]$Coding,
+                            "CodingVal2" = width(out1) %% 3L == 0L,
+                            "CDSCount" = lengths(GeneCalls[[match(x = w1,
+                                                                  table = GCIDs)]]$Range))
     }
-    if (w2 %in% SuppliedFeatures) {
-      CurrentW2Seqs <- lapply(X = FeatureSeqs,
-                              FUN = function(x) {
-                                x[w2]
-                              })
-    } else {
-      CurrentW2Seqs <- PrepareSeqs(SynExtendObject = SynExtendObject,
-                                   Identifiers = as.character(w2),
-                                   DataBase = DataBase,
-                                   Verbose = FALSE)
+    
+    if (prev_w2 != w2) {
+      out1 <- SearchDB(dbFile = dbConn,
+                       tblName = "NTs",
+                       identifier = as.character(w2),
+                       verbose = FALSE,
+                       nameBy = "description")
+      out2 <- SearchDB(dbFile = dbConn,
+                       tblName = "AAs",
+                       identifier = as.character(w2),
+                       verbose = FALSE,
+                       nameBy = "description")
+      # DBQUERY <- paste("select length, mod, code, cds from NTs where identifier is",
+      #                  w2)
+      # out3 <- dbGetQuery(conn = dbConn,
+      #                    statement = DBQUERY)
+      CurrentW2Seqs <- list("DNA" = out1,
+                            "AA" = out2,
+                            "Struct" = PredictHEC(myAAStringSet = out2,
+                                                  type = "probabilities",
+                                                  HEC_MI1 = MAT1,
+                                                  HEC_MI2 = MAT2),
+                            "NTCount" = width(out1),
+                            "CodingVal1" = GeneCalls[[match(x = w2,
+                                                            table = GCIDs)]]$Coding,
+                            "CodingVal2" = width(out1) %% 3L == 0L,
+                            "CDSCount" = lengths(GeneCalls[[match(x = w2,
+                                                                  table = GCIDs)]]$Range))
     }
-    nuc1 <- oligonucleotideFrequency(x = CurrentW1Seqs$DNA[[1]],
+    
+    
+    nuc1 <- oligonucleotideFrequency(x = CurrentW1Seqs$DNA,
                                      width = KmerSize,
                                      as.prob = TRUE)
-    nuc2 <- oligonucleotideFrequency(x = CurrentW2Seqs$DNA[[1]],
+    nuc2 <- oligonucleotideFrequency(x = CurrentW2Seqs$DNA,
                                      width = KmerSize,
                                      as.prob = TRUE)
-    Features01Match <- match(x = names(CurrentW1Seqs$DNA[[1]]),
-                             table = names(CurrentW1Seqs$AA[[1]]))
-    Features02Match <- match(x = names(CurrentW2Seqs$DNA[[1]]),
-                             table = names(CurrentW2Seqs$AA[[1]]))
+    Features01Match <- match(x = names(CurrentW1Seqs$DNA),
+                             table = names(CurrentW1Seqs$AA))
+    Features02Match <- match(x = names(CurrentW2Seqs$DNA),
+                             table = names(CurrentW2Seqs$AA))
     
     # for each Index Pair Matrix
     Res[[m1]] <- vector(mode = "list",
@@ -550,16 +591,16 @@ ExpandDiagonal <- function(SynExtendObject,
             # third ask if these sequences have already been aligned
             # CURRENTLY NOT IMPLEMENTED
             # third ask if both f1 and f2 are both coding
-            if (CurrentW1Seqs$CodingVal1[[1]][f1 - ci1lower + 1L] &
-                CurrentW1Seqs$CodingVal2[[1]][f1 - ci1lower + 1L] &
-                CurrentW2Seqs$CodingVal1[[1]][f2 - ci2lower + 1L] &
-                CurrentW2Seqs$CodingVal2[[1]][f2 - ci2lower + 1L]) {
+            if (CurrentW1Seqs$CodingVal1[f1 - ci1lower + 1L] &
+                CurrentW1Seqs$CodingVal2[f1 - ci1lower + 1L] &
+                CurrentW2Seqs$CodingVal1[f2 - ci2lower + 1L] &
+                CurrentW2Seqs$CodingVal2[f2 - ci2lower + 1L]) {
               # both are coding
               
-              ali <- AlignProfiles(pattern = CurrentW1Seqs$AA[[1]][Features01Match[f1 - ci1lower + 1L]],
-                                   subject = CurrentW2Seqs$AA[[1]][Features02Match[f2 - ci2lower + 1L]],
-                                   p.struct = CurrentW1Seqs$Struct[[1]][Features01Match[f1 - ci1lower + 1L]],
-                                   s.struct = CurrentW2Seqs$Struct[[1]][Features02Match[f2 - ci2lower + 1L]])
+              ali <- AlignProfiles(pattern = CurrentW1Seqs$AA[Features01Match[f1 - ci1lower + 1L]],
+                                   subject = CurrentW2Seqs$AA[Features02Match[f2 - ci2lower + 1L]],
+                                   p.struct = CurrentW1Seqs$Struct[Features01Match[f1 - ci1lower + 1L]],
+                                   s.struct = CurrentW2Seqs$Struct[Features02Match[f2 - ci2lower + 1L]])
               PID <- 1 - DistanceMatrix(myXStringSet = ali,
                                         type = "matrix",
                                         includeTerminalGaps = TRUE,
@@ -574,8 +615,8 @@ ExpandDiagonal <- function(SynExtendObject,
               CType <- "AA"
             } else {
               # at least one is not coding
-              ali <- AlignProfiles(pattern = CurrentW1Seqs$DNA[[1]][f1 - ci1lower + 1L],
-                                   subject = CurrentW2Seqs$DNA[[1]][f2 - ci2lower + 1L])
+              ali <- AlignProfiles(pattern = CurrentW1Seqs$DNA[f1 - ci1lower + 1L],
+                                   subject = CurrentW2Seqs$DNA[f2 - ci2lower + 1L])
               PID <- 1 - DistanceMatrix(myXStringSet = ali,
                                         type = "matrix",
                                         includeTerminalGaps = TRUE,
@@ -601,8 +642,8 @@ ExpandDiagonal <- function(SynExtendObject,
               # assign integers to result vectors
               p1placeholder[Count] <- f1
               p2placeholder[Count] <- f2
-              p1FeatureLength[Count] <- CurrentW1Seqs$NTCount[[1]][f1 - ci1lower + 1L]
-              p2FeatureLength[Count] <- CurrentW2Seqs$NTCount[[1]][f2 - ci2lower + 1L]
+              p1FeatureLength[Count] <- CurrentW1Seqs$NTCount[f1 - ci1lower + 1L]
+              p2FeatureLength[Count] <- CurrentW2Seqs$NTCount[f2 - ci2lower + 1L]
               PIDVector[Count] <- PID
               SCOREVector[Count] <- SCORE
               AType[Count] <- CType
@@ -720,6 +761,8 @@ ExpandDiagonal <- function(SynExtendObject,
                                         "PID" = PIDVector,
                                         "Score" = SCOREVector,
                                         "Alignment" = AType,
+                                        "Block_UID" = rep(-1L,
+                                                          times = L2),
                                         "ClusterID" = rep(NewClusterID,
                                                           times = L2),
                                         stringsAsFactors = FALSE)
@@ -755,6 +798,7 @@ ExpandDiagonal <- function(SynExtendObject,
                       "PID" = numeric(0L),
                       "SCORE" = numeric(0L),
                       "Alignment" = character(0L),
+                      "Block_UID" = integer(0L),
                       "ClusterID" = integer(0L),
                       stringsAsFactors = FALSE)
   } else {
@@ -782,9 +826,14 @@ ExpandDiagonal <- function(SynExtendObject,
   }
   # if new rows have been added, fold them in, recalculate blocksize
   if (nrow(Res) > 0L) {
+    # return(list(SynExtendObject,
+    #             Res,
+    #             CurrentW1Seqs,
+    #             CurrentW2Seqs))
     Res <- rbind(SynExtendObject,
                  Res)
     
+    block_uid <- 1L
     FeaturesMat2 <- do.call(rbind,
                             strsplit(x = paste(Res$p1,
                                                Res$p2,
@@ -892,6 +941,8 @@ ExpandDiagonal <- function(SynExtendObject,
           L01 <- length(Blocks)
           AbsBlockSize <- rep(1L,
                               nrow(SubFeatures))
+          BlockID_Map <- rep(-1L,
+                             nrow(SubFeatures))
           # only bother with this if there are blocks remaining
           # otherwise AbsBlockSize, which is initialized as a vector of 1s
           # will be left as a vector of 1s, all pairs are singleton pairs in this scenario
@@ -907,6 +958,9 @@ ExpandDiagonal <- function(SynExtendObject,
               keep <- AbsBlockSize[pos] < val
               if (any(keep)) {
                 AbsBlockSize[pos[keep]] <- val[keep]
+                BlockID_Map[pos[keep]] <- rep(block_uid,
+                                              sum(keep))
+                block_uid <- block_uid + 1L
               }
             } # end m3 loop
           } # end logical check for block size
@@ -914,6 +968,8 @@ ExpandDiagonal <- function(SynExtendObject,
           # no blocks observed, all pairs present are singleton pairs
           AbsBlockSize <- rep(1L,
                               nrow(SubFeatures))
+          BlockID_Map <- rep(-1L,
+                             nrow(SubFeatures))
         }
       } else {
         AbsBlockSize <- 1L
