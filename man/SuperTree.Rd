@@ -17,9 +17,9 @@ SuperTree(myDendList, NAMEFUN=NULL, Verbose=TRUE, Processors=1)
   List of \code{dendrogram} objects, where each entry is an unrooted gene tree.
 }
 \item{NAMEFUN}{
-  Optional input specifying a function to apply to each leaf to convert gene tree leaf 
+  Optional input specifying a function to apply to each leaf to convert gene tree leaf
   labels into species names. This function should take as input a character vector
-  and return a character vector of the same size. By default equals \code{NULL}, 
+  and return a character vector of the same size. By default equals \code{NULL},
   indicating that gene tree leaves are already labeled with species identifiers.
   See details for more information.
 }
@@ -37,10 +37,10 @@ This implementation follows the ASTRID algorithm for estimating a species tree f
 
 If two species never appear together in a gene tree, their distance cannot be estimated in the algorithm and will thus be missing. \code{SuperTree} handles this by imputing the value using the distances available with data-interpolating empirical orthogonal functions (DINEOF). This approach has relatively high accuracy even up to high levels of missingness. Eigenvector calculation speed is improved using a Lanczos algorithm for matrix compression.
 
-\code{SuperTree} allows an optional argument called \code{NAMEFUN} to apply a 
-renaming step to leaf labels. Gene trees as constructed by other functions in 
-\code{SynExtend} (ex. \code{\link{DisjointSet}}) often include other information 
-aside from species name when labeling genes, but \code{SuperTree} requires that 
+\code{SuperTree} allows an optional argument called \code{NAMEFUN} to apply a
+renaming step to leaf labels. Gene trees as constructed by other functions in
+\code{SynExtend} (ex. \code{\link{DisjointSet}}) often include other information
+aside from species name when labeling genes, but \code{SuperTree} requires that
 leaf nodes of the gene tree are labeled with just an identifier corresponding to
 which species/genome each leaf is from. Duplicate values are allowed. See the examples
 section for more details on what this looks like and how to handle it.
@@ -70,7 +70,7 @@ data("SuperTreeEx", package="SynExtend")
 # Notice that the labels of the tree are in #_#_# format
 # See the man page for SuperTreeEx for more info
 labs <- labels(exData[[1]])
-labs
+if(interative()) print(labs)
 
 # The first number corresponds to the species,
 # so we need to trim the rest in each leaf label
