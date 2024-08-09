@@ -3,8 +3,8 @@
 # contact: npc19@pitt.edu / npcooley@gmail.com
 
 ExpandDiagonal <- function(SynExtendObject,
-                           DataBase,
-                           InheritConfidence = TRUE,
+                           DataBase01,
+                           InheritConfidence = FALSE,
                            GapTolerance = 100L,
                            DropSingletons = FALSE,
                            UserConfidence = list("PID" = 0.3),
@@ -20,7 +20,7 @@ ExpandDiagonal <- function(SynExtendObject,
     stop ("SynExtendObject must be an object of class 'PairSummaries'.")
   }
   # check DBPATH first
-  if (is.character(DataBase)) {
+  if (is.character(DataBase01)) {
     if (!requireNamespace(package = "RSQLite",
                           quietly = TRUE)) {
       stop("Package 'RSQLite' must be installed.")
@@ -29,10 +29,10 @@ ExpandDiagonal <- function(SynExtendObject,
       print("Eventually character vector access to DECIPHER DBs will be deprecated.")
       require(RSQLite, quietly = TRUE)
     }
-    dbConn <- dbConnect(dbDriver("SQLite"), DataBase)
+    dbConn <- dbConnect(dbDriver("SQLite"), DataBase01)
     on.exit(dbDisconnect(dbConn))
   } else {
-    dbConn <- DataBase
+    dbConn <- DataBase01
     if (!dbIsValid(dbConn)) {
       stop("The connection has expired.")
     }

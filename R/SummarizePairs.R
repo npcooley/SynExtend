@@ -421,6 +421,7 @@ SummarizePairs <- function(SynExtendObject,
           DataPool[[m1]]$len <- width(DataPool[[m1]]$DNA)
           DataPool[[m1]]$mod <- DataPool[[m1]]$len %% 3L == 0
           DataPool[[m1]]$code <- GeneCalls[[m1]]$Coding
+          DataPool[[m1]]$cds <- lengths(GeneCalls[[m1]]$Range)
           # DBQUERY <- paste("select len, mod, code, cds from NTs where identifier is",
           #                  ObjectIDs[m1])
           # DBOUT <- dbGetQuery(conn = dbConn,
@@ -459,6 +460,7 @@ SummarizePairs <- function(SynExtendObject,
           DataPool[[m2]]$len <- width(DataPool[[m2]]$DNA)
           DataPool[[m2]]$mod <- DataPool[[m2]]$len %% 3L == 0
           DataPool[[m2]]$code <- GeneCalls[[m2]]$Coding
+          DataPool[[m2]]$cds <- lengths(GeneCalls[[m2]]$Range)
           # DBQUERY <- paste("select len, mod, code, cds from NTs where identifier is",
           #                  ObjectIDs[m2])
           # DBOUT <- dbGetQuery(conn = dbConn,
@@ -486,7 +488,7 @@ SummarizePairs <- function(SynExtendObject,
           QNTCount <- DataPool[[m1]]$len
           QMod <- DataPool[[m1]]$mod
           QCode <- DataPool[[m1]]$code
-          # QCDSCount <- DataPool[[m1]]$cds
+          QCDSCount <- DataPool[[m1]]$cds
           QueryStruct <- DataPool[[m1]]$struct
         } else {
           # do something else?
@@ -497,7 +499,7 @@ SummarizePairs <- function(SynExtendObject,
         SNTCount <- DataPool[[m2]]$len
         SMod <- DataPool[[m2]]$mod
         SCode <- DataPool[[m2]]$code
-        # SCDSCount <- DataPool[[m2]]$cds
+        SCDSCount <- DataPool[[m2]]$cds
         SubjectStruct <- DataPool[[m2]]$struct
         
         # align everyone as AAs who can be, i.e. modulo of 3, is coding, etc

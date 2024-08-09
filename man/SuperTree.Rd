@@ -70,7 +70,7 @@ data("SuperTreeEx", package="SynExtend")
 # Notice that the labels of the tree are in #_#_# format
 # See the man page for SuperTreeEx for more info
 labs <- labels(exData[[1]])
-if(interative()) print(labs)
+if(interactive()) print(labs)
 
 # The first number corresponds to the species,
 # so we need to trim the rest in each leaf label

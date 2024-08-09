@@ -8,9 +8,8 @@ Attempt to expand blocks of paired features in a \code{PairSummaries} object.
 }
 \usage{
 ExpandDiagonal(SynExtendObject,
-               FeatureSeqs,
-               DataBase,
-               InheritConfidence = TRUE,
+               DataBase01,
+               InheritConfidence = FALSE,
                GapTolerance = 100L,
                DropSingletons = FALSE,
                UserConfidence = list("PID" = 0.3),
@@ -20,10 +19,7 @@ ExpandDiagonal(SynExtendObject,
   \item{SynExtendObject}{
 An object of class \code{PairSummaries}.
 }
-  \item{FeatureSeqs}{
-An object of class \code{FeatureSeqs}.
-}
-  \item{DataBase}{
+  \item{DataBase01}{
 A character string pointing to a SQLite database, or a connection to a \code{DECIPHER} database.
 }
   \item{InheritConfidence}{
@@ -36,7 +32,7 @@ Integer value indicating the \code{diff} between feature IDs that can be tolerat
 Ignore solo pairs when planning expansion routes. Set to \code{FALSE} by default.
 }
   \item{UserConfidence}{
-A named list of length 1 where the name identifies a column of the \code{PairSummaries} object, and the value identifies a user confidence. Every k-means cluster with a center value of the column value selected greater than the confidence is retained.
+A named list of length 1 where the name identifies a column of the \code{PairSummaries} object, and the value identifies a user confidence. To be retained, a pair evaluated for expansion must be above all user specified confidences.
 }
   \item{Verbose}{
 Logical indicating whether or not to display a progress bar and print the time difference upon completion.
@@ -56,18 +52,27 @@ Nicholas Cooley \email{npc19@pitt.edu}
 \code{\link{PairSummaries}}, \code{\link{NucleotideOverlap}}, \code{link{SubSetPairs}}, \code{\link{FindSynteny}}
 }
 \examples{
+library(RSQLite)
 DBPATH <- system.file("extdata",
                       "Endosymbionts_v02.sqlite",
                       package = "SynExtend")
-
-data("Endosymbionts_LinkedFeatures", package = "SynExtend")
-Endosymbiont_Seqs <- PrepareSeqs(SynExtendObject = Endosymbionts_LinkedFeatures,
-                                 DataBase = DBPATH,
-                                 Verbose = TRUE)
+tmp <- tempfile()
+system(command = paste("cp",
+                       DBPATH,
+                       tmp))
+DBCONN <- dbConnect(SQLite(), tmp)
                       
-data("Endosymbionts_Pairs02", package = "SynExtend")
-Pairs03 <- ExpandDiagonal(SynExtendObject = Endosymbionts_Pairs02,
-                          DataBase = DBPATH,
-                          FeatureSeqs = Endosymbiont_Seqs,
-                          Verbose = TRUE)
+data("Endosymbionts_LinkedFeatures", package = "SynExtend")
+PrepareSeqs(SynExtendObject = Endosymbionts_LinkedFeatures,
+            DataBase01 = DBCONN,
+            Verbose = TRUE)
+SummarizedPairs <- SummarizePairs(SynExtendObject = Endosymbionts_LinkedFeatures,
+                                  DataBase01 = DBCONN,
+                                  Verbose = TRUE)
+ExpandedPairs <- ExpandDiagonal(SynExtendObject = SummarizedPairs,
+                                DataBase01 = DBCONN,
+                                Verbose = TRUE)
+dbDisconnect(DBCONN)
+unlink(tmp)
+
 }
