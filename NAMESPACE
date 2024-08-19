@@ -8,8 +8,12 @@ import(S4Vectors)
 import(DBI)
 import(RSQLite)
 
-importFrom("utils", "setTxtProgressBar", "txtProgressBar", "data", "object.size", "getS3method", "read.table")
-importFrom("stats", "predict", "runif", "setNames", "rnorm", "optim", "kmeans", "density", "nls", "ppois", "pt", "pnorm", "as.dist", "fisher.test", "is.leaf", "pchisq", "rbinom")
+importFrom("utils", "setTxtProgressBar", "txtProgressBar", "data", "object.size", 
+"getS3method", "read.table")
+importFrom("stats", "predict", "runif", "setNames", "rnorm", "optim", "kmeans", "density", "nls",
+"ppois", "pt", "pnorm", "as.dist", "fisher.test", "is.leaf", "pchisq", "rbinom", "as.dendrogram",
+".checkMFClasses", ".getXlevels", "delete.response", "is.empty.model", "model.frame", 
+"model.matrix", "model.response", "model.weights", "na.pass", "offset", "terms")
 importFrom("parallel", "mclapply", "detectCores")
 importFrom("graphics", "hist", "points", "abline", "axis", "layout", "lines", "par", "text")
 importFrom("grDevices", "topo.colors", "colorRampPalette")
@@ -109,3 +113,11 @@ S3method(names, 'simMat')
 S3method(`names<-`, 'simMat')
 S3method(as.data.frame, 'simMat')
 
+S3method(show, "DecisionTree")
+S3method(show, "RandForest")
+S3method(print, "RandForest")
+S3method(print, "DecisionTree")
+S3method(predict, "RandForest")
+S3method(as.dendrogram, "DecisionTree")
+S3method(plot, "DecisionTree")
+export(RandForest)

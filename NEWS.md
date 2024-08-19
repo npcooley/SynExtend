@@ -1,3 +1,9 @@
+# SynExtend 1.17.2
+* `RandForest` function added to train random forest models
+* Associated man pages for `RandForest` and `DecisionTree` objects
+* New methods for `DecisionTree` objects to plot and coerce to `dendrogram`
+* Small bugfix to `subset.dendrogram`
+
 # SynExtend 1.17.1
 * Major updates to `EvoWeaver`:
   * `predict.EvoWeaver` now returns a `data.frame` by default
