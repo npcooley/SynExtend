@@ -8,13 +8,11 @@
   as.integer(v)
 }
 
-# These are going to change eventually
-# for now, i'll just use placeholder functions
 RandForest <- function(formula, data, subset, verbose=interactive(),
                        weights, na.action, method='rf.fit',
                        rf.mode=c('auto', 'classification', 'regression'), contrasts=NULL, ...){
   rf.mode <- match.arg(rf.mode)
-  ## copying a lot of this from glm()
+  ## copying a lot of this from lm()
   if(missing(data))
     data <- environment(formula)
   mf <- match.call(expand.dots=FALSE)
@@ -75,7 +73,6 @@ RandForest <- function(formula, data, subset, verbose=interactive(),
   if(!is.numeric(x))
     stop("values supplied must be coercable to numeric")
 
-  ## TODO: track names of variables -- `y~.` doesn't store names in `.`
   r <- RandForest.fit(x, y, method=rf.mode, weights=weights, verbose, terms=mt,...)
   attr(r, 'formula') <- formula
   attr(r, 'contrasts') <- contrasts
@@ -88,7 +85,6 @@ RandForest <- function(formula, data, subset, verbose=interactive(),
 }
 
 show.DecisionTree <- function(object){
-  #all_indices <- inverse.rle(object$indices)
   all_indices <- object$indices
   num_leaves <- sum(all_indices == -1)
   num_internal <- sum(all_indices != -1)
@@ -126,11 +122,6 @@ print.DecisionTree <- function(x, ...){
 }
 
 initDTStructure <- function(l, predType, classnames, terms){
-  # structure(list(pointer=l[[1]],
-  #           indices=rle(l[[2]]),
-  #           thresholds=rle(l[[3]]),
-  #           ginis=rle(l[[4]])),
-  #           class="DecisionTree")
   structure(list(pointer=l[[1]],
                  indices=l[[2]],
                  thresholds=l[[3]],
@@ -204,7 +195,6 @@ RandForest.fit <- function(x, y=NULL, verbose=interactive(), ntree=10,
 }
 
 predict.RandForest <- function(object, newdata=NULL, na.action=na.pass, ...){
-  ## tt <- terms(attr(object, 'formula'), data=newdata)
   tt <- terms(object)
   predmode <- attr(object, "mode")
   predmode <- match.arg(attr(object, 'mode'), c("classification", "regression"))
@@ -227,8 +217,6 @@ predict.RandForest <- function(object, newdata=NULL, na.action=na.pass, ...){
     colnames(results) <- attr(object, "class_levels")
   for(i in seq_along(object)){
     treeobj <- object[[i]]
-    #for(i in seq(2,4))
-    #  treeobj[[i]] <- inverse.rle(treeobj[[i]])
     p <- .Call("R_rfpredict", treeobj, t(x), nc, nentries)
     if(useClassification){
       p <- as.integer(p)
@@ -284,14 +272,11 @@ as.dendrogram.DecisionTree <- function(object, ...){
   while(ctr <= length(inds)){
     acc <- cur_q[[1L]]
     i <- inds[ctr]
-    th <- ths[ctr]
-    g <- gains[ctr]
     cur_q <- cur_q[-1L]
     if(i != -1){
       ## append the next two entries to list
       node <- vector("list", 2L)
       cur_q <- c(cur_q, list(c(acc, 1L), c(acc,2)))
-      #attr(node, "midpoint") <- 0
     } else {
       node <- leafctr
       leafctr <- leafctr + 1L
@@ -360,7 +345,6 @@ plot.DecisionTree <- function(x, plotGain=FALSE, ...){
 
   args_plot$x <- x
   ## plot dendrogram
-  #plot(x, ..., axes=FALSE)
   do.call(plot, args=args_plot)
   x <- dendrapply(x, \(dend){
     if(!is.leaf(dend)){

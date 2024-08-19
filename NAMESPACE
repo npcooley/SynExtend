@@ -8,8 +8,10 @@ import(S4Vectors)
 import(DBI)
 import(RSQLite)
 
-importFrom("utils", "setTxtProgressBar", "txtProgressBar", "data", "object.size", "getS3method", "read.table")
-importFrom("stats", "predict", "runif", "setNames", "rnorm", "optim", "kmeans", "density", "nls", "ppois", "pt", "pnorm", "as.dist", "fisher.test", "is.leaf", "pchisq", "rbinom", "as.dendrogram",
+importFrom("utils", "setTxtProgressBar", "txtProgressBar", "data", "object.size", 
+"getS3method", "read.table")
+importFrom("stats", "predict", "runif", "setNames", "rnorm", "optim", "kmeans", "density", "nls",
+"ppois", "pt", "pnorm", "as.dist", "fisher.test", "is.leaf", "pchisq", "rbinom", "as.dendrogram",
 ".checkMFClasses", ".getXlevels", "delete.response", "is.empty.model", "model.frame", 
 "model.matrix", "model.response", "model.weights", "na.pass", "offset", "terms")
 importFrom("parallel", "mclapply", "detectCores")
