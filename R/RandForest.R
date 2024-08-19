@@ -10,9 +10,9 @@
 
 # These are going to change eventually
 # for now, i'll just use placeholder functions
-RandForest <- function(formula, data, subset, verbose=TRUE,
-                   weights, na.action, method='rf.fit',
-                   rf.mode=c('auto', 'classification', 'regression'), contrasts=NULL, ...){
+RandForest <- function(formula, data, subset, verbose=interactive(),
+                       weights, na.action, method='rf.fit',
+                       rf.mode=c('auto', 'classification', 'regression'), contrasts=NULL, ...){
   rf.mode <- match.arg(rf.mode)
   ## copying a lot of this from glm()
   if(missing(data))
@@ -132,22 +132,24 @@ initDTStructure <- function(l, predType, classnames, terms){
   #           ginis=rle(l[[4]])),
   #           class="DecisionTree")
   structure(list(pointer=l[[1]],
-            indices=l[[2]],
-            thresholds=l[[3]],
-            ginis=l[[4]],
-            type=predType,
-            class_levels=classnames,
-            var_names=attr(terms, 'term.labels')),
+                 indices=l[[2]],
+                 thresholds=l[[3]],
+                 ginis=l[[4]],
+                 type=predType,
+                 class_levels=classnames,
+                 var_names=attr(terms, 'term.labels')),
             class="DecisionTree")
 }
 
-RandForest.fit <- function(x, y=NULL, verbose=TRUE, ntree=10,
+RandForest.fit <- function(x, y=NULL, verbose=interactive(), ntree=10,
                            mtry=floor(sqrt(ncol(x))),
                            weights=NULL, replace=TRUE,
                            sampsize=if(replace) nrow(x) else ceiling(0.632*nrow(x)),
                            nodesize=1L, max_depth=NULL,
                            method=NULL, terms=NULL,...){
   ## method will always be filled in by the main call
+  if(is.null(terms)) stop("RandForest.fit is not intended to be called directly!")
+  if(is.null(method)) stop("RandForest.fit is not intended to be called directly!")
   useClassification <- method=="classification"
   if(is.null(max_depth))
     max_depth <- -1L
@@ -247,7 +249,7 @@ as.dendrogram.DecisionTree <- function(object){
   gains <- object$ginis
   term_names <- object$var_names
   isClassif <- object$type == "classification"
-  levs <- attr(object, "class_levels")
+  levs <- object$class_levels
 
   ind_labs <- rep('', length(inds))
   if(is.null(term_names)){
@@ -345,8 +347,8 @@ plot.DecisionTree <- function(x, plotGain=FALSE, ...){
 
   ## set default args
   default_args <- list(axes=FALSE,
-                        text.cex=0.5*par('cex'),
-                        text.adj=c(0.5,1))
+                       text.cex=0.5*par('cex'),
+                       text.adj=c(0.5,1))
   for(a in names(default_args)){
     if(!a %in% names(all_args))
       all_args[[a]] <- default_args[[a]]
