@@ -4,6 +4,7 @@
 *.so
 */*.o
 */*.so
+*/*.mod
 .Rproj.user
 *.Rproj
 *.Rhistory
