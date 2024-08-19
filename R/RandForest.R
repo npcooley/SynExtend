@@ -243,7 +243,7 @@ predict.RandForest <- function(object, newdata=NULL, na.action=na.pass, ...){
   results
 }
 
-as.dendrogram.DecisionTree <- function(object){
+as.dendrogram.DecisionTree <- function(object, ...){
   inds <- object$indices
   ths <- object$thresholds
   gains <- object$ginis
