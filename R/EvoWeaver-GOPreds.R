@@ -14,7 +14,8 @@ OrientationMI <- function(ew, ...) UseMethod('OrientationMI')
 
 GeneDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
                              precalcProfs=NULL, precalcSubset=NULL,
-                             minimumGenomeSize=2500, ...){
+                             minimumGenomeSize=2500,
+                             CombinePVal=TRUE, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
@@ -39,7 +40,7 @@ GeneDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     l1chrom <- gsub("([^_]+_[^_]+)_.*", '\\1', lab1)
     l2chrom <- gsub("([^_]+_[^_]+)_.*", '\\1', lab2)
     shared <- intersect(l1sp, l2sp)
-    if(length(shared) == 0) return(0)
+    if(length(shared) == 0) return(ifelse(CombinePVal, 0, 0+0i))
     score <- numeric(length(shared))
     for ( k in seq_along(shared) ){
       spk <- shared[k]
@@ -70,26 +71,33 @@ GeneDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
       rawscore[is.infinite(rawscore)] <- minimumGenomeSize
       pvals <- (1-(rawscore / minimumGenomeSize))**2
       pvals <- pmax(pvals, 0)
-      score <- mean(score * pvals)
+      if(CombinePVal)
+        score <- mean(score * pvals)
+      else
+        score <- complex(real=mean(score), imaginary=mean(pvals))
     } else {
-      score <- 0
+      score <- ifelse(CombinePVal, 0, 0+0i)
     }
     return(score)
   }
 
   pairscores <- BuildSimMatInternal(labvecs, uvals, evalmap, l, n,
-                                    FXN, ARGS, Verbose,
+                                    FXN, ARGS, Verbose, CombinePVal,
                                     InputIsList=TRUE)
-
-  m <- ifelse(max(pairscores, na.rm=TRUE) != 0, max(pairscores,na.rm=TRUE), 1)
-  pairscores <- pairscores / m
-  Diag(pairscores) <- 1
+  if(CombinePVal){
+    m <- ifelse(max(pairscores, na.rm=TRUE) != 0, max(pairscores,na.rm=TRUE), 1)
+    pairscores <- pairscores / m
+    Diag(pairscores) <- 1
+  } else {
+    Diag(pairscores) <- 1+1i
+  }
   return(pairscores)
 }
 
 MoransI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
                                   MySpeciesTree=NULL,
-                                  precalcProfs=NULL, precalcSubset=NULL, ...){
+                                  precalcProfs=NULL, precalcSubset=NULL,
+                                  CombinePVal=TRUE, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
@@ -119,7 +127,7 @@ MoransI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     l2sp <- gsub('([^_]*_[0-9]*)_.*$', '\\1', lab2)
     shared <- intersect(l1sp, l2sp)
     if (length(shared) <= 3){
-      return(0)
+      return(ifelse(CombinePVal, 0, 0+0i))
     }
     score <- 0
     vals <- rep(NA_real_, length(shared))
@@ -138,7 +146,7 @@ MoransI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
       # if there's 100% consistency it'll break MoransI,
       # but honestly at that point isn't that great
       # evidence of colocalization?
-      return(1)
+      return(ifelse(CombinePVal, 1, 1+1i))
     }
     shared <- gsub('([^_]*).*', '\\1', shared)
     w <- ARGS$cMat
@@ -150,21 +158,22 @@ MoransI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     #score <- mean(vals)
     score <- res$observed - res$expected
     pval <- 1-res$p.value
-    return(score*pval)
+    return(ifelse(CombinePVal, score*pval, complex(real=score, imaginary=pval)))
   }
 
   pairscores <- BuildSimMatInternal(labvecs, uvals, evalmap, l, n,
-                                    FXN, ARGS, Verbose,
+                                    FXN, ARGS, Verbose, CombinePVal,
                                     InputIsList=TRUE)
 
   #m <- ifelse(max(pairscores, na.rm=TRUE) != 0, max(pairscores,na.rm=TRUE), 1)
   #pairscores <- pairscores / m
-  Diag(pairscores) <- 1
+  Diag(pairscores) <- ifelse(CombinePVal, 1, 1+1i)
   return(pairscores)
 }
 
 OrientationMI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
-                                          precalcProfs=NULL, precalcSubset=NULL, ...){
+                                          precalcProfs=NULL, precalcSubset=NULL,
+                                          CombinePVal=TRUE, ...){
   stopifnot('Some labels are missing strand identifiers!'=attr(ew, 'useStrand'))
   if (!is.null(precalcSubset))
     subs <- precalcSubset
@@ -188,7 +197,7 @@ OrientationMI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     l1sp <- gsub('([^_]*_[^_]*)_.*$', '\\1', lab1)
     l2sp <- gsub('([^_]*_[^_]*)_.*$', '\\1', lab2)
     shared <- intersect(l1sp, l2sp)
-    if(length(shared) == 0) return(0)
+    if(length(shared) == 0) return(ifelse(CombinePVal, 0, 0+0i))
     score <- 0
     vals <- rep(NA_real_, length(shared))
 
@@ -237,15 +246,16 @@ OrientationMI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     mutinf <- ifelse(jointent==0, mutinf, mutinf / jointent)
 
     pval <- 1-fisher.test(conttable)$p.value
-    return(abs(mutinf)*pval)
+    mutinf <- abs(mutinf)
+    return(ifelse(CombinePVal, mutinf*pval, complex(real=mutinf,imaginary=pval)))
   }
 
   pairscores <- BuildSimMatInternal(labvecs, uvals, evalmap, l, n,
-                                    FXN, ARGS, Verbose,
+                                    FXN, ARGS, Verbose, CombinePVal,
                                     InputIsList=TRUE)
 
   #m <- ifelse(max(pairscores, na.rm=TRUE) != 0, max(pairscores,na.rm=TRUE), 1)
   #pairscores <- pairscores / m
-  Diag(pairscores) <- 1
+  Diag(pairscores) <- ifelse(CombinePVal, 1, 1+1i)
   return(pairscores)
 }

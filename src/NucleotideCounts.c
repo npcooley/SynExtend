@@ -11,8 +11,11 @@
 // benchmarking
 #include <time.h>
 
+
 // for OpenMP parallel processing
 #ifdef _OPENMP
+// see https://github.com/Bioconductor/SparseArray/issues/9#issuecomment-2096839890
+#undef match
 #include <omp.h>
 #endif
 

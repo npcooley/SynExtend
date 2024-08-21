@@ -323,7 +323,8 @@ predict.EvoWeaver <- function(object, Method='Ensemble', Subset=NULL, Processors
                                PretrainedModel="KEGG",
                                NoPrediction=FALSE,
                                ReturnDataFrame=TRUE,
-                               Verbose=interactive(), ...){
+                               Verbose=interactive(),
+                               CombinePVal=TRUE,...){
   ew <- object
   if(!is.null(Subset))
     Subset <- Standardize_Subset(Subset, ew)
@@ -373,7 +374,8 @@ predict.EvoWeaver <- function(object, Method='Ensemble', Subset=NULL, Processors
                   PretrainedModel=PretrainedModel,
                   NoPrediction=NoPrediction,
                   precalcSubset=subs,
-                  precalcProfs=PAs, ...)
+                  precalcProfs=PAs,
+                  CombinePVal=CombinePVal,...)
 
     if (Verbose){
       cat('Done.\nTime difference of',
@@ -412,12 +414,12 @@ predict.EvoWeaver <- function(object, Method='Ensemble', Subset=NULL, Processors
 
   if(ReturnDataFrame || USEENSEMBLE){
     if(Verbose) cat("Building Dataframe:\n")
-    lst <- AdjMatToDf(lst, Verbose=Verbose, Subset=Subset)
+    lst <- AdjMatToDf(lst, Verbose=Verbose, Subset=Subset, CombinePVal)
     if(Verbose) cat("Done.\n\n")
   }
 
   if(USEENSEMBLE && !NoPrediction){
-    lst <- cbind(lst, Ensemble=EvoWeaverEnsemblePrediction(lst, PretrainedModel))
+    lst <- cbind(lst, Ensemble=EvoWeaverEnsemblePrediction(lst, PretrainedModel, CombinePVal))
   }
   lst
 }
@@ -434,9 +436,22 @@ SpeciesTree.EvoWeaver <- function(ew, Verbose=TRUE, Processors=1L){
 
 #### Internal S3 Methods ####
 
-EvoWeaverEnsemblePrediction <- function(preds, PretrainedModel="KEGG"){
+EvoWeaverEnsemblePrediction <- function(preds, PretrainedModel="KEGG", CombinePVal){
   if(is.null(PretrainedModel)){
     stop("No model provided to 'PretrainedModel'. Try specifying PretrainedModel=\"KEGG\" or \"CORUM\"")
+  }
+  if(!CombinePVal){
+    pn <- vapply(strsplit(colnames(preds), '.', fixed=TRUE), .subset, character(1L), 1L)
+    pn_more <- table(pn) > 1
+    pn_keep <- names(pn_more)[!pn_more]
+    opreds <- preds[,pn%in%pn_keep]
+    colnames(opreds) <- pn[pn%in%pn_keep]
+    pn_more <- names(pn_more)[pn_more]
+    for(n in pn_more){
+      p <- which(n == pn)
+      opreds[[n]] <- do.call(`*`, preds[,p])
+    }
+    preds <- opreds
   }
   if (is.character(PretrainedModel)){
     predictions <- predictWithBuiltins(preds, PretrainedModel)
