@@ -15,7 +15,8 @@ Ancestral <- function(ew, ...) UseMethod('Ancestral')
 
 SequenceInfo.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
                                  precalcSubset=NULL, gapCutoff=0.5,
-                                 useDNA=FALSE, Processors=1L, useWeights=TRUE, ...){
+                                 useDNA=FALSE, Processors=1L, useWeights=TRUE,
+                                 CombinePVal=TRUE, ...){
   useResidue <- attr(ew, 'useResidue')
   useMT <- attr(ew, 'useMT')
   useColoc <- attr(ew, 'useColoc')
@@ -36,7 +37,8 @@ SequenceInfo.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   l <- length(uvals)
   n <- names(ew)
   if ( l == 1 ){
-    mat <- matrix(1, nrow=1, ncol=1)
+    v <- ifelse(CombinePVal, 1, 1+1i)
+    mat <- simMat(v, nelem=1)
     rownames(mat) <- colnames(mat) <- n
     return(mat)
   }
@@ -95,7 +97,7 @@ SequenceInfo.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     if(Verbose) setTxtProgressBar(pb, i)
   }
 
-  pairscores <- rep(NA_real_, l*(l-1)/2)
+  pairscores <- rep(ifelse(CombinePVal, NA_real_, NA_complex_), l*(l-1)/2)
   ctr <- 0
   if (Verbose){
     cat('\nDone.\n')
@@ -114,8 +116,11 @@ SequenceInfo.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
         seqs2 <- ResidueSets[[j]]
         #pairscores[ctr+1] <- ResidueMIDend(tree1, tree2, useColoc=useColoc, ...)
         score <- ResidueMISeqs(seqs1, seqs2, lookup=lookup,
-                                useColoc=useColoc, Processors=Processors, ...)
-        pairscores[ctr+1] <- ifelse(is.na(score), 0L, score)
+                                useColoc=useColoc, Processors=Processors, CombinePVal, ...)
+        if(is.na(score)){
+          score <- ifelse(CombinePVal, 0, 0+0i)
+        }
+        pairscores[ctr+1] <- score
       }
       ctr <- ctr + 1
       if (Verbose) setTxtProgressBar(pb, ctr)
@@ -123,7 +128,7 @@ SequenceInfo.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   }
   n <- n[uvals]
   pairscores <- as.simMat(pairscores, NAMES=n, DIAG=FALSE)
-  Diag(pairscores) <- 1
+  Diag(pairscores) <- ifelse(CombinePVal, 1, 1+1i)
   if (Verbose) cat('\n')
 
   return(pairscores)
@@ -132,7 +137,8 @@ SequenceInfo.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
 GeneVector.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
                             precalcSubset=NULL, extended=TRUE,
                             DNAseqs=TRUE, centerObservations=FALSE,
-                            sqrtCorrelation=TRUE, ...){
+                            sqrtCorrelation=TRUE,
+                            CombinePVal=TRUE, ...){
   #source('/Users/aidan/Nextcloud/RStudioSync/comps/NVDT/calcNVDT.R')
   useResidue <- attr(ew, 'useResidue')
   useMT <- attr(ew, 'useMT')
@@ -153,7 +159,8 @@ GeneVector.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   alllabs <- lapply(uvals, \(x) labels(ew[[x]]))
   n <- names(ew)
   if ( l == 1 ){
-    mat <- matrix(1, nrow=1, ncol=1)
+    v <- ifelse(CombinePVal, 1, 1+1i)
+    mat <- simMat(v, nelem=1)
     rownames(mat) <- colnames(mat) <- n
     return(mat)
   }
@@ -215,7 +222,7 @@ GeneVector.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     if(Verbose) setTxtProgressBar(pb, i)
   }
   if(Verbose) cat('\nDone.\n')
-  pairscores <- rep(NA_real_, l*(l-1)/2)
+  pairscores <- rep(ifelse(CombinePVal, NA_real_, NA_complex_), l*(l-1)/2)
   ctr <- 0
   if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
   for ( i in seq_len(l-1) ){
@@ -236,7 +243,7 @@ GeneVector.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
         else
           v2 <- vecs[j,]
         if(length(intersect(l1,l2))==0){
-          pairscores[ctr+1] <- 0
+          pairscores[ctr+1] <- ifelse(CombinePVal, 0, 0+0i)
         } else {
           # first entry is score, second is t-value
           # cval <- .Call('fastPearsonC', v1, v2)
@@ -252,7 +259,7 @@ GeneVector.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
           num_obs <- length(v1)
           pval <- 1 - exp(pt(cval, num_obs-2, lower.tail=FALSE, log.p=TRUE))
           #pairscores[ctr+1] <- cor(v1,v2)
-          pairscores[ctr+1] <- pval*cval
+          pairscores[ctr+1] <- ifelse(CombinePVal, pval*cval, complex(real=cval, imaginary=pval))
         }
       }
       ctr <- ctr + 1
@@ -261,7 +268,7 @@ GeneVector.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   }
   n <- n[uvals]
   pairscores <- as.simMat(pairscores, NAMES=n, DIAG=FALSE)
-  Diag(pairscores) <- 1
+  Diag(pairscores) <- ifelse(CombinePVal, 1, 1+1i)
   if (Verbose) cat('\n')
 
   return(pairscores)

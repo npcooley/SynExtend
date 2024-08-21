@@ -27,8 +27,8 @@ NormArgProcessors <- function(Processors){
 }
 
 BuildSimMatInternal <- function(vecs, uvals, evalmap, l, n, FXN, ARGS, Verbose,
-                                CORRECTION=NULL, InputIsList=FALSE){
-  pairscores <- rep(NA_real_, l*(l-1)/2)
+                                 CombinePVal=TRUE, CORRECTION=NULL, InputIsList=FALSE){
+  pairscores <- rep(ifelse(CombinePVal, NA_real_, NA_complex_), l*(l-1)/2)
   ctr <- 0
   if (Verbose) pb <- txtProgressBar(max=(l*(l-1) / 2), style=3)
   for ( i in seq_len(l-1) ){
@@ -394,7 +394,7 @@ find_dend_distances <- function(dend, useColoc=FALSE){
   return(dend)
 }
 
-AdjMatToDf <- function(preds, Verbose=TRUE, Subset=NULL){
+AdjMatToDf <- function(preds, Verbose=TRUE, Subset=NULL, CombinePVal=TRUE){
   stopifnot(length(preds) > 0)
   n <- names(preds)
   prednames <- names(preds[[1]])
@@ -415,7 +415,7 @@ AdjMatToDf <- function(preds, Verbose=TRUE, Subset=NULL){
     AdjDf[,n[i]] <- unclass(preds[[i]])
     if (Verbose) setTxtProgressBar(pb, i)
   }
-  cat('\n')
+  if (Verbose) cat('\n')
 
   nc <- ncol(AdjDf)
   rtk <- vapply(seq_len(nrow(AdjDf)), function(x) sum(is.na(AdjDf[x,3:nc])) < (nc/2 - 1),
@@ -428,6 +428,22 @@ AdjMatToDf <- function(preds, Verbose=TRUE, Subset=NULL){
     AdjDf[,seq_len(2L)] <- t(apply(AdjDf[,seq_len(2L)], 1L, sort))
     Subset[] <- t(apply(Subset, 1L, sort))
     AdjDf <- merge(AdjDf, Subset)
+  }
+
+  if(!CombinePVal){
+    ## First two columns are the gene names
+    pos_comp <- (unlist(lapply(AdjDf, class)) == "complex")[-(1:2)]
+    AdjDf_names <- AdjDf[,1:2]
+    AdjDf_scores <- AdjDf_pvals <- AdjDf[,-(1:2)]
+    colnames(AdjDf_pvals) <- paste0(colnames(AdjDf_pvals), '.pval')
+    colnames(AdjDf_scores) <- paste0(colnames(AdjDf_scores), '.score')
+
+    ## p values only for things that have p-values
+    AdjDf_pvals <- AdjDf_pvals[,pos_comp]
+    AdjDf_scores[,pos_comp] <- apply(AdjDf_scores[,pos_comp], 2L, Re)
+    AdjDf_pvals <- apply(AdjDf_pvals, 2L, Im)
+
+    AdjDf <- cbind(AdjDf_names, AdjDf_scores, AdjDf_pvals)
   }
   return(AdjDf)
 }
@@ -751,20 +767,21 @@ ResidueMIDend <- function(dend1, dend2, cutoff=0.9, comppct=0.25, useColoc, ...)
   return(res)
 }
 
-ResidueMISeqs <- function(seqs1, seqs2, lookup, Processors, ...){
+ResidueMISeqs <- function(seqs1, seqs2, lookup, Processors, CombinePVal, ...){
+  baseReturn <- ifelse(CombinePVal, 0, 0+0i)
   if(ncol(seqs1) * ncol(seqs2) == 0){
-    return(0)
+    return(baseReturn)
   }
   completeSet <- intersect(rownames(seqs1), rownames(seqs2))
   if (length(completeSet) == 0){
-    return(0)
+    return(baseReturn)
   }
   s1 <- seqs1[completeSet,,drop=FALSE]
   s2 <- seqs2[completeSet,,drop=FALSE]
 
   nseqs <- length(completeSet)
   if(nseqs == 1){
-    return(0)
+    return(baseReturn)
   }
   # add gap character
   baseval <- length(lookup)+1L
@@ -797,7 +814,9 @@ ResidueMISeqs <- function(seqs1, seqs2, lookup, Processors, ...){
   testStat <- -2 * sum(log(pvals))
   totalP <- pchisq(testStat, df=2*length(pvals), lower.tail=FALSE)
 
-  return(mean(maxVals) * (1-totalP))
+  maxVals <- mean(maxVals)
+  totalP <- 1-totalP
+  return(ifelse(CombinePVal, maxVals*totalP, complex(real=maxVals, imaginary=totalP)))
 }
 
 

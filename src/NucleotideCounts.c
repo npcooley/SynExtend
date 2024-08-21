@@ -11,8 +11,11 @@
 // benchmarking
 #include <time.h>
 
+
 // for OpenMP parallel processing
-#ifdef SUPPORT_OPENMP
+#ifdef _OPENMP
+// see https://github.com/Bioconductor/SparseArray/issues/9#issuecomment-2096839890
+#undef match
 #include <omp.h>
 #endif
 
@@ -276,7 +279,9 @@ SEXP MIForSequenceSets(SEXP M1, SEXP M2, SEXP NSEQS, SEXP U1, SEXP U2, SEXP BASE
   for(int i=0;i<c2;i++)
     ent2[i] = calc_ent_col(m2+nseqs*i, nseqs, addVal, u2, logBase);
 
+  #ifdef _OPENMP
   #pragma omp parallel for num_threads(nthreads)
+  #endif
   for(int i=0; i<c1; i++)
     for(int j=0; j<c2; j++)
       jointEnt[i*c2+j] = calc_mi_colpair(m1+nseqs*i, m2+nseqs*j, nseqs, addVal, u1, u2, logBase);

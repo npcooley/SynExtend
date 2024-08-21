@@ -1,3 +1,7 @@
+# SynExtend 1.17.3
+* `predict.EvoWeaver` now supports returning p-values separately from raw score for some algorithms.
+* OpenMP implementation for `EvoWeaver` algorithms that support it has been fixed
+
 # SynExtend 1.17.2
 * `RandForest` function added to train random forest models
 * Associated man pages for `RandForest` and `DecisionTree` objects

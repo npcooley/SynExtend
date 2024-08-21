@@ -8,8 +8,11 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+
 // for OpenMP parallel processing
-#ifdef SUPPORT_OPENMP
+#ifdef _OPENMP
+// see https://github.com/Bioconductor/SparseArray/issues/9#issuecomment-2096839890
+#undef match
 #include <omp.h>
 #endif
 
@@ -79,7 +82,9 @@ SEXP randomProjection(SEXP VEC, SEXP NONZERO, SEXP N, SEXP OUTDIM, SEXP NTHREADS
 
   double val, invval;
   int i,j,k;
+  #ifdef _OPENMP
   #pragma omp parallel for private(i, j, k, val, invval) num_threads(threads)
+  #endif
   for (i=0; i<num_nonzero; i++){
     loc = nzpos[i]-1;
     val = v[loc];

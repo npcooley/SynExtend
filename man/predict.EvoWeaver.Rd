@@ -15,7 +15,8 @@ matrix with some extra S3 methods to make printing cleaner.
          PretrainedModel="KEGG",
          NoPrediction=FALSE,
          ReturnDataFrame=TRUE,
-         Verbose=interactive(), ...)
+         Verbose=interactive(),
+         CombinePVal=TRUE, ...)
 }
 \arguments{
   \item{object}{
@@ -77,6 +78,9 @@ matrix with some extra S3 methods to make printing cleaner.
   \item{Verbose}{
     Logical indicating whether to print progress bars and messages. Defaults to \code{TRUE}.
   }
+  \item{CombinePVal}{
+    Logical indicating whether to combine scores and p-values or to return them as separate values. Defaults to \code{TRUE}.
+  }
   \item{...}{
     Additional parameters for other predictors and consistency with generic.
   }
@@ -107,6 +111,8 @@ following pages:
 }
 
 The standard return type is a \code{data.frame} object with one column per predictor and an additional two columns specifying the genes in each pair. If \code{ReturnDataFrame=FALSE}, this returns a \code{EvoWeb} object. See \code{\link{EvoWeb}} for more information. Use of this parameter is discouraged.
+
+By default, EvoWeaver weights scores by their p-value to correct for spurious correlations. The returned scores are \code{raw_score*(1-p_value)}. If \code{CombinePVal=FALSE}, EvoWeaver will instead return the raw score and the p-value separately. The resulting data.frame will have one column for the raw score (denoted \code{METHOD.score}) and one column for the p-value (denoted \code{METHOD.pval}). **Note: p-values are recorded as (1-p)**. Not all methods support returning p-values separately from the score; in this case, only a \code{METHOD.score} column will be returned.
 
 Different methods require different types of input. The constructor
 \code{\link{EvoWeaver}} will notify the user which methods are
@@ -155,6 +161,8 @@ EvoWeaver's publication used a random forest model from the \code{randomForest} 
   This may be an issue specific to ARM Macs, but out of an abundance of caution
   I've made the default setting to be slightly slower but guarantee completion
   rather than risk bricking a machine.
+
+If \code{ReturnDataFrame=FALSE} and \code{CombinePVal=FALSE}, the resulting \code{EvoWeb} objects will contain values of type \code{'complex'}. For each value, the real part denotes the raw score, and the imaginary part denotes \code{1-p}, with \code{p} the p-value.
 }
 
 \seealso{

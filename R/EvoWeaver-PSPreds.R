@@ -20,7 +20,8 @@ TreeDistance <- function(ew, ...) UseMethod('TreeDistance')
 RPMirrorTree.EvoWeaver <- function(ew, MTCorrection=c(),
                                   Subset=NULL, Verbose=TRUE,
                                   MySpeciesTree=NULL,
-                                  precalcProfs=NULL, precalcSubset=NULL, ...){
+                                  precalcProfs=NULL, precalcSubset=NULL,
+                                  CombinePVal=TRUE, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
@@ -61,7 +62,8 @@ RPMirrorTree.EvoWeaver <- function(ew, MTCorrection=c(),
 
   l <- ncol(CPs)
   if ( l == 1 ){
-    mat <- matrix(1, nrow=1, ncol=1)
+    v <- ifelse(CombinePVal, 1, 1+1i)
+    mat <- simMat(v, nelem=1)
     rownames(mat) <- colnames(mat) <- uvals
     return(mat)
   }
@@ -91,7 +93,7 @@ RPMirrorTree.EvoWeaver <- function(ew, MTCorrection=c(),
   }
 
   useOverlap <- ('paoverlap' %in% MTCorrection)
-  pairscores <- rep(NA_real_, pl*(pl-1) / 2)
+  pairscores <- rep(ifelse(CombinePVal, NA_real_, NA_complex_), pl*(pl-1) / 2)
   ctr <- 0
   endOfRow <- 0
   if (Verbose) pb <- txtProgressBar(max=(pl*(pl-1) / 2), style=3)
@@ -103,7 +105,7 @@ RPMirrorTree.EvoWeaver <- function(ew, MTCorrection=c(),
     sd1 <- sd(v1, na.rm=TRUE)
     # Should only be NA if there's only one entry
     if (is.na(sd1) || sd1 == 0){
-      pairscores[(ctr+1):endOfRow] <- 0
+      pairscores[(ctr+1):endOfRow] <- ifelse(CombinePVal, 0, 0+0i)
       ctr <- endOfRow
       if (Verbose) setTxtProgressBar(pb, ctr)
     } else {
@@ -116,7 +118,7 @@ RPMirrorTree.EvoWeaver <- function(ew, MTCorrection=c(),
           l2 <- alllabs[[j]]
           sd2 <- sd(v2, na.rm=TRUE)
           if (is.na(sd2) || sd2 == 0)
-            val <- 0
+            val <- ifelse(CombinePVal, 0, 0+0i)
           else{
             val <- suppressWarnings(cor(v1, v2,
                                         use='pairwise.complete.obs',
@@ -126,9 +128,10 @@ RPMirrorTree.EvoWeaver <- function(ew, MTCorrection=c(),
             overlap <- 1L
             if(useOverlap)
               overlap <- length(intersect(l1,l2)) / length(unique(c(l1,l2)))
-            val <- val*pval*overlap
+            val <- ifelse(CombinePVal, val*pval*overlap, complex(real=val*overlap, imaginary=pval))
           }
-          pairscores[ctr+1] <- ifelse(is.na(val), 0, val)
+          if(is.na(val)) val <- ifelse(CombinePVal, 0, 0+0i)
+          pairscores[ctr+1] <- val
         }
         ctr <- ctr + 1
         if (Verbose) setTxtProgressBar(pb, ctr)
@@ -137,13 +140,13 @@ RPMirrorTree.EvoWeaver <- function(ew, MTCorrection=c(),
   }
   if (Verbose) cat('\n')
   pairscores <- as.simMat(pairscores, NAMES=names(ew)[uvals], DIAG=FALSE)
-  Diag(pairscores) <- 1
+  Diag(pairscores) <- ifelse(CombinePVal, 1, 1+1i)
 
   return(pairscores)
 }
 
 RPContextTree.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE, precalcProfs=NULL,
-                                   MySpeciesTree=NULL, ...){
+                                   MySpeciesTree=NULL, CombinePVal=TRUE, ...){
 
   if ( is.null(MySpeciesTree) || !is(MySpeciesTree, 'dendrogram')){
     MySpeciesTree <- findSpeciesTree(ew, Verbose)
@@ -155,7 +158,8 @@ RPContextTree.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE, precalcProfs=
   return(RPMirrorTree(ew, MTCorrection=MTCorrection,
                     Verbose=Verbose,
                     precalcCProfs=precalcProfs,
-                    MySpeciesTree=MySpeciesTree))
+                    MySpeciesTree=MySpeciesTree,
+                    CombinePVal=CombinePVal))
 }
 
 TreeDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,

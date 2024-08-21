@@ -99,7 +99,8 @@ Hamming.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
 
 PAJaccard.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
                                     MySpeciesTree=NULL,
-                                    precalcProfs=NULL, precalcSubset=NULL, ...){
+                                    precalcProfs=NULL, precalcSubset=NULL,
+                                    CombinePVal=TRUE, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
@@ -121,7 +122,8 @@ PAJaccard.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   l <- length(uvals)
   n <- names(ew)
   if ( l == 1 ){
-    mat <- simMat(1, nelem=1)
+    v <- ifelse(CombinePVal, 1, 1+1i)
+    mat <- simMat(v, nelem=1)
     rownames(mat) <- colnames(mat) <- n
     return(mat)
   }
@@ -153,7 +155,7 @@ PAJaccard.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     if(all(v1[1]==v1) || all(v2[1]==v2)){
       # catch case where standard deviation is 0
       # (all elements of vector the same)
-      return(0)
+      return(ifelse(CombinePVal, 0, 0+0i))
     }
     y <- ARGS$y
     # 00 = 1, 01 = 2, 10 = 3, 11 = 4
@@ -205,17 +207,19 @@ PAJaccard.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     if(centered_jaccard > 1) centered_jaccard <- 1
     if(centered_jaccard < -1) centered_jaccard <- -1
 
-    return(weighting * centered_jaccard)
+    return(ifelse(CombinePVal, weighting * centered_jaccard,
+      complex(real=centered_jaccard, imaginary=weighting)))
   }
-  pairscores <- BuildSimMatInternal(glvs, uvals, evalmap, l, n, FXN, ARGS, Verbose)
-
+  pairscores <- BuildSimMatInternal(glvs, uvals, evalmap, l, n, FXN, ARGS, Verbose, CombinePVal)
+  Diag(pairscores) <- ifelse(CombinePVal, 1, 1+1i)
   return(pairscores)
 }
 
 
 PAOverlap.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
                                 MySpeciesTree=NULL,
-                               precalcProfs=NULL, precalcSubset=NULL, ...){
+                               precalcProfs=NULL, precalcSubset=NULL,
+                               CombinePVal=TRUE, ...){
   N_PERM <- 200L
   if (!is.null(precalcSubset))
     subs <- precalcSubset
@@ -239,7 +243,8 @@ PAOverlap.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   n <- names(ew)
 
   if ( l == 1 ){
-    mat <- simMat(1, nelem=1)
+    v <- ifelse(CombinePVal, 1, 1+1i)
+    mat <- simMat(v, nelem=1)
     rownames(mat) <- colnames(mat) <- n
     return(mat)
   }
@@ -276,7 +281,7 @@ PAOverlap.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     nn <- ARGS$numnodes
     pa1 <- v1[seq_len(nn)+nn]
     pa2 <- v2[seq_len(nn)+nn]
-    if(sum(pa1) * sum(pa2) == 0) return(0)
+    if(sum(pa1) * sum(pa2) == 0) return(ifelse(CombinePVal, 0, 0+0i))
     glv1 <- v1[seq_len(nn)]
     glv2 <- v2[seq_len(nn)]
 
@@ -337,18 +342,19 @@ PAOverlap.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     p_rv <- sum(replicates >= score) / n_perm
     p_v <- 2*min(c(p_lv, p_rv))
     if(p_v > 1) p_v <- 1
-
-    return(sqrt(1-p_v)*score)
+    p_v <- sqrt(1-p_v)
+    return(ifelse(CombinePVal, p_v*score, complex(real=score, imaginary=p_v)))
     #return(sqrt(1-p_v)*score*weighting)
   }
-  pairscores <- BuildSimMatInternal(glvs, uvals, evalmap, l, n, FXN, ARGS, Verbose)
-
+  pairscores <- BuildSimMatInternal(glvs, uvals, evalmap, l, n, FXN, ARGS, Verbose, CombinePVal)
+  Diag(pairscores) <- ifelse(CombinePVal, 1, 1+1i)
   return(pairscores)
 }
 
 CorrGL.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
                                 MySpeciesTree=NULL,
-                               precalcProfs=NULL, precalcSubset=NULL, ...){
+                               precalcProfs=NULL, precalcSubset=NULL,
+                               CombinePVal=TRUE, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
@@ -371,7 +377,8 @@ CorrGL.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   n <- names(ew)
 
   if ( l == 1 ){
-    mat <- simMat(1, nelem=1)
+    v <- ifelse(CombinePVal, 1, 1+1i)
+    mat <- simMat(v, nelem=1)
     rownames(mat) <- colnames(mat) <- n
     return(mat)
   }
@@ -402,15 +409,15 @@ CorrGL.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
     if(all(v1[1]==v1) || all(v2[1]==v2)){
       # catch case where standard deviation is 0
       # (all elements of vector the same)
-      return(0)
+      return(ifelse(CombinePVal, 0, 0+0i))
     }
     val <- cor(v1, v2)
     #pval <- 1 - pt(val, ARGS$numnodes - 2, lower.tail=FALSE)
     pval <- 1-fisher.test(v1, v2, simulate.p.value=TRUE)$p.value
-    return(pval*val)
+    return(ifelse(CombinePVal, pval*val, complex(real=val, imaginary=pval)))
   }
-  pairscores <- BuildSimMatInternal(glvs, uvals, evalmap, l, n, FXN, ARGS, Verbose)
-
+  pairscores <- BuildSimMatInternal(glvs, uvals, evalmap, l, n, FXN, ARGS, Verbose, CombinePVal)
+  Diag(pairscores) <- ifelse(CombinePVal, 1, 1+1i)
   return(pairscores)
 }
 
@@ -485,7 +492,8 @@ MutualInformationPA.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
 
 GLMI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
                                          precalcProfs=NULL, precalcSubset=NULL,
-                                        MySpeciesTree=NULL, ...){
+                                        MySpeciesTree=NULL,
+                                        CombinePVal=TRUE, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
@@ -507,7 +515,8 @@ GLMI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   l <- length(uvals)
   n <- names(ew)
   if ( l == 1 ){
-    mat <- matrix(1, nrow=1, ncol=1)
+    v <- ifelse(CombinePVal, 1, 1+1i)
+    mat <- simMat(v, nelem=1)
     rownames(mat) <- colnames(mat) <- n
     return(mat)
   }
@@ -549,7 +558,7 @@ GLMI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
 
     score <- 0
     v1l <- length(v1)
-    if(v1l == 0) return(0)
+    if(v1l == 0) return(ifelse(CombinePVal, 0, 0+0i))
     tt <- sum(v1 & v2) / v1l
     tf <- sum(v1 & !v2) / v1l
     ft <- sum(!v1 & v2) / v1l
@@ -570,8 +579,8 @@ GLMI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
       val <- jpd[k] * log(jpd[k] / (mpdv1[k] * mpdv2[k]), base=2) * mult[k]
       score <- score + ifelse(is.nan(val), 0, val)
     }
-    pv <- fisher.test(v1,v2)$p.value
-    return(score*(1-pv))
+    pv <- 1-fisher.test(v1,v2)$p.value
+    return(ifelse(CombinePVal, score*pv, complex(real=score, imaginary=pv)))
   }
 
   # APC Correction, removing for now
@@ -584,10 +593,10 @@ GLMI.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
   #   ps <- ps / ifelse(denom==0, 1, denom)
   # }
   pairscores <- BuildSimMatInternal(glvs, uvals, evalmap, l, n,
-                                    FXN, NULL, Verbose)
+                                    FXN, NULL, Verbose, CombinePVal)
                                     #CORRECTION=CORRECTION)
 
-  Diag(pairscores) <- 1
+  Diag(pairscores) <- ifelse(CombinePVal, 1, 1+1i)
   #pairscores <- pairscores #because distance
   return(pairscores)
 }
@@ -705,7 +714,8 @@ Behdenna.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
 
 GLDistance.EvoWeaver <- function(ew, Subset=NULL,
                      Verbose=TRUE, MySpeciesTree=NULL,
-                     precalcProfs=NULL, precalcSubset=NULL, ...){
+                     precalcProfs=NULL, precalcSubset=NULL,
+                     CombinePVal=TRUE, ...){
   if (!is.null(precalcSubset))
     subs <- precalcSubset
   else
@@ -713,6 +723,8 @@ GLDistance.EvoWeaver <- function(ew, Subset=NULL,
   uvals <- subs$uvals
   evalmap <- subs$evalmap
   BOOTSTRAP_NUM <- 50L
+
+  CombinePVal <- CombinePVal && BOOTSTRAP_NUM > 0
 
   if (is.null(MySpeciesTree)){
     stopifnot("Method 'GLDistance' requires a species tree"=attr(ew, 'useMT'))
@@ -760,14 +772,14 @@ GLDistance.EvoWeaver <- function(ew, Subset=NULL,
     #n1 <- ARGS$counts[ii]
     #n2 <- ARGS$counts[jj]
     if (allnonzero[ii] || allnonzero[jj]){
-      return(0)
+      return(ifelse(CombinePVal, 0, 0+0i))
     } else {
       #res1 <- .Call("calcScoreGL", ARGS$y, v1, v2, PACKAGE="SynExtend")
       #res2 <- .Call("calcScoreGL", ARGS$y, v2, v1, PACKAGE="SynExtend")
       res1 <- .Call("calcScoreGL", ARGS$y, v1, v2, PACKAGE="SynExtend") / sum(abs(v1))
       res2 <- .Call("calcScoreGL", ARGS$y, v2, v1, PACKAGE="SynExtend") / sum(abs(v2))
       res <- res1 + res2
-      if (is.na(res) || is.infinite(res) || res==0) return(0)
+      if (is.na(res) || is.infinite(res) || res==0) return(ifelse(CombinePVal, 0, 0+0i))
       num_bs <- ARGS$bsn
       if(num_bs > 0){
         v1 <- as.integer(v1)
@@ -802,8 +814,9 @@ GLDistance.EvoWeaver <- function(ew, Subset=NULL,
         # } else {
         #   pv <- 2*pv
         # }
-        res <- (pv)*(res/2)
-      } else{
+        res <- res / 2
+        res <- ifelse(CombinePVal, pv*res, complex(real=res, imaginary=pv))
+      } else {
         normer <- mean(sum(abs(v1)), sum(abs(v2)))
         normer <- sum(abs(v1), abs(v2))
         normer <- ifelse(normer==0, 1, normer)
@@ -813,8 +826,8 @@ GLDistance.EvoWeaver <- function(ew, Subset=NULL,
     }
   }
   pairscores <- BuildSimMatInternal(glvs, uvals, evalmap, l, names(ew),
-                                    FXN, ARGS, Verbose)
-
+                                    FXN, ARGS, Verbose, CombinePVal)
+  Diag(pairscores) <- ifelse(CombinePVal, 1, 1+1i)
   return(pairscores)
 }
 
