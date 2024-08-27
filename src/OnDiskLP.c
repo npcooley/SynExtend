@@ -628,7 +628,8 @@ void unique_strings_with_sideeffects(char **names, int num_to_sort, int *InsertP
 			}
 			cur_len = strlen(names[insert_point]);
 		} else if(useCounts) {
-			// else it's the same, so increment the corresponding count (last byte stores if it's an edge that should be counted)
+			// else it's the same, so increment the corresponding count
+			// (last byte stores if it's an edge that should be counted)
 			counts[insert_point] += !!names[i][MAX_NODE_NAME_SIZE];
 		}
 	}
@@ -961,7 +962,7 @@ void normalize_csr_edgecounts(const char* ftable, l_uint num_v){
 	return;
 }
 
-void inflate_csr_edgecounts(const char* ftable, FILE *q, l_uint num_v){
+void inflate_csr_edgecounts(const char* ftable, FILE *q, l_uint num_v, double exponent){
 	const int entry_size = L_SIZE + sizeof(float);
 	float tmp_val, normalizer;
 	l_uint start, end, i;
@@ -982,7 +983,8 @@ void inflate_csr_edgecounts(const char* ftable, FILE *q, l_uint num_v){
 		for(l_uint j=0; j<(end-start); j++){
 			fseek(mastertab, L_SIZE, SEEK_CUR);
 			safe_fread(&tmp_val, sizeof(float), 1, mastertab);
-			tmp_val *= tmp_val;
+			//tmp_val *= tmp_val;
+			tmp_val = pow(tmp_val, exponent);
 			normalizer += tmp_val;
 		}
 
@@ -1328,7 +1330,7 @@ void initialize_queue(FILE *q, l_uint maxv, FILE *ctr_file){
 
 void cluster_file(const char* mastertab_fname, const char* clust_fname,
 									const char *qfile_f1, const char *qfile_f2, const char *qfile_log,
-									l_uint num_v, int max_iterations, int v){
+									l_uint num_v, int max_iterations, int v, double inflation){
 	// main runner function to cluster nodes
 	FILE *masterfile = fopen(mastertab_fname, "rb");
 	FILE *clusterfile = fopen(clust_fname, "rb+");
@@ -1382,9 +1384,9 @@ void cluster_file(const char* mastertab_fname, const char* clust_fname,
 
 		fclose(cur_q);
 		i++;
-		if(i%2 == 0){
+		if(inflation != 1.0 && i%2 == 0){
 			// every 2 iterations, apply inflation operator
-			inflate_csr_edgecounts(mastertab_fname, next_q, num_v);
+			inflate_csr_edgecounts(mastertab_fname, next_q, num_v, inflation);
 		}
 		fclose(next_q);
 	}
@@ -1446,14 +1448,14 @@ void resolve_cluster_consensus(FILE *csr, const char* clustername, l_uint num_v,
 
 void cluster_oom_single(const char* tabfile, const char* clusteroutfile, const char* dir,
 												const char* qfile1, const char* qfile2, const char* qfile3,
-												l_uint num_v, int num_iter, int verbose, int is_consensus){
+												l_uint num_v, int num_iter, int verbose, int is_consensus, double inflation){
 	// runner function to cluster for a single file
 	// will be called multiple times for consensus clustering
 	if(verbose){
 		if(is_consensus) Rprintf("\tClustering...\n");
 		else Rprintf("Clustering...\n");
 	}
- 	cluster_file(tabfile, clusteroutfile, qfile1, qfile2, qfile3, num_v, num_iter, verbose);
+ 	cluster_file(tabfile, clusteroutfile, qfile1, qfile2, qfile3, num_v, num_iter, verbose, inflation);
 
  	if(!is_consensus){
 	 	// reindex the clusters from 1 to n
@@ -1466,7 +1468,7 @@ void cluster_oom_single(const char* tabfile, const char* clusteroutfile, const c
 
 void consensus_cluster_oom(const char* csrfile, const char* clusteroutfile, const char* dir,
 													 const char* qfile1, const char* qfile2, const char* qfile3,
-													 l_uint num_v, int num_iter, int v,
+													 l_uint num_v, int num_iter, int v, double inflation,
  													 const double* consensus_weights, const int consensus_len){
 	char* tmpcsrfilename1 = malloc(PATH_MAX);
 	char* tmpcsrfilename2 = malloc(PATH_MAX);
@@ -1499,7 +1501,7 @@ void consensus_cluster_oom(const char* csrfile, const char* clusteroutfile, cons
 		fclose(dummyclust);
 
 		// cluster into dummyclust
-		cluster_oom_single(tmpcsrfilename1, tmpclusterfile, dir, qfile1, qfile2, qfile3, num_v, num_iter, v, 1);
+		cluster_oom_single(tmpcsrfilename1, tmpclusterfile, dir, qfile1, qfile2, qfile3, num_v, num_iter, v, 1, inflation);
 
 		if(v) Rprintf("\tRecording results...\n");
 		// lastly, add edge to consensus csr file if they're the same cluster
@@ -1508,7 +1510,7 @@ void consensus_cluster_oom(const char* csrfile, const char* clusteroutfile, cons
 	fclose(consensuscsr);
 
 	if(v) Rprintf("Clustering on consensus data...\n");
-	cluster_oom_single(tmpcsrfilename2, clusteroutfile, dir, qfile1, qfile2, qfile3, num_v, num_iter, v, 1);
+	cluster_oom_single(tmpcsrfilename2, clusteroutfile, dir, qfile1, qfile2, qfile3, num_v, num_iter, v, 1, inflation);
 
 	// reindex clusters from 1 to n
 	mergesort_clust_file(clusteroutfile, dir, sizeof(float_lu), l_uint_compar, precopy_dlu1, postcopy_dlu1);
@@ -1526,7 +1528,7 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, SEXP TABNAME, SEXP TEMPTABN
 										SEXP SEPS, SEXP CTR, SEXP ITER, SEXP VERBOSE, // control flow
 										SEXP IS_UNDIRECTED, SEXP ADD_SELF_LOOPS, // optional adjustments
 										SEXP IGNORE_WEIGHTS, SEXP NORMALIZE_WEIGHTS,
-										SEXP CONSENSUS_WEIGHTS){
+										SEXP CONSENSUS_WEIGHTS, SEXP INFLATION_POW){
 	/*
 	 * I always forget how to handle R strings so I'm going to record it here
 	 * R character vectors are STRSXPs, which is the same as a list (VECSXP)
@@ -1567,6 +1569,7 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, SEXP TABNAME, SEXP TEMPTABN
 	// optional parameters
 	const int is_undirected = LOGICAL(IS_UNDIRECTED)[0];
 	const float self_loop_weight = REAL(ADD_SELF_LOOPS)[0];
+	const double inflation = REAL(INFLATION_POW)[0];
 	const int add_self_loops = self_loop_weight > 0;
 	const int should_normalize = LOGICAL(NORMALIZE_WEIGHTS)[0];
 	const int ignore_weights = LOGICAL(IGNORE_WEIGHTS)[0];
@@ -1614,10 +1617,10 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, SEXP TABNAME, SEXP TEMPTABN
 
  	if(consensus_len){
  		consensus_cluster_oom(tabfile, temptabfile, dir, qfile1, qfile2, qfile3, num_v, num_iter, verbose,
- 													consensus_w, consensus_len);
+ 													inflation, consensus_w, consensus_len);
 
  	} else {
- 		cluster_oom_single(tabfile, temptabfile, dir, qfile1, qfile2, qfile3, num_v, num_iter, verbose, 0);
+ 		cluster_oom_single(tabfile, temptabfile, dir, qfile1, qfile2, qfile3, num_v, num_iter, verbose, 0, inflation);
  	}
 
  	free(hashfile);

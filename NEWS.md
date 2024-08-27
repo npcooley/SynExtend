@@ -1,3 +1,6 @@
+# SynExtend 1.17.4
+* `ExoLabel` now allows an `inflation` argument to control application of inflation
+
 # SynExtend 1.17.3
 * `predict.EvoWeaver` now supports returning p-values separately from raw score for some algorithms.
 * OpenMP implementation for `EvoWeaver` algorithms that support it has been fixed
