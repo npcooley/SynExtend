@@ -3,7 +3,7 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
                           add_self_loops=FALSE,
                           ignore_weights=FALSE,
                           normalize_weights=TRUE,
-                          iterations=0L,
+                          iterations=0L, inflation=1.0,
                           return_table=FALSE,
                           consensus_cluster=FALSE,
                           verbose=interactive(),
@@ -11,16 +11,25 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
                           tempfiledir=tempdir(),
                           cleanup_files=TRUE){
   if(!is.numeric(iterations)){
-    stop("iterations must be an integer or numeric.")
+    stop("'iterations' must be an integer or numeric.")
   } else {
     iterations <- as.integer(iterations)
   }
+  if(!is.numeric(inflation)){
+    stop("'inflation' must be a numeric value")
+  } else {
+    inflation <- as.numeric(inflation)
+  }
   if(is.na(iterations) || is.null(iterations)){
-    warning("Invalid value of iterations, defaulting to 0.")
+    warning("Invalid value of 'iterations', defaulting to 0.")
     iterations <- 0L
   }
   if(is.infinite(iterations) || iterations < 0){
     iterations <- 0L
+  }
+  if(is.infinite(inflation) || is.na(inflation) || inflation < 0){
+    warning("Invalid value of 'inflation', defaulting to 1.0")
+    inflation <- 1.0
   }
   if(!is.numeric(add_self_loops) && !is.logical(add_self_loops)){
     stop("value of 'add_self_loops' should be numeric or logical")
@@ -32,14 +41,14 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
     add_self_loops <- ifelse(add_self_loops, 1, 0)
   }
   if(!is.logical(ignore_weights)){
-    stop("ignore_weights must be logical")
+    stop("'ignore_weights' must be logical")
   } else if(is.na(ignore_weights) || is.null(ignore_weights)){
-    stop("invalid value for ignore_weights (should be TRUE or FALSE)")
+    stop("invalid value for 'ignore_weights' (should be TRUE or FALSE)")
   }
   if(!is.logical(normalize_weights)){
-    stop("normalize_weights must be logical")
+    stop("'normalize_weights' must be logical")
   } else if(is.na(normalize_weights) || is.null(normalize_weights)){
-    stop("invalid value for normalize_weights (should be TRUE or FALSE)")
+    stop("invalid value for 'normalize_weights' (should be TRUE or FALSE)")
   }
   if(ignore_weights && normalize_weights){
     warning("Cannot both ignore weights and normalize them")
@@ -101,7 +110,7 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
   .Call("R_LPOOM_cluster", edgelistfiles, length(edgelistfiles), csr_table_binary,
         counter_cluster_binary, qfiles, hashdir, seps, ctr, iterations,
         verbose, is_undirected, add_self_loops, ignore_weights, normalize_weights,
-        consensus_cluster)
+        consensus_cluster, inflation)
 
   # R_write_output_clusters(clusters, hashes, length(hashes), out_tsvpath, seps)
   .Call("R_LP_write_output", counter_cluster_binary, hashdir,

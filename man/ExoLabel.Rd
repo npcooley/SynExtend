@@ -13,7 +13,7 @@ ExoLabel(edgelistfiles, outfile=tempfile(),
               add_self_loops=FALSE,
               ignore_weights=FALSE,
               normalize_weights=TRUE,
-              iterations=0L,
+              iterations=0L, inflation=1.0,
               return_table=FALSE,
               consensus_cluster=FALSE,
               verbose=interactive(),
@@ -23,7 +23,7 @@ ExoLabel(edgelistfiles, outfile=tempfile(),
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{edgelistfiles}{
+\item{edgelistfiles}{
 Character vector of files to be processed. Each entry should be a machine-interpretable path to an edgelist file. See Details for expected format.
 }
 
@@ -40,7 +40,7 @@ Should self loops be added to the network? If \code{TRUE}, adds self loops of we
 }
 
 \item{ignore_weights}{
-  Should weights be ignored? If \code{TRUE}, all edges will be treated as an edge of weight 1. Must be set to \code{TRUE} if any of \code{edgelistfiles} are two-column tables (start->end only, lacking a weights column).
+Should weights be ignored? If \code{TRUE}, all edges will be treated as an edge of weight 1. Must be set to \code{TRUE} if any of \code{edgelistfiles} are two-column tables (start->end only, lacking a weights column).
 }
 
 \item{normalize_weights}{
@@ -49,6 +49,10 @@ Should weights be normalized? If \code{TRUE}, each vertex's edge weights are nor
 
 \item{iterations}{
 Number of iterations to run fast label propagation algorithm for. Set to a value of 0 or less for infinite iterations.
+}
+
+\item{inflation}{
+Inflation parameter for edges. Every other iteration, all edges are raised to the power of \code{inflation} and then renormalized. Defaults to 1, which disables inflation.
 }
 
 \item{return_table}{
