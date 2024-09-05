@@ -409,7 +409,8 @@ void postcopy_vertexname(const char* f1, const char* f2){
 void mergesort_clust_file(const char* f, const char* dir, size_t element_size,
 															int (*compar)(const void *, const void *),
 															void (*precopy)(const char*, const char*),
-															void (*postcopy)(const char*, const char*)){
+															void (*postcopy)(const char*, const char*),
+															const int verbose){
 	/*
 	 * general file mergesort function
 	 * arguments:
@@ -446,7 +447,9 @@ void mergesort_clust_file(const char* f, const char* dir, size_t element_size,
 	for(int i=0; i<FILE_READ_CACHE_SIZE; i++) read_cache[i] = malloc(element_size);
 
 	// copy the original file into file 1
+	if(verbose) Rprintf("\t\tCopying source file...");
 	precopy(f, file1);
+	if(verbose) Rprintf("done.\n");
 
 	// open file, read in chunks, sort locally, write to file
 	uint cachectr = 0;
@@ -463,12 +466,15 @@ void mergesort_clust_file(const char* f, const char* dir, size_t element_size,
 				fwrite(read_cache[i], element_size, 1, f2_w);
 			cachectr=0;
 		}
+		if(verbose && total_lines % PROGRESS_COUNTER_MOD == 0)
+			Rprintf("\r\t\tLocal sort: %" lu_fprint " lines processed", total_lines);
 	}
 	if(cachectr){
 		qsort(read_cache, cachectr, sizeof(void*), compar);
 		for(int i=0; i<cachectr; i++)
 			fwrite(read_cache[i], element_size, 1, f2_w);
 	}
+	if(verbose) Rprintf("\n");
 
 	fclose(f1_r1);
 	fclose(f2_w);
@@ -480,9 +486,24 @@ void mergesort_clust_file(const char* f, const char* dir, size_t element_size,
 	void *tmp1 = malloc(element_size);
 	void *tmp2 = malloc(element_size);
 	char *f1, *f2;
+	l_uint num_iter = 1, total_iter=0;
+	if(verbose){
+		l_uint tmp_bs = block_size;
+		while(tmp_bs < total_lines){
+			num_iter++;
+			tmp_bs <<= 1;
+		}
+		total_iter = num_iter-1;
+	}
+	num_iter = 1;
+
 	while(block_size < total_lines){
 		// need an interrupt here or we can brick on larger graphs
-		R_CheckUserInterrupt();
+		if(verbose){
+			Rprintf("\r\t\tIteration %" lu_fprint "/%" lu_fprint ": 0.00%% complete   ", num_iter, total_iter);
+		} else {
+			R_CheckUserInterrupt();
+		}
 
 		// f1 is always the reading file, f2 the writing file
 		f1 = flip ? file1 : file2;
@@ -533,6 +554,12 @@ void mergesort_clust_file(const char* f, const char* dir, size_t element_size,
 			// if we move too far it doesn't really matter, we'll catch it on the next part
 			fseek(f1_r1, element_size*block_size, SEEK_CUR);
 			fseek(f1_r2, element_size*block_size, SEEK_CUR);
+			if(verbose){
+				Rprintf("\r\t\tIteration %" lu_fprint "/%" lu_fprint ": %04.2f%% complete  ",
+					num_iter, total_iter, 100*(double)cur_lines / total_lines);
+			} else {
+				R_CheckUserInterrupt();
+			}
 		}
 
 		fclose(f1_r1);
@@ -541,7 +568,9 @@ void mergesort_clust_file(const char* f, const char* dir, size_t element_size,
 		cur_lines = 0;
 		block_size *= 2;
 		finalfile = f2;
+		num_iter++;
 	}
+	if(verbose) Rprintf("\n\t\tCopying sorted results...\n");
 	// copy result back into f
 	postcopy(finalfile, f);
 
@@ -682,9 +711,9 @@ l_uint node_vertex_file_cleanup(const char* dir, const char* fname, const char* 
 	const size_t line_fixed_size = L_SIZE + LEN_SIZE; // size of line (not including vertex name)
 
 	// sort file by string length and name
-	if(v) Rprintf("\tSorting vertex names...");
-	mergesort_clust_file(fname, dir, sizeof(msort_vertex_line), vertex_name_hash_compar, precopy_vertexname, postcopy_vertexname);
-	if(v) Rprintf("done.\n\tRe-indexing vertices...\n");
+	if(v) Rprintf("\tSorting vertex names...\n");
+	mergesort_clust_file(fname, dir, sizeof(msort_vertex_line), vertex_name_hash_compar, precopy_vertexname, postcopy_vertexname, v);
+	if(v) Rprintf("\tRe-indexing vertices...\n");
 	/*
 	 * now we populate three files:
 	 * - fname will hold the indices for where to find each variable (length, first 4 characters (0-padded), start index)
@@ -1459,8 +1488,8 @@ void cluster_oom_single(const char* tabfile, const char* clusteroutfile, const c
 
  	if(!is_consensus){
 	 	// reindex the clusters from 1 to n
-	 	mergesort_clust_file(clusteroutfile, dir, sizeof(float_lu), l_uint_compar, precopy_dlu1, postcopy_dlu1);
-	 	mergesort_clust_file(clusteroutfile, dir, sizeof(float_lu), l_uint_compar, precopy_dlu2, postcopy_dlu2);
+	 	mergesort_clust_file(clusteroutfile, dir, sizeof(float_lu), l_uint_compar, precopy_dlu1, postcopy_dlu1, verbose);
+	 	mergesort_clust_file(clusteroutfile, dir, sizeof(float_lu), l_uint_compar, precopy_dlu2, postcopy_dlu2, verbose);
  	}
 	return;
 }
@@ -1513,8 +1542,8 @@ void consensus_cluster_oom(const char* csrfile, const char* clusteroutfile, cons
 	cluster_oom_single(tmpcsrfilename2, clusteroutfile, dir, qfile1, qfile2, qfile3, num_v, num_iter, v, 1, inflation);
 
 	// reindex clusters from 1 to n
-	mergesort_clust_file(clusteroutfile, dir, sizeof(float_lu), l_uint_compar, precopy_dlu1, postcopy_dlu1);
-	mergesort_clust_file(clusteroutfile, dir, sizeof(float_lu), l_uint_compar, precopy_dlu2, postcopy_dlu2);
+	mergesort_clust_file(clusteroutfile, dir, sizeof(float_lu), l_uint_compar, precopy_dlu1, postcopy_dlu1, v);
+	mergesort_clust_file(clusteroutfile, dir, sizeof(float_lu), l_uint_compar, precopy_dlu2, postcopy_dlu2, v);
 
 	free(tmpcsrfilename1);
 	free(tmpcsrfilename2);
