@@ -1,3 +1,8 @@
+# SynExtend 1.17.5
+* `ExoLabel` will no longer brick R during sorts on large files.
+* `ExoLabel` reports more progress during some lengthy processing sections when `verbose=TRUE`
+* Known issue: "Copying source file" step is still non-interruptable, will be fixed in a later update
+
 # SynExtend 1.17.4
 * `ExoLabel` now allows an `inflation` argument to control application of inflation
 
