@@ -69,8 +69,8 @@ const char CONSENSUS_CLUSTER[] = "tmpclust";
 
 // set this to 1 if we should sample edges rather than use all of them
 // MAX_EDGES_EXACT is a soft cap -- if above this, we sample edges probabalistically
-const int use_limited_nodes = 1;
-const l_uint MAX_EDGES_EXACT = 20000;
+const int use_limited_nodes = 0;
+const l_uint MAX_EDGES_EXACT = 50000;
 const int PRINT_COUNTER_MOD = 811;
 const int PROGRESS_COUNTER_MOD = 3083;
 
@@ -992,12 +992,16 @@ void normalize_csr_edgecounts(const char* ftable, l_uint num_v){
 }
 
 void inflate_csr_edgecounts(const char* ftable, FILE *q, l_uint num_v, double exponent){
+	GetRNGstate();
 	const int entry_size = L_SIZE + sizeof(float);
 	float tmp_val, normalizer;
+	float random_nudge = CLUSTER_MIN_WEIGHT / 10;
 	l_uint start, end, i;
 	FILE *mastertab = fopen(ftable, "rb+");
 	rewind(q);
 	if(!mastertab) error("%s", "error opening CSR file.\n");
+	float *offsets;
+	float mean_off;
 
 	start = 0;
 	while(fread(&i, L_SIZE, 1, q)){
@@ -1005,15 +1009,30 @@ void inflate_csr_edgecounts(const char* ftable, FILE *q, l_uint num_v, double ex
 		fseek(mastertab, i*L_SIZE, SEEK_SET);
 		safe_fread(&start, L_SIZE, 1, mastertab);
 		safe_fread(&end, L_SIZE, 1, mastertab);
+		// going to add a small nudge to the weights to bump it out of steady states
+		offsets = malloc(sizeof(float) * (end-start));
+		mean_off = 0;
+		for(l_uint j=0; j<(end-start); j++){
+			// random number in [-random_nudge, random_nudge]
+			offsets[j] = unif_rand() * (random_nudge*2) - random_nudge;
+			mean_off += offsets[j];
+		}
+		// offset it by the mean so that it's net 0 change
+		mean_off /= (end-start);
+
 		// pointer is now at position i+1, need to go to num_v+1
 		// num_v+1-(i+2) = num_v-i-1
 		fseek(mastertab, (num_v-i-1)*L_SIZE, SEEK_CUR);
 		fseek(mastertab, start*entry_size, SEEK_CUR);
 		for(l_uint j=0; j<(end-start); j++){
+			offsets[j] -= mean_off;
 			fseek(mastertab, L_SIZE, SEEK_CUR);
 			safe_fread(&tmp_val, sizeof(float), 1, mastertab);
 			//tmp_val *= tmp_val;
-			tmp_val = pow(tmp_val, exponent);
+			tmp_val += offsets[j];
+			if(exponent != 1)
+				tmp_val = pow(tmp_val, exponent);
+			tmp_val = tmp_val < CLUSTER_MIN_WEIGHT ? 0 : tmp_val;
 			normalizer += tmp_val;
 		}
 
@@ -1023,19 +1042,24 @@ void inflate_csr_edgecounts(const char* ftable, FILE *q, l_uint num_v, double ex
 
 		// guard case where all weights sum to 0
 		if(!normalizer) normalizer = 1;
-
 		// finally we overwrite each of the values
 		for(l_uint j=0; j<(end-start); j++){
 			fseek(mastertab, L_SIZE, SEEK_CUR);
 			safe_fread(&tmp_val, sizeof(float), 1, mastertab);
-			tmp_val *= tmp_val;
+			tmp_val += offsets[j];
+			if(exponent != 1)
+				tmp_val = pow(tmp_val, exponent);
+			tmp_val = tmp_val < CLUSTER_MIN_WEIGHT ? 0 : tmp_val;
 			tmp_val /= normalizer;
 			fseek(mastertab, -1*sizeof(float), SEEK_CUR);
 			fwrite(&tmp_val, sizeof(float), 1, mastertab);
 		}
+		free(offsets);
+
 		start = end;
 	}
 	fclose(mastertab);
+	PutRNGstate();
 	return;
 }
 
@@ -1263,6 +1287,8 @@ l_uint update_node_cluster(l_uint ind, l_uint offset, FILE *mastertab, FILE *clu
 
 void add_to_queue(l_uint clust, l_uint ind, l_uint n_node, FILE *clust_f, FILE *master_f, FILE *q_f, FILE *ctrq_f){
 	l_uint start, end, tmp_ind, tmp_cl, nedge;
+	// TODO: make buf a minheap or something instead
+	// LL would also work better for dynamic sizing
 	l_uint *buf = malloc(L_SIZE*MAX_EDGES_EXACT);
 	float dummy;
 	int ctr = 0, found;
@@ -1279,7 +1305,7 @@ void add_to_queue(l_uint clust, l_uint ind, l_uint n_node, FILE *clust_f, FILE *
 		safe_fread(&dummy, sizeof(float), 1, master_f);
 		fseek(clust_f, L_SIZE*tmp_ind, SEEK_SET);
 		safe_fread(&tmp_cl, L_SIZE, 1, clust_f);
-		if(tmp_cl && tmp_cl == clust) continue;
+		if((tmp_cl && tmp_cl == clust) || dummy < CLUSTER_MIN_WEIGHT) continue;
 		tmp_ind++;
 		found = 0;
 		for(int j=0; j<ctr; j++){
@@ -1318,6 +1344,7 @@ void add_to_queue(l_uint clust, l_uint ind, l_uint n_node, FILE *clust_f, FILE *
 	}
 
 	free(buf);
+	rewind(q_f);
 	return;
 }
 
@@ -1325,6 +1352,16 @@ l_uint get_qsize(FILE *q){
 	l_uint scratch, ctr=0;
 	while(fread(&scratch, L_SIZE, 1, q)) ctr++;
 	rewind(q);
+	return ctr;
+}
+
+l_uint get_qsize_v(FILE *q){
+	l_uint scratch, ctr=0;
+	while(fread(&scratch, L_SIZE, 1, q)){
+		Rprintf("%" lu_fprint " ", scratch);
+	}
+	rewind(q);
+	Rprintf("\n");
 	return ctr;
 }
 
@@ -1354,6 +1391,36 @@ void initialize_queue(FILE *q, l_uint maxv, FILE *ctr_file){
 	}
 	PutRNGstate();
 
+	return;
+}
+
+void shuffle_queue(FILE *q, l_uint maxv){
+	GetRNGstate();
+	l_uint j, tmp1, tmp2;
+	for(l_uint i=0; i<maxv; i++){
+		j = (l_uint) trunc((i+1) * (unif_rand()));
+		if(j < i){
+			// guarding edge case where unif_rand() returns 1.0
+
+			// tmp1 = arr[j]
+			fseek(q, L_SIZE*j, SEEK_SET);
+			safe_fread(&tmp1, L_SIZE, 1, q);
+
+			// tmp2 = arr[i]
+			fseek(q, L_SIZE*i, SEEK_SET);
+			safe_fread(&tmp2, L_SIZE, 1, q);
+
+			// arr[i] = tmp1
+			fseek(q, -1*L_SIZE, SEEK_CUR);
+			fwrite(&tmp1, L_SIZE, 1, q);
+
+			// arr[j] = tmp2
+			fseek(q, L_SIZE*j, SEEK_SET);
+			fwrite(&tmp2, L_SIZE, 1, q);
+		}
+	}
+	rewind(q);
+	PutRNGstate();
 	return;
 }
 
@@ -1393,11 +1460,21 @@ void cluster_file(const char* mastertab_fname, const char* clust_fname,
 		qsize = get_qsize(cur_q);
 		pct_complete = max_iterations ? (i+1) / max_iterations : ((float)(num_v - qsize)) / num_v;
 		if(v){
+			/*
 			if(pct_complete < prev_pct) pct_complete = prev_pct;
 			else prev_pct = pct_complete;
-			Rprintf("\r\t%0.1f%% complete %s", (pct_complete)*100, progress[++statusctr%progbarlen]);
+			*/
+			Rprintf("\r\t%0.1f%% complete %s   ", (pct_complete)*100, progress[++statusctr%progbarlen]);
 		}
 		if(!qsize) break;
+		shuffle_queue(cur_q, qsize);
+
+		/*
+		if(pct_complete > 0.99){
+			Rprintf("\n**DEBUG: %" lu_fprint "\n", qsize);
+			get_qsize_v(cur_q);
+		}
+		*/
 
 		while(fread(&tmp_ind, L_SIZE, 1, cur_q)){
 			fseek(ctr_q, tmp_ind, SEEK_SET);
@@ -1413,10 +1490,10 @@ void cluster_file(const char* mastertab_fname, const char* clust_fname,
 
 		fclose(cur_q);
 		i++;
-		if(inflation != 1.0 && i%2 == 0){
-			// every 2 iterations, apply inflation operator
+		// every 2 iterations, apply inflation operator
+		// case where inflation == 1.0 is handled in this function
+		if(i%2 == 0)
 			inflate_csr_edgecounts(mastertab_fname, next_q, num_v, inflation);
-		}
 		fclose(next_q);
 	}
 	if(v){
@@ -1541,8 +1618,11 @@ void consensus_cluster_oom(const char* csrfile, const char* clusteroutfile, cons
 	if(v) Rprintf("Clustering on consensus data...\n");
 	cluster_oom_single(tmpcsrfilename2, clusteroutfile, dir, qfile1, qfile2, qfile3, num_v, num_iter, v, 1, inflation);
 
+	if(v) Rprintf("Reindexing clusters...\n");
 	// reindex clusters from 1 to n
+	if(v) Rprintf("\tSorting Iteration 1/2:\n");
 	mergesort_clust_file(clusteroutfile, dir, sizeof(float_lu), l_uint_compar, precopy_dlu1, postcopy_dlu1, v);
+	if(v) Rprintf("\tSorting Iteration 2/2:\n");
 	mergesort_clust_file(clusteroutfile, dir, sizeof(float_lu), l_uint_compar, precopy_dlu2, postcopy_dlu2, v);
 
 	free(tmpcsrfilename1);
