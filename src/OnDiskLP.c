@@ -1158,7 +1158,7 @@ void csr_compress_edgelist_batch(const char* edgefile, const char* indexfname, c
 }
 
 
-l_uint update_node_cluster(l_uint ind, l_uint offset, FILE *mastertab, FILE *clusterings, float exp){
+l_uint update_node_cluster(l_uint ind, l_uint offset, FILE *mastertab, FILE *clusterings){
 	/*
 	 * Determine number of edges using the table file (next - cur)
 	 * If number of edges too large, use some sort of hash to bin edges, then rerun with less
@@ -1279,7 +1279,6 @@ void add_to_queue(l_uint clust, l_uint ind, l_uint n_node, FILE *clust_f, FILE *
 		safe_fread(&dummy, sizeof(float), 1, master_f);
 		fseek(clust_f, L_SIZE*tmp_ind, SEEK_SET);
 		safe_fread(&tmp_cl, L_SIZE, 1, clust_f);
-
 		if(tmp_cl && tmp_cl == clust) continue;
 		tmp_ind++;
 		found = 0;
@@ -1298,7 +1297,8 @@ void add_to_queue(l_uint clust, l_uint ind, l_uint n_node, FILE *clust_f, FILE *
 	// iterate over queue file, adding numbers if not already there
 	rewind(q_f);
 	for(int j=0; j<ctr; j++){
-		fseek(ctrq_f, buf[j], SEEK_SET);
+		// buf[j]-1 added in solution for debug_1.R
+		fseek(ctrq_f, buf[j]-1, SEEK_SET);
 		found = getc(ctrq_f);
 		if(!found){
 			fseek(ctrq_f, -1, SEEK_CUR);
@@ -1402,7 +1402,7 @@ void cluster_file(const char* mastertab_fname, const char* clust_fname,
 		while(fread(&tmp_ind, L_SIZE, 1, cur_q)){
 			fseek(ctr_q, tmp_ind, SEEK_SET);
 			putc(0, ctr_q);
-			cluster_res = update_node_cluster(tmp_ind, num_v+1, masterfile, clusterfile, 1 + ((float)i / 10));
+			cluster_res = update_node_cluster(tmp_ind, num_v+1, masterfile, clusterfile);
 			add_to_queue(cluster_res, tmp_ind, num_v, clusterfile, masterfile, next_q, ctr_q);
 			print_counter++;
 			if(!(print_counter % PROGRESS_COUNTER_MOD)){
