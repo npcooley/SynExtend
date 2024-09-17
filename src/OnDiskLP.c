@@ -993,6 +993,7 @@ void normalize_csr_edgecounts(const char* ftable, l_uint num_v){
 
 void inflate_csr_edgecounts(const char* ftable, FILE *q, l_uint num_v, double exponent){
 	GetRNGstate();
+	// TODO: this is causing issues when exponent is less than 2, not quite sure why
 	const int entry_size = L_SIZE + sizeof(float);
 	float tmp_val, normalizer;
 	float random_nudge = CLUSTER_MIN_WEIGHT / 10;
@@ -1011,27 +1012,22 @@ void inflate_csr_edgecounts(const char* ftable, FILE *q, l_uint num_v, double ex
 		safe_fread(&end, L_SIZE, 1, mastertab);
 		// going to add a small nudge to the weights to bump it out of steady states
 		offsets = malloc(sizeof(float) * (end-start));
-		mean_off = 0;
-		for(l_uint j=0; j<(end-start); j++){
-			// random number in [-random_nudge, random_nudge]
+
+		// random number in [-random_nudge, random_nudge]
+		for(l_uint j=0; j<(end-start); j++)
 			offsets[j] = unif_rand() * (random_nudge*2) - random_nudge;
-			mean_off += offsets[j];
-		}
-		// offset it by the mean so that it's net 0 change
-		mean_off /= (end-start);
 
 		// pointer is now at position i+1, need to go to num_v+1
 		// num_v+1-(i+2) = num_v-i-1
 		fseek(mastertab, (num_v-i-1)*L_SIZE, SEEK_CUR);
 		fseek(mastertab, start*entry_size, SEEK_CUR);
 		for(l_uint j=0; j<(end-start); j++){
-			offsets[j] -= mean_off;
 			fseek(mastertab, L_SIZE, SEEK_CUR);
 			safe_fread(&tmp_val, sizeof(float), 1, mastertab);
-			//tmp_val *= tmp_val;
 			tmp_val += offsets[j];
-			if(exponent != 1)
+			if(exponent != 1 && tmp_val > 0)
 				tmp_val = pow(tmp_val, exponent);
+
 			tmp_val = tmp_val < CLUSTER_MIN_WEIGHT ? 0 : tmp_val;
 			normalizer += tmp_val;
 		}
@@ -1047,7 +1043,7 @@ void inflate_csr_edgecounts(const char* ftable, FILE *q, l_uint num_v, double ex
 			fseek(mastertab, L_SIZE, SEEK_CUR);
 			safe_fread(&tmp_val, sizeof(float), 1, mastertab);
 			tmp_val += offsets[j];
-			if(exponent != 1)
+			if(exponent != 1 && tmp_val > 0)
 				tmp_val = pow(tmp_val, exponent);
 			tmp_val = tmp_val < CLUSTER_MIN_WEIGHT ? 0 : tmp_val;
 			tmp_val /= normalizer;
