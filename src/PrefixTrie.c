@@ -1,27 +1,4 @@
-#include <stdlib.h>
-#include <stdint.h>
-#include <string.h>
-
-#define trie_uint uint64_t
-#define FALSE 0
-#define TRUE 1
-
-
-// MAKE SURE WE INITIALIZE TREE WITH:
-// alloc_new_terminal_node(0, NULL)
-
-typedef struct leaf {
-	trie_uint count; //(making this uint32_t can save a lot of space)
-	trie_uint index;
-} leaf;
-
-typedef struct prefix {
-	char plen;
-	char *s;
-	struct prefix *next;
-	struct prefix *prev;
-	void *child; // can be either prefix or leaf
-} prefix;
+#include "PrefixTrie.h"
 
 leaf *alloc_leaf(trie_uint index) {
 	leaf *node = malloc(sizeof(leaf));
@@ -61,6 +38,11 @@ prefix *alloc_new_terminal_node(char *s) {
 	node->child = child;
 	assign_prefix(node, s);
 	assign_prefix(child, NULL);
+	return node;
+}
+
+prefix *initialize_trie(){
+	prefix *node = alloc_new_terminal_node(NULL);
 	return node;
 }
 
