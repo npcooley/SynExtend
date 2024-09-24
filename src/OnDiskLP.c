@@ -498,7 +498,7 @@ void mergesort_clust_file(const char* f, const char* dir, size_t element_size,
 		for(int i=0; i<cachectr; i++)
 			safe_fwrite(read_cache[i], element_size, 1, f2_w);
 	}
-	if(verbose) Rprintf("\n");
+	if(verbose) Rprintf("\r\t\tLocal sort: %" lu_fprint " lines processed\n", total_lines);
 
 	fclose(f1_r1);
 	fclose(f2_w);
@@ -594,7 +594,9 @@ void mergesort_clust_file(const char* f, const char* dir, size_t element_size,
 		finalfile = f2;
 		num_iter++;
 	}
-	if(verbose) Rprintf("\n\t\tCopying sorted results...\n");
+	if(verbose && total_iter) Rprintf("\r\t\tIteration %" lu_fprint "/%" lu_fprint ": 100.00%% complete  \n",
+					total_iter, total_iter);
+	if(verbose) Rprintf("\t\tCopying sorted results...\n");
 	// copy result back into f
 	postcopy(finalfile, f);
 
@@ -1068,15 +1070,16 @@ void add_self_loops_to_csrfile(const char *ftable, l_uint num_v, float self_weig
 	fclose(mastertab);
 }
 
-void normalize_csr_edgecounts(const char* ftable, l_uint num_v){
+void normalize_csr_edgecounts(const char* ftable, l_uint num_v, int verbose){
 	const int entry_size = L_SIZE + sizeof(float);
 	float tmp_val, normalizer;
 	l_uint start, end;
 	FILE *mastertab = fopen(ftable, "rb+");
 	if(!mastertab) error("%s", "error opening CSR file.\n");
+	if(verbose) Rprintf("\tNodes remaining: %" lu_fprint "", num_v);
 
 	start = 0;
-	for(l_uint i=0; i<num_v-1; i++){
+	for(l_uint i=0; i<num_v; i++){
 		normalizer = 0;
 		fseek(mastertab, (i+1)*L_SIZE, SEEK_SET);
 		safe_fread(&end, L_SIZE, 1, mastertab);
@@ -1107,7 +1110,13 @@ void normalize_csr_edgecounts(const char* ftable, l_uint num_v){
 			safe_fwrite(&tmp_val, sizeof(float), 1, mastertab);
 		}
 		start = end;
+		if(i % PROGRESS_COUNTER_MOD == 0){
+			if(verbose) Rprintf("\r\tNodes remaining: %" lu_fprint "                   ", num_v-i-1);
+			else R_CheckUserInterrupt();
+		}
 	}
+
+	if(verbose) Rprintf("\r\tNodes remaining: 0                   \n");
 
 	fclose(mastertab);
 	return;
@@ -1773,7 +1782,7 @@ l_uint write_output_clusters_trie(FILE *outfile, FILE *clusterfile, prefix *trie
 				num_v--;
 				if(num_v % PROGRESS_COUNTER_MOD == 0){
 					if(verbose)
-						Rprintf("\r\tVertices remaining: %" lu_fprint "                    ", num_v);
+						Rprintf("\r\tNodes remaining: %" lu_fprint "                    ", num_v);
 					else
 						R_CheckUserInterrupt();
 				}
@@ -1906,7 +1915,7 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, SEXP TABNAME, // files
  	if(add_self_loops) add_self_loops_to_csrfile(tabfile, num_v, self_loop_weight);
 
  	if(verbose && should_normalize) Rprintf("Normalizing edge weights...\n");
-	if(should_normalize) normalize_csr_edgecounts(tabfile, num_v);
+	if(should_normalize) normalize_csr_edgecounts(tabfile, num_v, verbose);
 
  	if(consensus_len){
  		consensus_cluster_oom(tabfile, temptabfile, dir, qfile1, qfile2, qfile3, num_v, num_iter, verbose,
@@ -1926,7 +1935,7 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, SEXP TABNAME, // files
  	char write_buffer[PATH_MAX];
  	if(verbose) Rprintf("Writing clusters to file...\n\tVertices remaining: %" lu_fprint "", num_v);
  	write_output_clusters_trie(results, clusters, trie, vert_name_holder, 0, write_buffer, seps, num_v, verbose);
- 	if(verbose) Rprintf("\r\tVertices remaining: None!                    \n");
+ 	if(verbose) Rprintf("\r\tNodes remaining: 0                   \n");
  	fclose(results);
  	fclose(clusters);
  	//free(hashfile);
