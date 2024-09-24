@@ -381,55 +381,6 @@ void postcopy_dlu2(const char* f1, const char* f2){
 	return;
 }
 
-
-void precopy_vertexname(const char* f1, const char* f2){
-	msort_vertex_line *aa = malloc(sizeof(msort_vertex_line));
-	FILE *orig = fopen(f1, "rb");
-	FILE *copy = fopen(f2, "wb");
-	while(fread(&(aa->strlength), LEN_SIZE, 1, orig)){
-		memset(&(aa->s), 0, MAX_NODE_NAME_SIZE);
-		safe_fread(&(aa->s), 1, aa->strlength, orig);
-		safe_fread(&(aa->count), L_SIZE, 1, orig);
-		aa->hash = hash_string_fnv(aa->s);
-		safe_fwrite(aa, sizeof(msort_vertex_line), 1, copy);
-	}
-
-	fclose(orig);
-	fclose(copy);
-	free(aa);
-}
-
-void postcopy_vertexname(const char* f1, const char* f2){
-	msort_vertex_line *cur_elem, *tmp_elem;
-	cur_elem = calloc(1, sizeof(msort_vertex_line));
-	tmp_elem = calloc(1, sizeof(msort_vertex_line));
-	FILE *orig = fopen(f1, "rb");
-	FILE *copy = fopen(f2, "wb");
-
-	safe_fread(cur_elem, sizeof(msort_vertex_line), 1, orig);
-	while(fread(tmp_elem, sizeof(msort_vertex_line), 1, orig)){
-		if(tmp_elem->strlength == cur_elem->strlength && !strcmp(tmp_elem->s, cur_elem->s)){
-			cur_elem->count += tmp_elem->count;
-		} else {
-			safe_fwrite(&(cur_elem->strlength), LEN_SIZE, 1, copy);
-			safe_fwrite(&(cur_elem->s), cur_elem->strlength, 1, copy);
-			safe_fwrite(&(cur_elem->count), L_SIZE, 1, copy);
-			memcpy(cur_elem, tmp_elem, sizeof(msort_vertex_line));
-		}
-	}
-
-	// dont forget to copy the final element
-	safe_fwrite(&(cur_elem->strlength), LEN_SIZE, 1, copy);
-	safe_fwrite(&(cur_elem->s), cur_elem->strlength, 1, copy);
-	safe_fwrite(&(cur_elem->count), L_SIZE, 1, copy);
-
-	free(cur_elem);
-	free(tmp_elem);
-	fclose(orig);
-	fclose(copy);
-	return;
-}
-
 void mergesort_clust_file(const char* f, const char* dir, size_t element_size,
 															int (*compar)(const void *, const void *),
 															void (*precopy)(const char*, const char*),
@@ -695,232 +646,6 @@ void unique_strings_with_sideeffects(char **names, int num_to_sort, int *InsertP
 	return;
 }
 
-void batch_write_nodes(char **names, int num_to_sort, FILE *f){
-	// just going to write everything to one big file, no checking for uniqueness
-	// assume file opened in advance as ab
-	// TODO: make strings one byte longer, use this as a flag to determine in vs out edge
-
-	// assuming all the nodes are in a const char* array
-
-	// filename
-	char *tmp_s;
-
-	// entries per unique string
-	uint *stringcounts = malloc(sizeof(uint) * num_to_sort);
-	l_uint tmpcount;
-
-	// strlens
-	strlen_uint cur_len;
-
-	// these are sometimes used for temp storage
-	int insert_point;
-
-	unique_strings_with_sideeffects(names, num_to_sort, &insert_point, stringcounts, 1);
-
-	// write all the lines to the end of the file
-	for(int j=0; j<insert_point; j++){
-		tmp_s = names[j];
-		tmpcount = stringcounts[j];
-		cur_len = strlen(tmp_s);
-		safe_fwrite(&cur_len, LEN_SIZE, 1, f);
-		safe_fwrite(tmp_s, 1, cur_len, f);
-		safe_fwrite(&tmpcount, L_SIZE, 1, f);
-	}
-
-
-	free(stringcounts);
-	return;
-}
-
-l_uint node_vertex_file_cleanup(const char* dir, const char* fname, const char* countsfname, const char* indexfname, int v){
-	// file is formatted as entries of type "%u%s%lu" (strlen, name, count)
-	const size_t line_fixed_size = L_SIZE + LEN_SIZE; // size of line (not including vertex name)
-
-	// sort file by string length and name
-	if(v) Rprintf("\tSorting vertex names...\n");
-	mergesort_clust_file(fname, dir, sizeof(msort_vertex_line), vertex_name_hash_compar, precopy_vertexname, postcopy_vertexname, v);
-	if(v) Rprintf("\tRe-indexing vertices...\n");
-	/*
-	 * now we populate three files:
-	 * - fname will hold the indices for where to find each variable (length, first 4 characters (0-padded), start index)
-	 * - countsfname will hold the counts for each variable
-	 */
-
-	FILE *orig, *countsfile, *indexfile;
-	l_uint tmpcount, curloc = 0, num_v=0;
-
-	char *vertname = malloc(MAX_NODE_NAME_SIZE);
-	iline *index_line = calloc(1, sizeof(iline));
-
-	orig = fopen(fname, "rb");
-	countsfile = fopen(countsfname, "wb");
-	indexfile = fopen(indexfname, "wb");
-	if(!orig || !countsfile || !indexfile) error("error opening files while cleaning up vertex hashmap");
-
-	while(fread(&index_line->len, LEN_SIZE, 1, orig)){
-		memset(vertname, 0, MAX_NODE_NAME_SIZE);
-		safe_fread(vertname, 1, index_line->len, orig);
-		safe_fread(&tmpcount, L_SIZE, 1, orig);
-
-		index_line->index = curloc;
-		index_line->hash = hash_string_fnv(vertname);
-
-		// write length, hash, start index to index file
-		safe_fwrite(index_line, sizeof(iline), 1, indexfile);
-
-		// write count to counts file
-		safe_fwrite(&tmpcount, L_SIZE, 1, countsfile);
-		curloc += line_fixed_size + index_line->len;
-		num_v++;
-		if(!(num_v % PRINT_COUNTER_MOD)){
-			if(v) Rprintf("\t%" lu_fprint " vertices found\r", num_v);
-			else R_CheckUserInterrupt();
-		}
-	}
-
-	fclose(orig);
-	fclose(countsfile);
-	fclose(indexfile);
-	free(index_line);
-	free(vertname);
-	if(v) Rprintf("\t%" lu_fprint " vertices found\n", num_v);
-	return num_v;
-}
-
-l_uint lookup_node_index(char *name, FILE *findex, FILE *fhash, l_uint num_v){
-	// binary search to find value in file
-
-	// findex and hashf should be opened rb
-	const size_t line_size = sizeof(iline);
-	const strlen_uint namelen = strlen(name);
-
-	strlen_uint tmplen;
-	h_uint curhash = hash_string_fnv(name);
-	int cmpresult;
-
-	l_uint min_line = 0, max_line = num_v;
-	int64_t prev_line = 0, cur_line = 0;
-
-	char *vname = malloc(MAX_NODE_NAME_SIZE);
-	iline *index_line = malloc(sizeof(iline));
-
-	rewind(findex);
-	while(min_line <= max_line){
-		// move to center of current area
-		cur_line = (max_line + min_line) / 2;
-		fseek(findex, (cur_line-prev_line)*line_size, SEEK_CUR);
-
-		safe_fread(index_line, sizeof(iline), 1, findex);
-		cmpresult = curhash != index_line->hash; // should be 0 when equal
-		if(cmpresult)
-			cmpresult = curhash < index_line->hash ? -1 : 1;
-		if(index_line->len == namelen && !cmpresult){
-			memset(vname, 0, MAX_NODE_NAME_SIZE);
-			fseek(fhash, index_line->index, SEEK_SET);
-			safe_fread(&tmplen, LEN_SIZE, 1, fhash);
-			safe_fread(vname, 1, tmplen, fhash);
-			cmpresult = strcmp(name, vname);
-			if(!cmpresult){
-				free(index_line);
-				free(vname);
-				return cur_line;
-			}
-		}
-
-		if(namelen < index_line->len){
-			// name comes before current position in array
-			max_line = cur_line-1;
-		} else if(namelen > index_line->len){
-			min_line = cur_line+1;
-		} else if(cmpresult < 0){
-			max_line = cur_line-1;
-		} else {
-			min_line = cur_line+1;
-		}
-		prev_line = cur_line+1;
-	}
-
-	// we should never get here if we read in all the vertices correctly
-	free(vname);
-	free(index_line);
-	error("Failed to find vertex %s in hash lookup.", name);
-}
-
-void hash_file_vnames_batch(const char* fname, const char* dname, const char *hashfname,
-	const char sep, const char line_sep, int v, int is_undirected){
-	/*
-	 * fname: .tsv list of edges
-	 * dname: directory of hash codes
-	 * hashfname: file to write vertices to
-	 */
-	FILE *f = fopen(fname, "rb");
-	FILE *hashf = fopen(hashfname, "ab");
-
-	// size + 1 so that there's space for marking if it's an outgoing edge
-	char *vname = malloc(MAX_NODE_NAME_SIZE+1);
-	char **namecache = malloc(sizeof(char*) * NODE_NAME_CACHE_SIZE);
-
-	for(int i=0; i<NODE_NAME_CACHE_SIZE; i++) namecache[i] = malloc(MAX_NODE_NAME_SIZE+1);
-
-	int cur_pos = 0, cachectr=0;
-	char c = getc_unsafe(f);
-	l_uint print_counter = 0;
-
-	if(v) Rprintf("\tReading file %s...\n", fname);
-
-	while(!feof(f)){
-		// going to assume we're at the beginning of a line
-		// lines should be of the form `start end weight` or `start end`
-		// separation is by char `sep`
-		for(int iter=0; iter<2; iter++){
-			memset(vname, 0, MAX_NODE_NAME_SIZE+1);
-			cur_pos = 0;
-			while(c != sep && c != line_sep){
-				vname[cur_pos++] = c;
-				c = getc_unsafe(f);
-				if(cur_pos == MAX_NODE_NAME_SIZE-1) // max size has to include the null terminator
-					errorclose_file(f, hashf, "Node name is larger than max allowed name size.\n");
-
-				if(feof(f)) errorclose_file(f, hashf, "Unexpected end of file.\n");
-			}
-
-			memset(namecache[cachectr], 0, MAX_NODE_NAME_SIZE+1);
-			memcpy(namecache[cachectr], vname, strlen(vname));
-
-			// mark if edge is outgoing -- always if undirected, otherwise only if the first node name
-			namecache[cachectr][MAX_NODE_NAME_SIZE] = is_undirected ? 1 : !iter;
-
-			cachectr++;
-			if(cachectr == NODE_NAME_CACHE_SIZE){
-				batch_write_nodes(namecache, cachectr, hashf);
-				cachectr = 0;
-			}
-
-			// if lines are of the form `start end`, we need to leave c on the terminator
-			if(c == sep)
-				c = getc_unsafe(f);
-		}
-
-		while(c != line_sep && !feof(f)) c = getc_unsafe(f);
-		if(c == line_sep) c=getc_unsafe(f);
-		print_counter++;
-		if(!(print_counter % PRINT_COUNTER_MOD)){
-			if(v) Rprintf("\t%" lu_fprint " lines read\r", print_counter);
-			else R_CheckUserInterrupt();
-		}
-	}
-	if(cachectr) batch_write_nodes(namecache, cachectr, hashf);
-
-	if(v) Rprintf("\t%" lu_fprint " lines read\n", print_counter);
-	fclose(hashf);
-	fclose(f);
-
-	free(vname);
-	for(int i=0; i<NODE_NAME_CACHE_SIZE; i++) free(namecache[i]);
-	free(namecache);
-	return;
-}
-
 h_uint hash_file_vnames_trie(const char* fname, prefix *trie, h_uint next_index,
 	const char sep, const char line_sep, int v, int is_undirected){
 	/*
@@ -1116,7 +841,7 @@ void normalize_csr_edgecounts(const char* ftable, l_uint num_v, int verbose){
 		}
 	}
 
-	if(verbose) Rprintf("\r\tNodes remaining: 0                   \n");
+	if(verbose) Rprintf("\r\tNodes remaining: Done!               \n");
 
 	fclose(mastertab);
 	return;
@@ -1241,7 +966,7 @@ void csr_compress_edgelist_trie(const char* edgefile, prefix *trie,
 				c = getc_unsafe(edgelist);
 				continue;
 			}
-			//inds[i] = lookup_node_index(vname, indexfile, hashfile, num_v);
+
 			inds[i] = find_index_for_prefix(vname, trie);
 
 			// advance one past the separator if it isn't linesep
@@ -1872,19 +1597,11 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, SEXP TABNAME, // files
 	const int consensus_len = length(CONSENSUS_WEIGHTS);
 	const double* consensus_w = REAL(CONSENSUS_WEIGHTS);
 
-	// eventually let's just make these tempfiles too called by R
-	//char *hashfile = malloc(PATH_MAX);
-	//safe_filepath_cat(dir, HASH_FNAME, hashfile, PATH_MAX);
-
-	//char *hashindex = malloc(PATH_MAX);
-	//safe_filepath_cat(dir, HASH_INAME, hashindex, PATH_MAX);
-
 	// first hash all vertex names
 	if(verbose) Rprintf("Building trie for vertex names...\n");
 	prefix *trie = initialize_trie();
 	for(int i=0; i<num_edgefiles; i++){
 		edgefile = CHAR(STRING_ELT(FILENAME, i));
-		//hash_file_vnames_batch(edgefile, dir, hashfile, seps[0], seps[1], verbose, is_undirected);
 		num_v = hash_file_vnames_trie(edgefile, trie, num_v, seps[0], seps[1], verbose, is_undirected);
 	}
 
@@ -1905,8 +1622,6 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, SEXP TABNAME, // files
  	if(verbose) Rprintf("Reading in edges...\n");
  	for(int i=0; i<num_edgefiles; i++){
  		edgefile = CHAR(STRING_ELT(FILENAME, i));
- 		//csr_compress_edgelist_batch(edgefile, hashindex, hashfile, temptabfile, tabfile, seps[0], seps[1],
- 		//														num_v, verbose, is_undirected, add_self_loops, ignore_weights);
  		csr_compress_edgelist_trie(edgefile, trie, temptabfile, tabfile, seps[0], seps[1],
  																num_v, verbose, is_undirected, add_self_loops, ignore_weights);
  	}
@@ -1935,143 +1650,10 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, SEXP TABNAME, // files
  	char write_buffer[PATH_MAX];
  	if(verbose) Rprintf("Writing clusters to file...\n\tVertices remaining: %" lu_fprint "", num_v);
  	write_output_clusters_trie(results, clusters, trie, vert_name_holder, 0, write_buffer, seps, num_v, verbose);
- 	if(verbose) Rprintf("\r\tNodes remaining: 0                   \n");
+ 	if(verbose) Rprintf("\r\tNodes remaining: Done!               \n");
  	fclose(results);
  	fclose(clusters);
- 	//free(hashfile);
- 	//free(hashindex);
+
 	free_trie(trie);
-	// SEXP RETVAL = PROTECT(allocVector(REALSXP, 1));
-	// REAL(RETVAL)[0] = (float) num_v;
-	// UNPROTECT(1);
-	return R_NilValue;
-}
-
-
-SEXP R_LP_write_output(SEXP CLUSTERFILE, SEXP HASHEDDIR, SEXP OUTFILE, SEXP SEPS, SEXP VERBOSE){
-	/*
-	 * Inputs:
-	 * 	CLUSTERFILE: file of clusters (cluster_counts)
-	 *  HASHEDFILES: character vector of all hash files
-	 *    NUM_FILES: number of hash files
-	 *      OUTFILE: file to write to
-	 *         SEPS: %c%c, entry_sep, line_sep
-	 *
-	 * R_write_output_clusters(cluster_counts, list.files(hashdir), length(...), out_tsvpath, seps)
-	 */
-
-	const int v = LOGICAL(VERBOSE)[0];
-	const char* cfile = CHAR(STRING_ELT(CLUSTERFILE, 0));
-	const char* hashdir = CHAR(STRING_ELT(HASHEDDIR, 0));
-	const char* outfile = CHAR(STRING_ELT(OUTFILE, 0));
-	const char* seps = CHAR(STRING_ELT(SEPS, 0));
-	char *hashfname = malloc(PATH_MAX);
-	safe_filepath_cat(hashdir, HASH_FNAME, hashfname, PATH_MAX);
-
-	strlen_uint name_len;
-	char buf[MAX_NODE_NAME_SIZE];
-	char write_buf[PATH_MAX];
-	l_uint clust, num_written=0, junk;
-	FILE *outf = fopen(outfile, "w");
-	if(v) Rprintf("Writing node clusters to output file...\n");
-
-	FILE *fclusters = fopen(cfile, "rb");
-	FILE *hashfile = fopen(hashfname, "rb");
-	// clusters and names are aligned, so we just need to iterate both files as once
-	while(fread(&name_len, LEN_SIZE, 1, hashfile)){
-		memset(buf, 0, MAX_NODE_NAME_SIZE);
-		memset(write_buf, 0, PATH_MAX);
-		safe_fread(buf, 1, name_len, hashfile);
-		safe_fread(&junk, L_SIZE, 1, hashfile);
-
-		// get the cluster for the node name
-		safe_fread(&clust, L_SIZE, 1, fclusters);
-
-		// prepare data for output
-		snprintf(write_buf, (name_len+3)+L_SIZE, "%s%c%" lu_fprint "%c", buf, seps[0], clust, seps[1]);
-		safe_fwrite(write_buf, 1, strlen(write_buf), outf);
-		num_written++;
-
-		if(!(num_written % PRINT_COUNTER_MOD)){
-			if(v) Rprintf("%" lu_fprint " nodes written.\r", num_written);
-			else R_CheckUserInterrupt();
-		}
-	}
-	if(v) Rprintf("%" lu_fprint " nodes written.\n", num_written);
-	fclose(fclusters);
-	fclose(outf);
-	fclose(hashfile);
-	free(hashfname);
-
-	return R_NilValue;
-}
-
-
-/**** TESTING ****/
-SEXP R_test_trie(SEXP FILENAME, SEXP NUM_EFILES, SEXP TABNAME, SEXP TEMPTABNAME,
-										SEXP SEPS, SEXP CTR, SEXP VERBOSE, // control flow
-										SEXP IS_UNDIRECTED, SEXP ADD_SELF_LOOPS){
-	/*
-	 * I always forget how to handle R strings so I'm going to record it here
-	 * R character vectors are STRSXPs, which is the same as a list (VECSXP)
-	 * Each entry in a STRSXP is a CHARSXP, accessed with STRING_ELT(str, ind)
-	 * You can get a `const char*` from a CHARSXP with CHAR()
-	 * You can also re-encode with `const char* Rf_translateCharUTF8()`
-	 */
-
-	/*
-	 * Input explanation:
-	 *		 FILENAME: file of edges in format `v1 v2 w`
-	 *      TABNAME: stores CSR compression of graph structure
-	 *	TEMPTABNAME: first used to count edges, then used to store clusters
-	 * 			 QFILES: two files, both used for queues
-	 * 		   OUTDIR: directory to store hashed strings
-	 *
-	 * R_hashedgelist(tsv, csr, clusters, queues, hashdir, seps, 1, iter, verbose)
-	 */
-	const char* edgefile;
-	const char* tabfile = CHAR(STRING_ELT(TABNAME, 0));
-	const char* temptabfile = CHAR(STRING_ELT(TEMPTABNAME, 0));
-
-	// required parameters
-	const char* seps = CHAR(STRING_ELT(SEPS, 0));
-	const int num_edgefiles = INTEGER(NUM_EFILES)[0];
-	const int verbose = LOGICAL(VERBOSE)[0];
-	l_uint num_v = (l_uint)(REAL(CTR)[0]);
-
-	// optional parameters
-	const int is_undirected = LOGICAL(IS_UNDIRECTED)[0];
-	const float self_loop_weight = REAL(ADD_SELF_LOOPS)[0];
-	const int add_self_loops = self_loop_weight > 0;
-
-	// first hash all vertex names
-	if(verbose) Rprintf("Building hash table for vertex names...\n");
-	prefix *trie = initialize_trie();
-	for(int i=0; i<num_edgefiles; i++){
-		edgefile = CHAR(STRING_ELT(FILENAME, i));
-		num_v = hash_file_vnames_trie(edgefile, trie, num_v, seps[0], seps[1], verbose, is_undirected);
-	}
-
-	// next, reformat the file to get final counts for each node
-	if(verbose) Rprintf("Tidying up internal tables...\n");
-	FILE *tempcounts = fopen(temptabfile, "wb");
-	if(!tempcounts) error("could not open file %s\n", temptabfile);
-	num_v = reindex_trie_and_write_counts(trie, tempcounts, 0);
-	fclose(tempcounts);
-	free_trie(trie);
-
- 	// next, create an indexed table file of where data for each vertex will be located
- 	if(verbose) Rprintf("Reformatting vertex degree file...\n");
- 	reformat_counts(temptabfile, tabfile, num_v, add_self_loops);
-
-	Rprintf("Done! Double checking results:\n");
-
-	l_uint tmpval;
-	FILE *checkres = fopen(tabfile, "rb");
-	for(int i=0; i<100; i++){
-		if(i%10 == 0) printf("\n");
-		safe_fread(&tmpval, L_SIZE, 1, checkres);
-		printf("%" lu_fprint " ", tmpval);
-	}
 	return R_NilValue;
 }
