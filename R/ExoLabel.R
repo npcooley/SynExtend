@@ -79,6 +79,7 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
     if(any(consensus_cluster < 0))
       stop("'consensus_cluster' cannot contain negative values")
   }
+  tempfiledir <- normalizePath(tempfiledir, mustWork=TRUE)
   counter_cluster_binary <- tempfile(tmpdir=tempfiledir)
   csr_table_binary <- tempfile(tmpdir=tempfiledir)
   qfiles <- c(tempfile(tmpdir=tempfiledir),
@@ -93,6 +94,8 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
   } else {
     dir.create(hashdir)
   }
+  hashdir <- normalizePath(hashdir, mustWork=TRUE)
+  outfile <- file.path(normalizePath(dirname(outfile), mustWork=TRUE), basename(outfile))
 
   if(verbose){
     cat("Temporary files stored at ", tempfiledir, "\n")
@@ -108,13 +111,13 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
   ctr <- 1
   # R_hashedgelist(tsv, csr, clusters, queues, hashdir, seps, 1, iter, verbose)
   .Call("R_LPOOM_cluster", edgelistfiles, length(edgelistfiles), csr_table_binary,
-        counter_cluster_binary, qfiles, hashdir, seps, ctr, iterations,
+        counter_cluster_binary, qfiles, hashdir, outfile, seps, ctr, iterations,
         verbose, is_undirected, add_self_loops, ignore_weights, normalize_weights,
         consensus_cluster, inflation)
 
   # R_write_output_clusters(clusters, hashes, length(hashes), out_tsvpath, seps)
-  .Call("R_LP_write_output", counter_cluster_binary, hashdir,
-        outfile, seps, verbose)
+  #.Call("R_LP_write_output", counter_cluster_binary, hashdir,
+  #      outfile, seps, verbose)
   if(cleanup_files){
     for(f in c(csr_table_binary, counter_cluster_binary, qfiles))
       if(file.exists(f)) file.remove(f)
@@ -170,4 +173,38 @@ EstimateExoLabel <- function(num_v, avg_degree=1,
     cat("Algorithm disk consumption is about ", round(exp_ratio, 2), "x that of the initial files.\n", sep='')
   }
   v
+}
+
+
+test_Trie_behavior <- function(edgelistfiles, tmpfiledir=tempdir(), is_undirected=TRUE, add_self_loops=0){
+  sep <- "\t"
+  ignore_weights <- FALSE
+  hashdir <- normalizePath(file.path(tmpfiledir, "ExoLabel_tmp"), mustWork=TRUE)
+  if(dir.exists(hashdir)){
+    for(f in list.files(hashdir, full.names=TRUE))
+      file.remove(f)
+  } else {
+    dir.create(hashdir)
+  }
+  tmpfiles <- c(file.path(hashdir, "CSR.tmp"), file.path(hashdir, "Clusters.tmp"))
+  print(tmpfiles)
+  if(!all(file.exists(edgelistfiles))) stop("edgelist file does not exist")
+  edgelistfiles <- normalizePath(edgelistfiles, mustWork=TRUE)
+    for(f in edgelistfiles){
+    v <- readLines(f, n=10L)
+    v <- strsplit(v, sep)
+    lv <- lengths(v)
+    if(any(lv != lv[1]) || lv[1] < 2) stop("file ", f, " is misformatted")
+    lv <- lv[1] # now we know they're all the same
+    if(!ignore_weights && lv == 2) stop("file ", f, " is missing weights!")
+    if(!ignore_weights && any(vapply(v, \(x) is.na(as.numeric(x[3])), logical(1L))))
+      stop("file ", f, " has malformed weights")
+  }
+
+
+  seps <- '\t\n'
+  ctr <- 1
+  # R_hashedgelist(tsv, csr, clusters, queues, hashdir, seps, 1, iter, verbose)
+  .Call("R_test_trie", edgelistfiles, length(edgelistfiles), tmpfiles[1], tmpfiles[2],
+    seps, ctr, TRUE, is_undirected, add_self_loops)
 }

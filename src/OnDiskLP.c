@@ -73,7 +73,7 @@ const char CONSENSUS_CLUSTER[] = "tmpclust";
 // MAX_EDGES_EXACT is a soft cap -- if above this, we sample edges probabalistically
 const int use_limited_nodes = 0;
 const l_uint MAX_EDGES_EXACT = 50000;
-const int PRINT_COUNTER_MOD = 811;
+const int PRINT_COUNTER_MOD = 811*13;
 const int PROGRESS_COUNTER_MOD = 3083;
 
 // fast, non-threadsafe getc() for better performance if opening for reading only
@@ -165,7 +165,7 @@ static void safe_fread(void *buffer, size_t size, size_t count, FILE *stream){
 	return;
 };
 
-static void safe_fwrite(void *buffer, size_t size, size_t count, FILE *stream){
+static size_t safe_fwrite(void *buffer, size_t size, size_t count, FILE *stream){
 	size_t written_values = fwrite(buffer, size, count, stream);
 	if(written_values != count){
 		// same scenarios as in safe_fread
@@ -178,13 +178,13 @@ static void safe_fwrite(void *buffer, size_t size, size_t count, FILE *stream){
 
 			// try to read again
 			written_values = fwrite(buffer, size, count, stream);
-			if(written_values == count) return;
+			if(written_values == count) return count;
 		}
 
 		// otherwise throw an error
-		error("Internal error: fread read %zu values (expected %zu).\n", found_values, count);
+		error("Internal error: fwrite wrote %zu values (expected %zu).\n", written_values, count);
 	}
-	return;
+	return written_values;
 }
 
 static void safe_filepath_cat(const char* dir, const char* f, char *fname, size_t fnamesize){
@@ -919,6 +919,104 @@ void hash_file_vnames_batch(const char* fname, const char* dname, const char *ha
 	return;
 }
 
+h_uint hash_file_vnames_trie(const char* fname, prefix *trie, h_uint next_index,
+	const char sep, const char line_sep, int v, int is_undirected){
+	/*
+	 * fname: .tsv list of edges
+	 * dname: directory of hash codes
+	 * hashfname: file to write vertices to
+	 */
+	FILE *f = fopen(fname, "rb");
+
+	// size + 1 so that there's space for marking if it's an outgoing edge
+	//char *vname = malloc(MAX_NODE_NAME_SIZE+1);
+	char *vname;
+	char **namecache = malloc(sizeof(char*) * NODE_NAME_CACHE_SIZE);
+	uint *str_counts = malloc(sizeof(uint) * NODE_NAME_CACHE_SIZE);
+	int num_unique;
+
+	for(int i=0; i<NODE_NAME_CACHE_SIZE; i++) namecache[i] = malloc(MAX_NODE_NAME_SIZE+1);
+
+	int cur_pos = 0, cachectr=0;
+	char c = getc_unsafe(f);
+	l_uint print_counter = 0;
+
+	if(v) Rprintf("\tReading file %s...\n", fname);
+
+	while(!feof(f)){
+		// going to assume we're at the beginning of a line
+		// lines should be of the form `start end weight` or `start end`
+		// separation is by char `sep`
+		for(int iter=0; iter<2; iter++){
+			vname = namecache[cachectr];
+			memset(vname, 0, MAX_NODE_NAME_SIZE+1);
+			cur_pos = 0;
+			while(c != sep && c != line_sep){
+				vname[cur_pos++] = c;
+				c = getc_unsafe(f);
+				if(cur_pos == MAX_NODE_NAME_SIZE-1) // max size has to include the null terminator
+					errorclose_file(f, NULL, "Node name is larger than max allowed name size.\n");
+
+				if(feof(f)) errorclose_file(f, NULL, "Unexpected end of file.\n");
+			}
+
+			// mark if edge is outgoing -- always if undirected, otherwise only if the first node name
+			vname[MAX_NODE_NAME_SIZE] = is_undirected ? 1 : !iter;
+			str_counts[cachectr] = vname[MAX_NODE_NAME_SIZE];
+
+			cachectr++;
+			if(cachectr == NODE_NAME_CACHE_SIZE){
+				unique_strings_with_sideeffects(namecache, cachectr, &num_unique, str_counts, TRUE);
+				for(int i=0; i<num_unique; i++)
+					next_index = insert_into_trie(namecache[i], trie, next_index, str_counts[i]);
+				cachectr = 0;
+			}
+
+			// if lines are of the form `start end`, we need to leave c on the terminator
+			if(c == sep)
+				c = getc_unsafe(f);
+		}
+
+		while(c != line_sep && !feof(f)) c = getc_unsafe(f);
+		if(c == line_sep) c=getc_unsafe(f);
+		print_counter++;
+		if(!(print_counter % PRINT_COUNTER_MOD)){
+			if(v) Rprintf("\t%" lu_fprint " lines read\r", print_counter);
+			else R_CheckUserInterrupt();
+		}
+	}
+
+	if(cachectr){
+		unique_strings_with_sideeffects(namecache, cachectr, &num_unique, str_counts, TRUE);
+		for(int i=0; i<num_unique; i++)
+				next_index = insert_into_trie(namecache[i], trie, next_index, str_counts[i]);
+	}
+
+	if(v) Rprintf("\t%" lu_fprint " lines read\n", print_counter);
+	fclose(f);
+
+	for(int i=0; i<NODE_NAME_CACHE_SIZE; i++) free(namecache[i]);
+	free(namecache);
+	return next_index;
+}
+
+l_uint reindex_trie_and_write_counts(prefix *trie, FILE* csrfile, l_uint cur_index){
+	// Vertices are 0-indexed
+	// assume that we've already opened the file, since we'll call this recursively
+	if(!trie) return cur_index;
+	uint8_t bits_remaining = trie->count1 + trie->count2;
+	uint8_t ctr = 0;
+	if(trie->bmap1 & 1){
+		leaf *l = (leaf*)(trie->child_nodes[ctr++]);
+		l->index = cur_index++;
+		safe_fwrite(&(l->count), L_SIZE, 1, csrfile);
+	}
+	while(ctr < bits_remaining)
+		cur_index = reindex_trie_and_write_counts(trie->child_nodes[ctr++], csrfile, cur_index);
+
+	return cur_index;
+}
+
 void reformat_counts(const char* curcounts, const char* mastertable, l_uint n_vert, int add_self_loops){
 	/*
 	 * Creates a new table with cumulative counts
@@ -943,7 +1041,7 @@ void reformat_counts(const char* curcounts, const char* mastertable, l_uint n_ve
 	return;
 }
 
-void add_self_loops_to_csrfile(const char *ftable, l_uint num_v, const float self_weight){
+void add_self_loops_to_csrfile(const char *ftable, l_uint num_v, float self_weight){
 	// If self loops are included, the first entry for each node remains empty
 	// here we'll fill it in with the node itself
 	// thus, we can just write to whatever the first index of the value is and set the value to 0
@@ -1026,7 +1124,6 @@ void inflate_csr_edgecounts(const char* ftable, FILE *q, l_uint num_v, double ex
 	rewind(q);
 	if(!mastertab) error("%s", "error opening CSR file.\n");
 	float *offsets;
-	float mean_off;
 
 	start = 0;
 	while(fread(&i, L_SIZE, 1, q)){
@@ -1083,7 +1180,7 @@ void inflate_csr_edgecounts(const char* ftable, FILE *q, l_uint num_v, double ex
 	return;
 }
 
-void csr_compress_edgelist_batch(const char* edgefile, const char* indexfname, const char* hashfname,
+void csr_compress_edgelist_trie(const char* edgefile, prefix *trie,
 																	const char* curcountfile, const char* ftable,
 																	const char sep, const char linesep, l_uint num_v, int v,
 																	const int is_undirected, int has_self_loops, const int ignore_weights){
@@ -1102,7 +1199,7 @@ void csr_compress_edgelist_batch(const char* edgefile, const char* indexfname, c
 	int stringctr=0, itermax = is_undirected ? 2 : 1;
 	l_uint print_counter = 0;
 
-	FILE *mastertable, *countstable, *edgelist, *hashfile, *indexfile;
+	FILE *mastertable, *countstable, *edgelist;
 	mastertable = fopen(ftable, "rb+");
 	if(!mastertable){
 		mastertable = fopen(ftable, "ab+");
@@ -1117,8 +1214,6 @@ void csr_compress_edgelist_batch(const char* edgefile, const char* indexfname, c
 	edgelist = fopen(edgefile, "rb");
 	if(!edgelist) errorclose_file(countstable, mastertable, "error opening edgelist file.\n");
 
-	hashfile = fopen(hashfname, "rb");
-	indexfile = fopen(indexfname, "rb");
 	if(v) Rprintf("\tReading file %s...\n", edgefile);
 
 	char c = getc_unsafe(edgelist);
@@ -1137,7 +1232,8 @@ void csr_compress_edgelist_batch(const char* edgefile, const char* indexfname, c
 				c = getc_unsafe(edgelist);
 				continue;
 			}
-			inds[i] = lookup_node_index(vname, indexfile, hashfile, num_v);
+			//inds[i] = lookup_node_index(vname, indexfile, hashfile, num_v);
+			inds[i] = find_index_for_prefix(vname, trie);
 
 			// advance one past the separator if it isn't linesep
 			// it would equal linesep if we don't have weights included
@@ -1196,8 +1292,6 @@ void csr_compress_edgelist_batch(const char* edgefile, const char* indexfname, c
 	fclose(mastertable);
 	fclose(countstable);
 	fclose(edgelist);
-	fclose(indexfile);
-	fclose(hashfile);
 	return;
 }
 
@@ -1464,7 +1558,7 @@ void cluster_file(const char* mastertab_fname, const char* clust_fname,
 	l_uint cluster_res, qsize, tmp_ind;
 	int print_counter=0, i=0;
 	uint statusctr=0;
-	float pct_complete = 0, prev_pct=0;
+	float pct_complete = 0;
 
 	// randomly initialize queue and ctr file
 	if(v) Rprintf("\tInitializing queues...");
@@ -1578,8 +1672,8 @@ void cluster_oom_single(const char* tabfile, const char* clusteroutfile, const c
 	// runner function to cluster for a single file
 	// will be called multiple times for consensus clustering
 	if(verbose){
-		if(is_consensus) Rprintf("\tClustering...\n");
-		else Rprintf("Clustering...\n");
+		if(is_consensus) Rprintf("\t");
+		Rprintf("Clustering...\n");
 	}
  	cluster_file(tabfile, clusteroutfile, qfile1, qfile2, qfile3, num_v, num_iter, verbose, inflation);
 
@@ -1652,8 +1746,69 @@ void consensus_cluster_oom(const char* csrfile, const char* clusteroutfile, cons
 	return;
 }
 
+l_uint write_output_clusters_trie(FILE *outfile, FILE *clusterfile, prefix *trie,
+																char *s, int cur_pos, char *write_buf, const char *seps,
+																l_uint num_v, int verbose){
+	// we re-indexed the trie according to a DFS
+	// thus if we just traverse the same way, we'll get the names in order
+	// the hardest part here is ensuring we keep track of the character string
+	if(!num_v) return 0;
+	uint8_t bits_remaining = trie->count1 + trie->count2;
+	uint8_t ctr = 0;
+	uint8_t current_bit = 0;
+	uint64_t bitmap = trie->bmap1;
+	while(ctr < trie->count1){
+		// iterate over first bitmap
+		if(bitmap & 1){
+			if(current_bit == 0){
+				// read in the cluster
+				l_uint tmpval = ((leaf *)(trie->child_nodes[0]))->index;
+				fseek(clusterfile, tmpval*L_SIZE, SEEK_SET);
+				safe_fread(&tmpval, L_SIZE, 1, clusterfile);
 
-SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, SEXP TABNAME, SEXP TEMPTABNAME, SEXP QFILES, SEXP OUTDIR, // files
+				// prepare data for output
+				s[cur_pos] = 0;
+				snprintf(write_buf, (cur_pos)+L_SIZE+3, "%s%c%" lu_fprint "%c", s, seps[0], tmpval, seps[1]);
+				safe_fwrite(write_buf, 1, strlen(write_buf), outfile);
+				num_v--;
+				if(num_v % PROGRESS_COUNTER_MOD == 0){
+					if(verbose)
+						Rprintf("\r\tVertices remaining: %" lu_fprint "                    ", num_v);
+					else
+						R_CheckUserInterrupt();
+				}
+			} else {
+				// set character and recur
+				s[cur_pos] = current_bit + CHAR_OFFSET;
+				num_v = write_output_clusters_trie(outfile, clusterfile, trie->child_nodes[ctr],
+																		s, cur_pos+1, write_buf, seps, num_v, verbose);
+			}
+			ctr++;
+		}
+		bitmap >>= 1;
+		current_bit++;
+	}
+
+	bitmap = trie->bmap2;
+	current_bit = 0;
+	while(ctr < bits_remaining){
+		// iterate over the second bitmap
+		if(bitmap&1){
+			// don't have to safecheck the bit==0 case
+			s[cur_pos] = current_bit + MIN_VALUE_BMAP2;
+			num_v = write_output_clusters_trie(outfile, clusterfile, trie->child_nodes[ctr],
+																		s, cur_pos+1, write_buf, seps, num_v, verbose);
+			ctr++;
+		}
+		bitmap >>= 1;
+		current_bit++;
+	}
+
+	return num_v;
+}
+
+SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, SEXP TABNAME, // files
+										SEXP TEMPTABNAME, SEXP QFILES, SEXP OUTDIR, SEXP OUTFILE,	// more files
 										SEXP SEPS, SEXP CTR, SEXP ITER, SEXP VERBOSE, // control flow
 										SEXP IS_UNDIRECTED, SEXP ADD_SELF_LOOPS, // optional adjustments
 										SEXP IGNORE_WEIGHTS, SEXP NORMALIZE_WEIGHTS,
@@ -1682,6 +1837,7 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, SEXP TABNAME, SEXP TEMPTABN
 	const char* edgefile;
 	const char* tabfile = CHAR(STRING_ELT(TABNAME, 0));
 	const char* temptabfile = CHAR(STRING_ELT(TEMPTABNAME, 0));
+	const char* outfile = CHAR(STRING_ELT(OUTFILE, 0));
 
 	// queue files
 	const char* qfile1 = CHAR(STRING_ELT(QFILES, 0));
@@ -1708,23 +1864,29 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, SEXP TABNAME, SEXP TEMPTABN
 	const double* consensus_w = REAL(CONSENSUS_WEIGHTS);
 
 	// eventually let's just make these tempfiles too called by R
-	char *hashfile = malloc(PATH_MAX);
-	safe_filepath_cat(dir, HASH_FNAME, hashfile, PATH_MAX);
+	//char *hashfile = malloc(PATH_MAX);
+	//safe_filepath_cat(dir, HASH_FNAME, hashfile, PATH_MAX);
 
-	char *hashindex = malloc(PATH_MAX);
-	safe_filepath_cat(dir, HASH_INAME, hashindex, PATH_MAX);
+	//char *hashindex = malloc(PATH_MAX);
+	//safe_filepath_cat(dir, HASH_INAME, hashindex, PATH_MAX);
 
 	// first hash all vertex names
-	if(verbose) Rprintf("Building hash table for vertex names...\n");
+	if(verbose) Rprintf("Building trie for vertex names...\n");
+	prefix *trie = initialize_trie();
 	for(int i=0; i<num_edgefiles; i++){
 		edgefile = CHAR(STRING_ELT(FILENAME, i));
-		hash_file_vnames_batch(edgefile, dir, hashfile, seps[0], seps[1], verbose, is_undirected);
+		//hash_file_vnames_batch(edgefile, dir, hashfile, seps[0], seps[1], verbose, is_undirected);
+		num_v = hash_file_vnames_trie(edgefile, trie, num_v, seps[0], seps[1], verbose, is_undirected);
 	}
 
 
 	// next, reformat the file to get final counts for each node
 	if(verbose) Rprintf("Tidying up internal tables...\n");
-	num_v = node_vertex_file_cleanup(dir, hashfile, temptabfile, hashindex, verbose);
+	//num_v = node_vertex_file_cleanup(dir, hashfile, temptabfile, hashindex, verbose);
+	FILE *tempcounts = fopen(temptabfile, "wb");
+	if(!tempcounts) error("could not open file %s\n", temptabfile);
+	num_v = reindex_trie_and_write_counts(trie, tempcounts, 0);
+	fclose(tempcounts);
 
  	// next, create an indexed table file of where data for each vertex will be located
  	if(verbose) Rprintf("Reformatting vertex degree file...\n");
@@ -1734,7 +1896,9 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, SEXP TABNAME, SEXP TEMPTABN
  	if(verbose) Rprintf("Reading in edges...\n");
  	for(int i=0; i<num_edgefiles; i++){
  		edgefile = CHAR(STRING_ELT(FILENAME, i));
- 		csr_compress_edgelist_batch(edgefile, hashindex, hashfile, temptabfile, tabfile, seps[0], seps[1],
+ 		//csr_compress_edgelist_batch(edgefile, hashindex, hashfile, temptabfile, tabfile, seps[0], seps[1],
+ 		//														num_v, verbose, is_undirected, add_self_loops, ignore_weights);
+ 		csr_compress_edgelist_trie(edgefile, trie, temptabfile, tabfile, seps[0], seps[1],
  																num_v, verbose, is_undirected, add_self_loops, ignore_weights);
  	}
 
@@ -1752,12 +1916,26 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, SEXP TABNAME, SEXP TEMPTABN
  		cluster_oom_single(tabfile, temptabfile, dir, qfile1, qfile2, qfile3, num_v, num_iter, verbose, 0, inflation);
  	}
 
- 	free(hashfile);
- 	free(hashindex);
-	SEXP RETVAL = PROTECT(allocVector(REALSXP, 1));
-	REAL(RETVAL)[0] = (float) num_v;
-	UNPROTECT(1);
-	return RETVAL;
+
+ 	// have to allocate resources for writing out
+ 	FILE *results = fopen(outfile, "wb");
+ 	if(!results) error("Failed to open output file.");
+ 	FILE *clusters = fopen(temptabfile, "rb");
+ 	if(!clusters) error("Internal error while opening CSR compressed graph.");
+ 	char vert_name_holder[MAX_NODE_NAME_SIZE];
+ 	char write_buffer[PATH_MAX];
+ 	if(verbose) Rprintf("Writing clusters to file...\n\tVertices remaining: %" lu_fprint "", num_v);
+ 	write_output_clusters_trie(results, clusters, trie, vert_name_holder, 0, write_buffer, seps, num_v, verbose);
+ 	if(verbose) Rprintf("\r\tVertices remaining: None!                    \n");
+ 	fclose(results);
+ 	fclose(clusters);
+ 	//free(hashfile);
+ 	//free(hashindex);
+	free_trie(trie);
+	// SEXP RETVAL = PROTECT(allocVector(REALSXP, 1));
+	// REAL(RETVAL)[0] = (float) num_v;
+	// UNPROTECT(1);
+	return R_NilValue;
 }
 
 
@@ -1816,5 +1994,75 @@ SEXP R_LP_write_output(SEXP CLUSTERFILE, SEXP HASHEDDIR, SEXP OUTFILE, SEXP SEPS
 	fclose(hashfile);
 	free(hashfname);
 
+	return R_NilValue;
+}
+
+
+/**** TESTING ****/
+SEXP R_test_trie(SEXP FILENAME, SEXP NUM_EFILES, SEXP TABNAME, SEXP TEMPTABNAME,
+										SEXP SEPS, SEXP CTR, SEXP VERBOSE, // control flow
+										SEXP IS_UNDIRECTED, SEXP ADD_SELF_LOOPS){
+	/*
+	 * I always forget how to handle R strings so I'm going to record it here
+	 * R character vectors are STRSXPs, which is the same as a list (VECSXP)
+	 * Each entry in a STRSXP is a CHARSXP, accessed with STRING_ELT(str, ind)
+	 * You can get a `const char*` from a CHARSXP with CHAR()
+	 * You can also re-encode with `const char* Rf_translateCharUTF8()`
+	 */
+
+	/*
+	 * Input explanation:
+	 *		 FILENAME: file of edges in format `v1 v2 w`
+	 *      TABNAME: stores CSR compression of graph structure
+	 *	TEMPTABNAME: first used to count edges, then used to store clusters
+	 * 			 QFILES: two files, both used for queues
+	 * 		   OUTDIR: directory to store hashed strings
+	 *
+	 * R_hashedgelist(tsv, csr, clusters, queues, hashdir, seps, 1, iter, verbose)
+	 */
+	const char* edgefile;
+	const char* tabfile = CHAR(STRING_ELT(TABNAME, 0));
+	const char* temptabfile = CHAR(STRING_ELT(TEMPTABNAME, 0));
+
+	// required parameters
+	const char* seps = CHAR(STRING_ELT(SEPS, 0));
+	const int num_edgefiles = INTEGER(NUM_EFILES)[0];
+	const int verbose = LOGICAL(VERBOSE)[0];
+	l_uint num_v = (l_uint)(REAL(CTR)[0]);
+
+	// optional parameters
+	const int is_undirected = LOGICAL(IS_UNDIRECTED)[0];
+	const float self_loop_weight = REAL(ADD_SELF_LOOPS)[0];
+	const int add_self_loops = self_loop_weight > 0;
+
+	// first hash all vertex names
+	if(verbose) Rprintf("Building hash table for vertex names...\n");
+	prefix *trie = initialize_trie();
+	for(int i=0; i<num_edgefiles; i++){
+		edgefile = CHAR(STRING_ELT(FILENAME, i));
+		num_v = hash_file_vnames_trie(edgefile, trie, num_v, seps[0], seps[1], verbose, is_undirected);
+	}
+
+	// next, reformat the file to get final counts for each node
+	if(verbose) Rprintf("Tidying up internal tables...\n");
+	FILE *tempcounts = fopen(temptabfile, "wb");
+	if(!tempcounts) error("could not open file %s\n", temptabfile);
+	num_v = reindex_trie_and_write_counts(trie, tempcounts, 0);
+	fclose(tempcounts);
+	free_trie(trie);
+
+ 	// next, create an indexed table file of where data for each vertex will be located
+ 	if(verbose) Rprintf("Reformatting vertex degree file...\n");
+ 	reformat_counts(temptabfile, tabfile, num_v, add_self_loops);
+
+	Rprintf("Done! Double checking results:\n");
+
+	l_uint tmpval;
+	FILE *checkres = fopen(tabfile, "rb");
+	for(int i=0; i<100; i++){
+		if(i%10 == 0) printf("\n");
+		safe_fread(&tmpval, L_SIZE, 1, checkres);
+		printf("%" lu_fprint " ", tmpval);
+	}
 	return R_NilValue;
 }

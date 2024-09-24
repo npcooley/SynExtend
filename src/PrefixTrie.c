@@ -1,186 +1,198 @@
 #include "PrefixTrie.h"
 
-leaf *alloc_leaf(trie_uint index) {
+leaf *alloc_leaf() {
 	leaf *node = malloc(sizeof(leaf));
 	node->count = 0;
-	node->index = index;
+	node->index = 0;
 	return node;
 }
 
 prefix *alloc_prefix() {
 	prefix *p = malloc(sizeof(prefix));
-	p->plen = 0;
-	p->s = NULL;
-	p->next = NULL;
-	p->prev = NULL;
-	p->child = NULL;
+	p->bmap1 = 0;
+	p->bmap2 = 0;
+	p->count1 = 0;
+	p->count2 = 0;
+	p->child_nodes = NULL;
 	return p;
 }
 
-void assign_prefix(prefix *node, char *s) {
-	if(s) {
-		char plen = (char) strlen(s);
-		node->plen = plen;
-		node->s = malloc(plen+1);
-		node->s[plen] = 0;
-		if(plen) memcpy(node->s, s, plen);
-	} else {
-		node->plen = 0;
-		node->s = calloc(1,1);
-	}
-	return;
-}
-
-prefix *alloc_new_terminal_node(char *s) {
-	prefix *node = alloc_prefix();
-	prefix *child = alloc_prefix();
-	child->child = alloc_leaf(0);
-	node->child = child;
-	assign_prefix(node, s);
-	assign_prefix(child, NULL);
-	return node;
-}
-
 prefix *initialize_trie(){
-	prefix *node = alloc_new_terminal_node(NULL);
-	return node;
+	return alloc_prefix();
 }
 
-void insert_before_prefix(prefix *node, char *s) {
-	prefix *prev = node->prev;
-	prefix *newnode = alloc_new_terminal_node(s);
-	node->prev = newnode;
-	newnode->next = node;
-	newnode->prev = prev;
-	if(prev) prev->next = newnode;
-	return;
-}
-
-int compare_prefix(char *s1, char *s2, int maxlen) {
-	int prefix_len = 0;
-	while(*s1 && *s2 && *s1==*s2 && prefix_len < maxlen) {
-		s1++;
-		s2++;
-		prefix_len++;
-	}
-	return prefix_len;
-}
-
-void split_prefix(prefix *node, char pos) {
-	// keep the first pos chars here, send the rest below
-	prefix *newchild = alloc_prefix();
-	assign_prefix(newchild, &(node->s[pos]));
-
-	if(pos != node->plen) {
-		// reallocate and add null-terminating byte if size changed
-		node->s = realloc(node->s, pos);
-		node->s[pos] = 0;
-		node->plen = pos;
-
-		// re-sort position of prefix in array
-		// can only move backwards by losing characters
-		prefix *prev = node->prev;
-		if(prev && prev->plen && strcmp(prev->s, node->s)) {
-			// this means we have to move this node
-			prev->next = node->next;
-			node->next->prev = prev;
-			while(prev->prev && strcmp(prev->prev->s, node->s))
-				prev = prev->prev;
-			// now either at beginning of array (prev has no previous value)
-			// or prev->prev->s < node->s
-			// either way, we're in the right spot
-			node->next = prev;
-			node->prev = prev->prev;
-			prev->prev = node;
-			if(node->prev) node->prev->next = node;
+void *insert_into_node_terminal(prefix *node){
+	if(!(node->bmap1 & 1)){
+		// create a leaf if this node wasn't previously terminal
+		uint8_t total_children = node->count1 + node->count2;
+		node->bmap1 |= 1;
+		node->count1++;
+		leaf *newleaf = alloc_leaf();
+		void **new_ptr_holder = malloc(sizeof(void*)*(total_children+1));
+		new_ptr_holder[0] = newleaf;
+		if(total_children){
+			memcpy(&(new_ptr_holder[1]), node->child_nodes, sizeof(void*)*total_children);
+			free(node->child_nodes);
 		}
+		node->child_nodes = new_ptr_holder;
+	}
+	return node->child_nodes[0];
+}
+
+void *insert_into_node_nonterminal(prefix *node, char s){
+	uint8_t USE_HIGHER = s >= MIN_VALUE_BMAP2;
+	// idx is either s-31 or s-86 depending on if we're using
+	// the higher or lower bitfield
+	uint8_t idx = s-(!USE_HIGHER*CHAR_OFFSET)-(USE_HIGHER*MIN_VALUE_BMAP2);
+	uint8_t current_bit = 0;
+	uint8_t insert_point = 0;
+	uint64_t bitfield = node->bmap1;
+
+	if(USE_HIGHER){
+		insert_point = node->count1;
+		bitfield = node->bmap2;
 	}
 
-	// add newchild between node and node->child
-	newchild->child = node->child;
-	prefix *newstart = alloc_prefix();
-	assign_prefix(newstart, NULL);
-	newstart->child = alloc_leaf(0);
-	newstart->next = newchild;
-	newchild->prev = newstart;
-	node->child = newstart;
 
-	return;
-}
-
-prefix *find_node_for_prefix(char *s, prefix *trie) {
-	/*
-	 * Check the following cases, in order:
-	 * 1. trie is empty. Just insert the string as a prefix, and return.
-	 * 2. s and trie->s have length 0. Increment leaf and return.
-	 * 3. s comes before trie->s. Insert s prior to current node.
-	 * 4. s comes after trie->s.
-	 *		a. if prefixes match, recur on suffix at child
-	 *		b. if prefixes don't match, continue to next node.
-	 */
-	char l = (char) strlen(s);
-	int cmp = 0;
-
-	// first compare against root
-	if(trie->plen == 0 && l == 0)
-		return trie;
-
-	prefix *cur = trie;
-	prefix *prev = cur->prev;
-	while(cur) {
-		// check the prefix
-		cmp = compare_prefix(s, cur->s, cur->plen);
-
-		// some or all of prefix matches
-		if(cmp) {
-			/*
-			 * three cases:
-			 * 1. prefix matches the entire string
-			 * 2. prefix matches all of prefix but part of s.
-			 * 3. prefix matches all of s but part of prefix.
-			 * 1,2 are the same because of how we handle length 0 strings
-			 */
-			// case 2,3: split the node into two nodes
-			if(cmp < cur->plen) split_prefix(cur, cmp);
-			return find_node_for_prefix(s+cmp, cur->child);
-		}
-
-		// string comes before current smallest prefix
-		if(strcmp(s, cur->s) < 0) {
-			// assign new values before current node
-			insert_before_prefix(cur, s);
-			return cur->prev->child;
-		}
-
-		prev = cur;
-		cur = cur->next;
+	while(current_bit != idx){
+		current_bit++;
+		insert_point += bitfield & 1;
+		bitfield >>= 1;
 	}
 
-	// if we're here, we didn't find a prefix in the entire linked list
-	cur = alloc_new_terminal_node(s);
-	prev->next = cur;
-	cur->prev = prev;
-	return cur->child;
+	if(bitfield & 1){
+		return node->child_nodes[insert_point];
+	} else {
+		uint8_t total_children = node->count1 + node->count2;
+		// got to current bit BUT it doesn't exist
+
+		// first create a new holder with an extra space
+		void **new_ptr_holder = malloc(sizeof(void*)*(total_children + 1));
+
+		// then copy first <insert_point> pointers
+		if(insert_point)
+			memcpy(new_ptr_holder, node->child_nodes, sizeof(void*)*insert_point);
+
+		// then add in the new pointer
+		prefix *new_child = alloc_prefix();
+		new_ptr_holder[insert_point] = new_child;
+
+		// then copy the remaining pointers
+		total_children -= insert_point;
+		if(total_children)
+			memcpy(&(new_ptr_holder[insert_point+1]),
+							&(node->child_nodes[insert_point]),
+							sizeof(void*)*total_children);
+
+		// reassign the child pointer array
+		if(node->child_nodes)
+			free(node->child_nodes);
+		node->child_nodes = new_ptr_holder;
+
+		// trying to avoid weirdness from potential auto-cast to 32bit
+		bitfield = 1;
+		bitfield <<= idx;
+		if(USE_HIGHER){
+			node->count2++;
+			node->bmap2 |= bitfield;
+		} else {
+			node->count1++;
+			node->bmap1 |= bitfield;
+		}
+		return new_child;
+	}
 }
 
-trie_uint insert_into_trie(char *s, prefix *trie, trie_uint ctr) {
-	prefix *node = find_node_for_prefix(s, trie);
-	leaf *l = (leaf*)node->child;
-	if(!l->count)
-		l->index = ctr++;
-	l->count++;
+
+leaf *find_node_for_prefix(char *s, prefix *trie){
+	prefix *tmp = trie;
+	while(*s){
+		if(*s < 31){
+			free_trie(trie);
+			error("Labels must contain ASCII values in the range 32-127 (received %u)", (uint8_t)(*s));
+		}
+		tmp = (prefix *)insert_into_node_nonterminal(tmp, *s++);
+	}
+	return (leaf *)insert_into_node_terminal(tmp);
+}
+
+trie_uint insert_into_trie(char *s, prefix *trie, trie_uint ctr, trie_uint to_add) {
+	leaf *node = find_node_for_prefix(s, trie);
+	if(!node->count)
+		node->index = ctr++;
+	node->count += to_add;
 	return ctr;
+}
+
+trie_uint find_index_for_prefix(char *s, prefix *trie){
+	leaf *l = find_node_for_prefix(s, trie);
+	return l->index;
 }
 
 void free_trie(prefix *trie) {
 	if(!trie) return;
-	free_trie(trie->next);
-	if(trie->plen) {
-		free_trie(trie->child);
-	} else {
-		free(trie->child);
-	}
-	free(trie);
 
+	uint8_t ctr = 0;
+	uint8_t bits_remaining = trie->count1 + trie->count2;
+
+	if(trie->bmap1 & 1)
+		free((leaf*)(trie->child_nodes[ctr++]));
+
+	while(ctr < bits_remaining)
+		free_trie(trie->child_nodes[ctr++]);
+	if(trie->child_nodes)
+		free(trie->child_nodes);
+	free(trie);
 	return;
 }
+
+/*
+int main(int argc, char *argv[]){
+	int NCHAR = 255;
+	char *buffer = calloc(NCHAR, 1);
+	char *trash;
+	char sep1 = '\t';
+	char sep2 = '\n';
+
+	if(argc<3) perror("No data file provided!");
+	FILE *f = fopen(argv[1], "rb");
+	int LINES_TO_READ = strtol(argv[2], &trash, 10);
+
+	int mod_print = 3113;
+	int ctr = 0;
+	int pos;
+	char c;
+	trie_uint idx = 1;
+	trie_uint p_idx = 1;
+	int s = 0;
+	prefix *trie = alloc_prefix();
+	while(ctr != LINES_TO_READ){
+		pos = 0;
+		memset(buffer, 0, NCHAR);
+		c = getc(f);
+		while(!feof(f) && c != sep1){
+			buffer[pos++] = c;
+			c = getc(f);
+		}
+		if(s){
+			while(!feof(f) && c != sep2)
+				c = getc(f);
+			s = 0;
+		} else {
+			s = 1;
+		}
+		if(feof(f)) break;
+		p_idx = idx;
+		idx = insert_into_trie(buffer, trie, idx, 1);
+		ctr++;
+		if(ctr % mod_print == 0)
+			printf("\rInserted %d nodes", ctr);
+	}
+	printf("\rInserted %d nodes\nDone inserting! %llu unique nodes.\n", ctr, idx-1);
+
+	free_trie(trie);
+	free(buffer);
+	fclose(f);
+	return 0;
+}
+*/
