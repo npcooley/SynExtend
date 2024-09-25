@@ -47,7 +47,7 @@
 
 /*
  * TODOs:
- *	- add safeguards around malloc() / calloc() to break if allocation fails
+ *	- add safeguards around safe_malloc() / calloc() to break if allocation fails
  *	- add graceful failure to cleanup files on abort / interrupt
  */
 
@@ -134,7 +134,7 @@ typedef struct {
 ll* insert_ll(ll* head, l_uint id, float w){
 	ll *tmp = head;
 	if(!tmp){
-		tmp = malloc(sizeof(ll));
+		tmp = safe_malloc(sizeof(ll));
 		tmp->id = id;
 		tmp->w = w;
 		tmp->next=NULL;
@@ -142,7 +142,7 @@ ll* insert_ll(ll* head, l_uint id, float w){
 	}
 	while(tmp->id != id && tmp->next) tmp = tmp->next;
 	if(tmp->id!=id){
-		tmp->next = malloc(sizeof(ll));
+		tmp->next = safe_malloc(sizeof(ll));
 		tmp = tmp->next;
 		tmp->id = id;
 		tmp->w = w;
@@ -420,8 +420,8 @@ void mergesort_clust_file(const char* f, const char* dir, size_t element_size,
 
 	// two read pointers, one write pointer
 	FILE *f1_r1, *f1_r2, *f2_w;
-	char *file1 = malloc(PATH_MAX);
-	char *file2 = malloc(PATH_MAX);
+	char *file1 = safe_malloc(PATH_MAX);
+	char *file2 = safe_malloc(PATH_MAX);
 	char *finalfile;
 
 	//size_t dlu_size = sizeof(float_lu);
@@ -436,8 +436,8 @@ void mergesort_clust_file(const char* f, const char* dir, size_t element_size,
 
 	// allocate space for data in a void*
 	//void *read_cache[FILE_READ_CACHE_SIZE];
-	void **read_cache = malloc(sizeof(void*) * FILE_READ_CACHE_SIZE);
-	for(int i=0; i<FILE_READ_CACHE_SIZE; i++) read_cache[i] = malloc(element_size);
+	void **read_cache = safe_malloc(sizeof(void*) * FILE_READ_CACHE_SIZE);
+	for(int i=0; i<FILE_READ_CACHE_SIZE; i++) read_cache[i] = safe_malloc(element_size);
 
 	// copy the original file into file 1
 	if(verbose) Rprintf("\t\tCopying source file...");
@@ -476,8 +476,8 @@ void mergesort_clust_file(const char* f, const char* dir, size_t element_size,
 	l_uint cur_lines = 0;
 	int iter1, iter2, previt1, previt2;
 	int flip = 0, cmp;
-	void *tmp1 = malloc(element_size);
-	void *tmp2 = malloc(element_size);
+	void *tmp1 = safe_malloc(element_size);
+	void *tmp2 = safe_malloc(element_size);
 	char *f1, *f2;
 	l_uint num_iter = 1, total_iter=0;
 	if(verbose){
@@ -582,8 +582,8 @@ void mergesort_clust_file(const char* f, const char* dir, size_t element_size,
 }
 
 void copy_csrfile_sig(const char* dest, const char* src, l_uint num_v, const double w){
-	l_uint *vbuf = malloc(FILE_READ_CACHE_SIZE*L_SIZE);
-	float *wbuf = malloc(FILE_READ_CACHE_SIZE*sizeof(float));
+	l_uint *vbuf = safe_malloc(FILE_READ_CACHE_SIZE*L_SIZE);
+	float *wbuf = safe_malloc(FILE_READ_CACHE_SIZE*sizeof(float));
 	FILE *fd = fopen(dest, "wb");
 	FILE *fs = fopen(src, "rb");
 
@@ -674,13 +674,13 @@ h_uint hash_file_vnames_trie(const char* fname, prefix *trie, h_uint next_index,
 	FILE *f = fopen(fname, "rb");
 
 	// size + 1 so that there's space for marking if it's an outgoing edge
-	//char *vname = malloc(MAX_NODE_NAME_SIZE+1);
+	//char *vname = safe_malloc(MAX_NODE_NAME_SIZE+1);
 	char *vname;
-	char **namecache = malloc(sizeof(char*) * NODE_NAME_CACHE_SIZE);
-	uint *str_counts = malloc(sizeof(uint) * NODE_NAME_CACHE_SIZE);
+	char **namecache = safe_malloc(sizeof(char*) * NODE_NAME_CACHE_SIZE);
+	uint *str_counts = safe_malloc(sizeof(uint) * NODE_NAME_CACHE_SIZE);
 	int num_unique;
 
-	for(int i=0; i<NODE_NAME_CACHE_SIZE; i++) namecache[i] = malloc(MAX_NODE_NAME_SIZE+1);
+	for(int i=0; i<NODE_NAME_CACHE_SIZE; i++) namecache[i] = safe_malloc(MAX_NODE_NAME_SIZE+1);
 
 	int cur_pos = 0, cachectr=0;
 	char c = getc_unsafe(f);
@@ -874,8 +874,8 @@ void normalize_csr_edgecounts_batch(const char* ftable, l_uint num_v, int verbos
 	if(verbose) Rprintf("\tNodes remaining: %" lu_fprint "", num_v);
 
 	// should use caches here as well
-	uint8_t *byte_array = malloc(entry_size * FILE_READ_CACHE_SIZE);
-	float *weights = malloc(sizeof(float) * FILE_READ_CACHE_SIZE);
+	uint8_t *byte_array = safe_malloc(entry_size * FILE_READ_CACHE_SIZE);
+	float *weights = safe_malloc(sizeof(float) * FILE_READ_CACHE_SIZE);
 	ll2 *head=NULL, *tmpll;
 
 	start = 0;
@@ -904,10 +904,10 @@ void normalize_csr_edgecounts_batch(const char* ftable, l_uint num_v, int verbos
 			// read weights into linked list object
 			for(int k=0; k<cachectr; k++){
 				if(!head){
-					head = malloc(sizeof(ll2));
+					head = safe_malloc(sizeof(ll2));
 					tmpll = head;
 				} else {
-					tmpll->next = malloc(sizeof(ll2));
+					tmpll->next = safe_malloc(sizeof(ll2));
 					tmpll = tmpll->next;
 				}
 				tmpll->w = weights[k];
@@ -969,7 +969,7 @@ void inflate_csr_edgecounts(const char* ftable, FILE *q, l_uint num_v, double ex
 		safe_fread(&start, L_SIZE, 1, mastertab);
 		safe_fread(&end, L_SIZE, 1, mastertab);
 		// going to add a small nudge to the weights to bump it out of steady states
-		offsets = malloc(sizeof(float) * (end-start));
+		offsets = safe_malloc(sizeof(float) * (end-start));
 
 		// random number in [-random_nudge, random_nudge]
 		for(l_uint j=0; j<(end-start); j++)
@@ -1032,7 +1032,7 @@ void csr_compress_edgelist_trie(const char* edgefile, prefix *trie,
 	l_uint inds[2], loc, offset;
 	float weight;
 
-	char *vname = malloc(MAX_NODE_NAME_SIZE);
+	char *vname = safe_malloc(MAX_NODE_NAME_SIZE);
 	int stringctr=0, itermax = is_undirected ? 2 : 1;
 	l_uint print_counter = 0;
 
@@ -1161,12 +1161,12 @@ void csr_compress_edgelist_trie_batch(const char* edgefile, prefix *trie,
 	// allocate space for all the stuff
 	int stringctr=0;
 	l_uint print_counter = 0;
-	char *vname = malloc(MAX_NODE_NAME_SIZE);
-	node1 = malloc(FILE_READ_CACHE_SIZE * L_SIZE);
-	node2 = malloc(FILE_READ_CACHE_SIZE * L_SIZE);
-	locations = malloc(FILE_READ_CACHE_SIZE * L_SIZE);
-	weights = malloc(FILE_READ_CACHE_SIZE * sizeof(float));
-	indexes = malloc(FILE_READ_CACHE_SIZE * sizeof(int));
+	char *vname = safe_malloc(MAX_NODE_NAME_SIZE);
+	node1 = safe_malloc(FILE_READ_CACHE_SIZE * L_SIZE);
+	node2 = safe_malloc(FILE_READ_CACHE_SIZE * L_SIZE);
+	locations = safe_malloc(FILE_READ_CACHE_SIZE * L_SIZE);
+	weights = safe_malloc(FILE_READ_CACHE_SIZE * sizeof(float));
+	indexes = safe_malloc(FILE_READ_CACHE_SIZE * sizeof(int));
 	global_ptr = node1;
 
 	FILE *mastertable, *countstable, *edgelist;
@@ -1429,7 +1429,7 @@ void add_to_queue(l_uint clust, l_uint ind, l_uint n_node, FILE *clust_f, FILE *
 	l_uint start, end, tmp_ind, tmp_cl, nedge;
 	// TODO: make buf a minheap or something instead
 	// LL would also work better for dynamic sizing
-	l_uint *buf = malloc(L_SIZE*MAX_EDGES_EXACT);
+	l_uint *buf = safe_malloc(L_SIZE*MAX_EDGES_EXACT);
 	float dummy;
 	int ctr = 0, found;
 
@@ -1716,15 +1716,15 @@ void consensus_cluster_oom(const char* csrfile, const char* clusteroutfile, cons
 													 const char* qfile1, const char* qfile2, const char* qfile3,
 													 l_uint num_v, int num_iter, int v, double inflation,
  													 const double* consensus_weights, const int consensus_len){
-	char* tmpcsrfilename1 = malloc(PATH_MAX);
-	char* tmpcsrfilename2 = malloc(PATH_MAX);
-	char* tmpclusterfile = malloc(PATH_MAX);
+	char* tmpcsrfilename1 = safe_malloc(PATH_MAX);
+	char* tmpcsrfilename2 = safe_malloc(PATH_MAX);
+	char* tmpclusterfile = safe_malloc(PATH_MAX);
 	safe_filepath_cat(dir, CONSENSUS_CSRCOPY1, tmpcsrfilename1, PATH_MAX);
 	safe_filepath_cat(dir, CONSENSUS_CSRCOPY2, tmpcsrfilename2, PATH_MAX);
 	safe_filepath_cat(dir, CONSENSUS_CLUSTER, tmpclusterfile, PATH_MAX);
 
 	FILE *dummyclust, *consensuscsr;
-	l_uint *zeroclust = calloc(FILE_READ_CACHE_SIZE, num_v);
+	l_uint *zeroclust = safe_calloc(FILE_READ_CACHE_SIZE, num_v);
 	int ntw;
 
 	// tmpcsrfilename2 is going to store the final consensus weights

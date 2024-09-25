@@ -13,6 +13,10 @@
 
 typedef unsigned int uint;
 
+/*** Function safety wrappers ***/
+void *safe_malloc(size_t size);
+void *safe_calloc(size_t nitems, size_t size);
+
 // SEED BEFORE CALLING ANY RANDOM FUNCTION
 
 

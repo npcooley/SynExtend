@@ -1,14 +1,14 @@
 #include "PrefixTrie.h"
 
 leaf *alloc_leaf() {
-	leaf *node = malloc(sizeof(leaf));
+	leaf *node = safe_malloc(sizeof(leaf));
 	node->count = 0;
 	node->index = 0;
 	return node;
 }
 
 prefix *alloc_prefix() {
-	prefix *p = malloc(sizeof(prefix));
+	prefix *p = safe_malloc(sizeof(prefix));
 	p->bmap1 = 0;
 	p->bmap2 = 0;
 	p->count1 = 0;
@@ -28,7 +28,7 @@ void *insert_into_node_terminal(prefix *node){
 		node->bmap1 |= 1;
 		node->count1++;
 		leaf *newleaf = alloc_leaf();
-		void **new_ptr_holder = malloc(sizeof(void*)*(total_children+1));
+		void **new_ptr_holder = safe_malloc(sizeof(void*)*(total_children+1));
 		new_ptr_holder[0] = newleaf;
 		if(total_children){
 			memcpy(&(new_ptr_holder[1]), node->child_nodes, sizeof(void*)*total_children);
@@ -67,7 +67,7 @@ void *insert_into_node_nonterminal(prefix *node, char s){
 		// got to current bit BUT it doesn't exist
 
 		// first create a new holder with an extra space
-		void **new_ptr_holder = malloc(sizeof(void*)*(total_children + 1));
+		void **new_ptr_holder = safe_malloc(sizeof(void*)*(total_children + 1));
 
 		// then copy first <insert_point> pointers
 		if(insert_point)
