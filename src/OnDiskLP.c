@@ -813,58 +813,6 @@ void add_self_loops_to_csrfile(const char *ftable, l_uint num_v, float self_weig
 	fclose(mastertab);
 }
 
-void normalize_csr_edgecounts(const char* ftable, l_uint num_v, int verbose){
-	const int entry_size = L_SIZE + sizeof(float);
-	float tmp_val, normalizer;
-	l_uint start, end;
-	FILE *mastertab = fopen(ftable, "rb+");
-	if(!mastertab) error("%s", "error opening CSR file.\n");
-	if(verbose) Rprintf("\tNodes remaining: %" lu_fprint "", num_v);
-
-	start = 0;
-	for(l_uint i=0; i<num_v; i++){
-		normalizer = 0;
-		fseek(mastertab, (i+1)*L_SIZE, SEEK_SET);
-		safe_fread(&end, L_SIZE, 1, mastertab);
-		// pointer is now at position i+2, need to go to num_v+1
-		// num_v+1-(i+2) = num_v-i-1
-		fseek(mastertab, (num_v-i-1)*L_SIZE, SEEK_CUR);
-		fseek(mastertab, start*entry_size, SEEK_CUR);
-		for(l_uint j=0; j<(end-start); j++){
-			fseek(mastertab, L_SIZE, SEEK_CUR);
-			safe_fread(&tmp_val, sizeof(float), 1, mastertab);
-			if(tmp_val < 0) tmp_val *= -1;
-			normalizer += tmp_val;
-		}
-
-		// now we're at the entry at (end), need to move back to start
-		// that means moving back (end+start) spaces
-		fseek(mastertab, -1*entry_size*(end-start), SEEK_CUR);
-
-		// guard case where all weights sum to 0
-		if(!normalizer) normalizer = 1;
-
-		// finally we overwrite each of the values
-		for(l_uint j=0; j<(end-start); j++){
-			fseek(mastertab, L_SIZE, SEEK_CUR);
-			safe_fread(&tmp_val, sizeof(float), 1, mastertab);
-			tmp_val /= normalizer;
-			fseek(mastertab, -1*sizeof(float), SEEK_CUR);
-			safe_fwrite(&tmp_val, sizeof(float), 1, mastertab);
-		}
-		start = end;
-		if(i % PROGRESS_COUNTER_MOD == 0){
-			if(verbose) Rprintf("\r\tNodes remaining: %" lu_fprint "                   ", num_v-i-1);
-			else R_CheckUserInterrupt();
-		}
-	}
-
-	if(verbose) Rprintf("\r\tNodes remaining: Done!               \n");
-
-	fclose(mastertab);
-	return;
-}
-
 void normalize_csr_edgecounts_batch(const char* ftable, l_uint num_v, int verbose){
 	const int entry_size = L_SIZE + sizeof(float);
 	float tmp_val, normalizer;

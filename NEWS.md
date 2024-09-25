@@ -1,3 +1,12 @@
+# SynExtend 1.17.6
+* Lots of internal improvements to `ExoLabel` to increase computational speed and decrease disk 
+usage.
+* `ExoLabel` will no longer crash if given relative paths.
+* Adds more internal error checking to prevent some rare bugs.
+* Updates man pages to reflect new changes.
+* Updates `EstimateExoLabel` to reflect new changes.
+* 
+
 # SynExtend 1.17.5
 * `ExoLabel` will no longer brick R during sorts on large files.
 * `ExoLabel` reports more progress during some lengthy processing sections when `verbose=TRUE`
