@@ -12,8 +12,8 @@ ExoLabel(edgelistfiles, outfile=tempfile(),
               mode=c("undirected", "directed"),
               add_self_loops=FALSE,
               ignore_weights=FALSE,
-              normalize_weights=TRUE,
-              iterations=0L, inflation=1.0,
+              normalize_weights=FALSE,
+              iterations=0L, inflation=1.05,
               return_table=FALSE,
               consensus_cluster=FALSE,
               verbose=interactive(),
@@ -44,7 +44,7 @@ Should weights be ignored? If \code{TRUE}, all edges will be treated as an edge 
 }
 
 \item{normalize_weights}{
-Should weights be normalized? If \code{TRUE}, each vertex's edge weights are normalized such that the outgoing edges have weight 1. This normalization is done after adding self loops.
+Should weights be normalized? If \code{TRUE}, each vertex's edge weights are normalized such that the sum of outgoing edge weights is 1. This normalization is done after adding self loops.
 }
 
 \item{iterations}{
@@ -52,7 +52,7 @@ Number of iterations to run fast label propagation algorithm for. Set to a value
 }
 
 \item{inflation}{
-Inflation parameter for edges. Every other iteration, all edges are raised to the power of \code{inflation} and then renormalized. Defaults to 1, which disables inflation.
+Inflation parameter for edges. Every other iteration, all edges are raised to the power of \code{inflation} and then renormalized. Higher values speed up algorithm convergence but produce smaller clusters. Defaults to 1.05; set to 1.0 to disable inflation.
 }
 
 \item{return_table}{
@@ -78,7 +78,7 @@ Should intermediary files be deleted when the process completes? Note that \code
 }
 }
 \details{
-Very large graphs require too much RAM for processing on some machines. In a graph containing billions of nodes and edges, loading the entire structure into RAM is rarely feasible. This implementation uses disk space for storing representations of each graph. While this is slower than computing on RAM, it allows this algorithm to scale to graphs of enormous size while only taking a small amount of RAM. Local benchmarking resulting in a plateau of approximately 100MB of RAM consumption for arbitrarily sized networks. If your graph is small enough to fit into RAM, consider using the \code{LP_igraph()} function instead.
+Very large graphs require too much RAM for processing on some machines. In a graph containing billions of nodes and edges, loading the entire structure into RAM is rarely feasible. This implementation uses disk space for storing representations of each graph. While this is slower than computing on RAM, it allows this algorithm to scale to graphs of enormous size while only using a comparatively small amount of memory. See "Memory Consumption" for details on the total disk/memory consumption of ExoLabel.
 
 This function expects a set of edgelist files, provided as a vector of filepaths. Each entry in the file is expected to be in the following:
 
@@ -106,14 +106,31 @@ Traag, V.A., Subelj, L. Large network community detection by fast label propagat
 \author{
 Aidan Lakshman <AHL27@pitt.edu>
 }
-\section{Warning }{
+\section{Warning}{
 While this algorithm can scale to very large graphs, it does have some internal limitations. First, nodes must be comprised of no more than 254 characters. If this limitation is restrictive, please feel free to contact me. Alternatively, you can increase the size yourself by changing the definition of \code{MAX_NODE_NAME_SIZE} in \code{src/outmem_graph.c}. This limitation is provided to decrease memory overhead and improve runtime, but arbitrary values are possible.
 
 Second, nodes are indexed using 64-bit unsigned integers, with 0 reserved for other values. This means that the maximum possible number of nodes available is 2^64-2, which is about 18.5 quintillion.
 
-Third, this algorithm uses disk space to store large objects. As such, please ensure you have sufficient disk space for the graph you intend to process. I've tried to put safeguards in the code itself, but funky stuff can happen when the OS runs out of space.
+Third, this algorithm uses disk space to store large objects. As such, please ensure you have sufficient disk space for the graph you intend to process. I've tried to put safeguards in the code itself, but funky stuff can happen when the OS runs out of space. See "Memory Consumption" for details on the total disk/memory consumption of ExoLabel.
+}
 
-The disk space required by this algorithm is equivalent to \eqn{56V + LV + 12E}, where \code{V} the number of unique vertices, \code{L} the average length of each vertex label, and \code{E} the number of edges. We can instead represent this purely in terms of vertices by setting \code{D} to the average degree of each node. The total disk space required is thus \eqn{(56+L+12D)V}. If you'd like to estimate the disk consumption of this algorithm, use the \code{\link{EstimateExoLabel}} function.
+\section{Memory Consumption}{
+  Let \eqn{v} be the number of unique nodes, \eqn{d} the average outdegree of nodes, and \eqn{l} the average length of node labels.
+
+  Specific calculations for memory/disk consumption are detailed below. In summary, the absolute worst case memory consumption is roughly \eqn{(24l+16)v} bytes, and the disk consumption during computation is \eqn{(41+12d)v} bytes. The final table returned consumes \eqn{(2+l+\log_{10}{v})v} bytes.
+
+  ExoLabel builds a trie to keep track of vertex names. Each internal node of the trie consumes 24 bytes, and each leaf node consumes 16 bytes. The lowest possible RAM consumption of the trie (if every label is length \eqn{l} and shares the same prefix of length \eqn{l-1}) is roughly \eqn{40v} bytes, and the maximum RAM consumption (if no two node labels have any prefix in common) is \eqn{(24l + 16)v} bytes. We can generalize this to estimate the total memory consumption as roughly \eqn{(24(l-p)+16)v}, where \eqn{p} is the average length of common prefix between any two node labels.
+
+  ExoLabel also uses a number of internal caches to speed up read/writes from files. These caches take less than 100MB of RAM in total.
+
+  As for disk space, ExoLabel produces five total files during its runtime: a cluster file, a CSR-compressed network, two queues, a bitmap, and two temp files for sorting. The two queues together contain no more than a total of \eqn{v} entries of 8 bytes each, and the bitmap contains \eqn{v} entries of 1 byte each. The cluster file also contains \eqn{v} entries of 8 bytes each, and the two sorting files are at most each the same size as the cluster file. The CSR file contains a header of \eqn{v+1} entries of 8 bytes, and then one 12 byte entry per outgoing edge. The number of edges to record is \eqn{vd}. Thus, the total disk consumption in bytes is \eqn{8v + v + 3*8v + 8(v+1) + 12vd \approx (41+12d)v}.
+
+  The final table returned is a tab-separated table containing vertex names and cluster numbers in human-readable format. Each line consumes at most \eqn{l + 2 + \log_{10}{v}} bytes. In the worst case, the number of clusters is equal to the number of vertices, which have \eqn{\log_{10}{v}} digits. The average number of digits is close to the number of digits of the largest number due to how number of digits scale with numbers. The extra two bytes are for the tab and newline characters. Thus, the total size of the file is at most \eqn{(2+l+\log_{10}{v})v} bytes.
+
+  Average node outdegree can be difficult to predict. Many biological networks are approximately scale-free, meaning their degree distribution roughly follows a power law with exponent in the range 2-3. The average of a general power law distribution is not always well-defined, but for the purposes of the below example I'll conservatively assume a minimum value of 2 and shape parameter of 2, leading to an average node outdegree of 4 if the degree is distributed according to a Pareto distribution.
+
+  What does this look like in practice? For a set of one million unique nodes and average label length 10, the RAM consumption is \code{140-356MB} (note an extra \code{100MB} is added due to cache sizes). Sequence similarity networks often have  The intermediate files consume a total of \code{89MB}, and the final file consumes roughly \code{19MB}. At one billion unique nodes and the same other parameters, the RAM consumption is \code{40-256GB}, the intermediate files consume \code{89GB}, and the final file is roughly \code{19GB} (\code{108GB} total). This sounds like a lot, but consider that an input file with two decimal places for each edge weight must necessarily be at least \eqn{(2l+3+4)vd} bytes (each of the \eqn{vd} edges contains two vertex labels, two tabs, newline, and 4 characters for weight). Thus the input file is \code{108GB}, which is equivalent to the total disk space consumed by ExoLabel.
+
 }
 
 \examples{

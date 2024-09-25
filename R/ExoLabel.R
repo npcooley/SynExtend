@@ -2,8 +2,8 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
                           mode=c("undirected", "directed"),
                           add_self_loops=FALSE,
                           ignore_weights=FALSE,
-                          normalize_weights=TRUE,
-                          iterations=0L, inflation=1.0,
+                          normalize_weights=FALSE,
+                          iterations=0L, inflation=1.05,
                           return_table=FALSE,
                           consensus_cluster=FALSE,
                           verbose=interactive(),
@@ -135,76 +135,47 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
   }
 }
 
-EstimateExoLabel <- function(num_v, avg_degree=1,
-                          num_edges=num_v*avg_degree, node_name_length=8L){
+EstimateExoLabel <- function(num_v, avg_degree=2,
+                          num_edges=num_v*avg_degree, node_name_length=10L){
   if(!missing(avg_degree) && !missing(num_edges)){
-    warning("Only one of 'avg_degree' and 'num_edges' are needed.")
+    warning("Only one of 'avg_degree' and 'num_edges' are needed, ignoring num_edges")
   } else if (missing(avg_degree)){
     avg_degree = num_edges / num_v
   }
   lv <- num_v*node_name_length
-  # file is v1 v2 %.3f, which is 2*node_name_len + 3 + 5
+  # assuming file is v1 v2 %.3f, which is 2*node_name_len + 3 + 5
   exp_size_file <- (2*node_name_length+8)*num_edges
-  exp_size_internal <- 56*num_v + lv + 12*num_edges
+  exp_size_internal <- 41*num_v+12*num_edges
+  exp_size_final <- (2+node_name_length+log10(num_v))*num_v
+  exp_size_ram_lower <- (24 + 16)*num_v + 104857600 # 1e8 is roughly the cache size
+  exp_size_ram_upper <- (24*node_name_length + 16)*num_v + 104857600
   exp_ratio <- exp_size_internal / exp_size_file
-  v <- c(exp_size_file, exp_size_internal, exp_ratio)
-  names(v) <- c("Expected total edgelist size", "Expected ExoLabel Disk Usage", "Ratio")
+  v <- c(exp_size_ram_lower, exp_size_ram_upper, exp_size_file, exp_size_internal, exp_size_final, exp_ratio)
+  names(v) <- c("Minimum RAM Usage", "Maximum RAM Usage", "Expected Input File Size", "Expected Internal File Size",
+    "Expected Final File Size", "Disk Usage Ratio")
 
-  unitsizes <- c("B", "KB", "MB", "GB", "TB", "PB", "EB")
-  unit <- ""
-  for(i in seq_along(unitsizes)){
-    unit <- unitsizes[i]
-    p <- 1024^(i-1)
-    if((exp_size_file / p) < 1024)
-      break
+  max_nchar <- max(nchar(names(v)[-length(v)]))
+  unitsizes <- c("B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB")
+  for(i in seq_along(v)){
+    if(i == length(v)){
+      if(exp_ratio < 0.001){
+        cat("\nExoLabel total disk consumption is <0.001x that of the original files\n")
+      } else {
+        cat("\nExoLabel total disk consumption is about ", round(exp_ratio, 2), "x that of the initial files.\n", sep='')
+      }
+      next # skip other stats for disk usage ratio
+    }
+    unit <- ""
+    for(j in seq_along(unitsizes)){
+      unit <- unitsizes[j]
+      p <- 1024^(j-1)
+      if((v[i] / p) < 1024)
+        break
+    }
+    n <- names(v)[i]
+    padding_required <- max_nchar - nchar(n)
+    pad <- paste(rep(' ', padding_required), collapse='')
+    cat(pad, names(v)[i], ": ", sprintf("%5.1f ", v[i]/p), unit, '\n', sep='')
   }
-  cat("Expected edgelist file size:", round(exp_size_file/p, 1), unit, '\n')
-
-  for(i in seq_along(unitsizes)){
-    unit <- unitsizes[i]
-    p <- 1024^(i-1)
-    if((exp_size_internal / p) < 1024)
-      break
-  }
-  cat("Expected ExoLabel disk usage:", round(exp_size_internal/p,1), unit, '\n')
-  if(exp_ratio < 0.001){
-    cat("Algorithm disk consumption is <0.001x that of the original files\n")
-  } else {
-    cat("Algorithm disk consumption is about ", round(exp_ratio, 2), "x that of the initial files.\n", sep='')
-  }
-  v
-}
-
-
-test_Trie_behavior <- function(edgelistfiles, tmpfiledir=tempdir(), is_undirected=TRUE, add_self_loops=0){
-  sep <- "\t"
-  ignore_weights <- FALSE
-  hashdir <- normalizePath(file.path(tmpfiledir, "ExoLabel_tmp"), mustWork=TRUE)
-  if(dir.exists(hashdir)){
-    for(f in list.files(hashdir, full.names=TRUE))
-      file.remove(f)
-  } else {
-    dir.create(hashdir)
-  }
-  tmpfiles <- c(file.path(hashdir, "CSR.tmp"), file.path(hashdir, "Clusters.tmp"))
-  print(tmpfiles)
-  if(!all(file.exists(edgelistfiles))) stop("edgelist file does not exist")
-  edgelistfiles <- normalizePath(edgelistfiles, mustWork=TRUE)
-    for(f in edgelistfiles){
-    v <- readLines(f, n=10L)
-    v <- strsplit(v, sep)
-    lv <- lengths(v)
-    if(any(lv != lv[1]) || lv[1] < 2) stop("file ", f, " is misformatted")
-    lv <- lv[1] # now we know they're all the same
-    if(!ignore_weights && lv == 2) stop("file ", f, " is missing weights!")
-    if(!ignore_weights && any(vapply(v, \(x) is.na(as.numeric(x[3])), logical(1L))))
-      stop("file ", f, " has malformed weights")
-  }
-
-
-  seps <- '\t\n'
-  ctr <- 1
-  # R_hashedgelist(tsv, csr, clusters, queues, hashdir, seps, 1, iter, verbose)
-  .Call("R_test_trie", edgelistfiles, length(edgelistfiles), tmpfiles[1], tmpfiles[2],
-    seps, ctr, TRUE, is_undirected, add_self_loops)
+  invisible(v)
 }

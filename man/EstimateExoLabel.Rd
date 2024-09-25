@@ -8,9 +8,9 @@ Estimate ExoLabel Disk Consumption
 Estimate the total disk consumption for \code{\link{ExoLabel}}.
 }
 \usage{
-EstimateExoLabel(num_v, avg_degree=1,
+EstimateExoLabel(num_v, avg_degree=2,
               num_edges=num_v*avg_degree,
-              node_name_length=8L)
+              node_name_length=10L)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -31,12 +31,12 @@ Approximate average length of each node name, in characters.
 }
 }
 \details{
-This function provides a rough estimate of the total disk space required to run \code{\link{ExoLabel}} for a given input network. \code{avg_degree} and \code{num_edges} need not both be specified. The function prints out the estimated size of the original edgelist files, the estimated disk space to be consumed by \code{\link{ExoLabel}}, and the approximate ratio of disk space relative to the original file.
+This function provides a rough estimate of the total disk space required to run \code{\link{ExoLabel}} for a given input network. \code{avg_degree} and \code{num_edges} need not both be specified. The function prints out the estimated size of the original edgelist files, the estimated disk space and RAM to be consumed by \code{\link{ExoLabel}}, and the approximate ratio of disk space relative to the original file.
 
-\code{node_name_length} specifies the average length of the node names--since the names themselves must be stored on disk, this contributes to the overall size. For relatively short node names (1-16 characters) this has a negligible impact on overall disk consumption.
+\code{node_name_length} specifies the average length of the node names--since the names themselves must be stored on disk, this contributes to the overall size. For relatively short node names (1-16 characters) this has a negligible impact on overall disk consumption, though it may impact the worst-case RAM consumption. Expected RAM consumption is determined by the average prefix length a random pair of vertex labels have in common, and should be closer to the minimum usage in most scenarios (see \code{\link{ExoLabel}} for more details on this).
 }
 \value{
-Returns a vector of length three, showing the estimated total edgelist file size, estimated disk consumption, and ratio of the two. All sizes are shown in bytes.
+Invisibly returns a vector of length six, showing the minimum RAM, maximum RAM,  estimated total edgelist file size, estimated disk consumption, estimated final file size, and ratio of the input file size to total ExoLabel disk usage. All values denote bytes.
 }
 
 \author{
