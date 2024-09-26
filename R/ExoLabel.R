@@ -3,6 +3,7 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
                           add_self_loops=FALSE,
                           ignore_weights=FALSE,
                           normalize_weights=FALSE,
+                          shuffle_queues=FALSE,
                           iterations=0L, inflation=1.05,
                           return_table=FALSE,
                           consensus_cluster=FALSE,
@@ -53,6 +54,9 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
   if(ignore_weights && normalize_weights){
     warning("Cannot both ignore weights and normalize them")
   }
+  if(!is.logical(shuffle_queues) || is.na(shuffle_queues) || is.null(shuffle_queues)){
+    stop("invalid value for 'shuffle_queues' (should be TRUE or FALSE)")
+  }
   # verify that the first few lines of each file are correct
   if(!all(file.exists(edgelistfiles))) stop("edgelist file does not exist")
   edgelistfiles <- normalizePath(edgelistfiles, mustWork=TRUE)
@@ -80,21 +84,20 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
       stop("'consensus_cluster' cannot contain negative values")
   }
   tempfiledir <- normalizePath(tempfiledir, mustWork=TRUE)
+  tempfiledir <- file.path(tempfiledir, "ExoLabelTemp")
+  if(dir.exists(tempfiledir)){
+    for(f in list.files(tempfiledir, full.names=TRUE))
+      file.remove(f)
+  } else {
+    dir.create(tempfiledir)
+  }
   counter_cluster_binary <- tempfile(tmpdir=tempfiledir)
   csr_table_binary <- tempfile(tmpdir=tempfiledir)
   qfiles <- c(tempfile(tmpdir=tempfiledir),
               tempfile(tmpdir=tempfiledir),
               tempfile(tmpdir=tempfiledir))
-  hashdir <- file.path(tempfiledir, "OOMhashes")
   mode <- match.arg(mode)
   is_undirected <- mode == "undirected"
-  if(dir.exists(hashdir)){
-    for(f in list.files(hashdir, full.names=TRUE))
-      file.remove(f)
-  } else {
-    dir.create(hashdir)
-  }
-  hashdir <- normalizePath(hashdir, mustWork=TRUE)
   outfile <- file.path(normalizePath(dirname(outfile), mustWork=TRUE), basename(outfile))
 
   if(verbose){
@@ -104,26 +107,23 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
     cat("\tQueue 1: ", basename(qfiles[1]), "\n")
     cat("\tQueue 2: ", basename(qfiles[2]), "\n")
     cat("\tQueue counter: ", basename(qfiles[3]), "\n")
-    cat("\tHashes: ", basename(hashdir), "\n")
   }
 
   seps <- paste(sep, "\n", sep='')
   ctr <- 1
   # R_hashedgelist(tsv, csr, clusters, queues, hashdir, seps, 1, iter, verbose)
   .Call("R_LPOOM_cluster", edgelistfiles, length(edgelistfiles), csr_table_binary,
-        counter_cluster_binary, qfiles, hashdir, outfile, seps, ctr, iterations,
+        counter_cluster_binary, qfiles, tempfiledir, outfile, seps, ctr, iterations,
         verbose, is_undirected, add_self_loops, ignore_weights, normalize_weights,
-        consensus_cluster, inflation)
+        consensus_cluster, inflation, shuffle_queues)
 
   # R_write_output_clusters(clusters, hashes, length(hashes), out_tsvpath, seps)
   #.Call("R_LP_write_output", counter_cluster_binary, hashdir,
   #      outfile, seps, verbose)
   if(cleanup_files){
-    for(f in c(csr_table_binary, counter_cluster_binary, qfiles))
+    for(f in list.files(tempfiledir, full.names=TRUE))
       if(file.exists(f)) file.remove(f)
-    for(f in list.files(hashdir, full.names=TRUE))
-      if(file.exists(f)) file.remove(f)
-    file.remove(hashdir)
+    file.remove(tempfiledir)
   }
   if(return_table){
     tab <- read.table(outfile, sep=sep)

@@ -1514,7 +1514,7 @@ void shuffle_queue(FILE *q, l_uint maxv){
 
 void cluster_file(const char* mastertab_fname, const char* clust_fname,
 									const char *qfile_f1, const char *qfile_f2, const char *qfile_log,
-									l_uint num_v, int max_iterations, int v, double inflation){
+									l_uint num_v, int max_iterations, int v, double inflation, const int should_shuffle){
 	// main runner function to cluster nodes
 	FILE *masterfile = fopen(mastertab_fname, "rb");
 	FILE *clusterfile = fopen(clust_fname, "rb+");
@@ -1555,7 +1555,7 @@ void cluster_file(const char* mastertab_fname, const char* clust_fname,
 			Rprintf("\r\t%0.1f%% complete %s   ", (pct_complete)*100, progress[++statusctr%progbarlen]);
 		}
 		if(!qsize) break;
-		shuffle_queue(cur_q, qsize);
+		if(should_shuffle) shuffle_queue(cur_q, qsize);
 
 		/*
 		if(pct_complete > 0.99){
@@ -1642,14 +1642,14 @@ void resolve_cluster_consensus(FILE *csr, const char* clustername, l_uint num_v,
 
 void cluster_oom_single(const char* tabfile, const char* clusteroutfile, const char* dir,
 												const char* qfile1, const char* qfile2, const char* qfile3,
-												l_uint num_v, int num_iter, int verbose, int is_consensus, double inflation){
+												l_uint num_v, int num_iter, int verbose, int is_consensus, double inflation, const int should_shuffle){
 	// runner function to cluster for a single file
 	// will be called multiple times for consensus clustering
 	if(verbose){
 		if(is_consensus) Rprintf("\t");
 		Rprintf("Clustering...\n");
 	}
- 	cluster_file(tabfile, clusteroutfile, qfile1, qfile2, qfile3, num_v, num_iter, verbose, inflation);
+ 	cluster_file(tabfile, clusteroutfile, qfile1, qfile2, qfile3, num_v, num_iter, verbose, inflation, should_shuffle);
 
  	if(!is_consensus){
 	 	// reindex the clusters from 1 to n
@@ -1663,7 +1663,7 @@ void cluster_oom_single(const char* tabfile, const char* clusteroutfile, const c
 void consensus_cluster_oom(const char* csrfile, const char* clusteroutfile, const char* dir,
 													 const char* qfile1, const char* qfile2, const char* qfile3,
 													 l_uint num_v, int num_iter, int v, double inflation,
- 													 const double* consensus_weights, const int consensus_len){
+ 													 const double* consensus_weights, const int consensus_len, const int should_shuffle){
 	char* tmpcsrfilename1 = safe_malloc(PATH_MAX);
 	char* tmpcsrfilename2 = safe_malloc(PATH_MAX);
 	char* tmpclusterfile = safe_malloc(PATH_MAX);
@@ -1695,7 +1695,7 @@ void consensus_cluster_oom(const char* csrfile, const char* clusteroutfile, cons
 		fclose(dummyclust);
 
 		// cluster into dummyclust
-		cluster_oom_single(tmpcsrfilename1, tmpclusterfile, dir, qfile1, qfile2, qfile3, num_v, num_iter, v, 1, inflation);
+		cluster_oom_single(tmpcsrfilename1, tmpclusterfile, dir, qfile1, qfile2, qfile3, num_v, num_iter, v, 1, inflation, should_shuffle);
 
 		if(v) Rprintf("\tRecording results...\n");
 		// lastly, add edge to consensus csr file if they're the same cluster
@@ -1704,7 +1704,7 @@ void consensus_cluster_oom(const char* csrfile, const char* clusteroutfile, cons
 	fclose(consensuscsr);
 
 	if(v) Rprintf("Clustering on consensus data...\n");
-	cluster_oom_single(tmpcsrfilename2, clusteroutfile, dir, qfile1, qfile2, qfile3, num_v, num_iter, v, 1, inflation);
+	cluster_oom_single(tmpcsrfilename2, clusteroutfile, dir, qfile1, qfile2, qfile3, num_v, num_iter, v, 1, inflation, should_shuffle);
 
 	if(v) Rprintf("Reindexing clusters...\n");
 	// reindex clusters from 1 to n
@@ -1813,7 +1813,7 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, SEXP TABNAME, // files
 										SEXP SEPS, SEXP CTR, SEXP ITER, SEXP VERBOSE, // control flow
 										SEXP IS_UNDIRECTED, SEXP ADD_SELF_LOOPS, // optional adjustments
 										SEXP IGNORE_WEIGHTS, SEXP NORMALIZE_WEIGHTS,
-										SEXP CONSENSUS_WEIGHTS, SEXP INFLATION_POW){
+										SEXP CONSENSUS_WEIGHTS, SEXP INFLATION_POW, SEXP SHUFFLE_QUEUES){
 	/*
 	 * I always forget how to handle R strings so I'm going to record it here
 	 * R character vectors are STRSXPs, which is the same as a list (VECSXP)
@@ -1859,6 +1859,7 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, SEXP TABNAME, // files
 	const int add_self_loops = self_loop_weight > 0;
 	const int should_normalize = LOGICAL(NORMALIZE_WEIGHTS)[0];
 	const int ignore_weights = LOGICAL(IGNORE_WEIGHTS)[0];
+	const int should_shuffle_queue = LOGICAL(SHUFFLE_QUEUES)[0];
 
 	// consensus stuff
 	const int consensus_len = length(CONSENSUS_WEIGHTS);
@@ -1907,10 +1908,10 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, SEXP TABNAME, // files
 
  	if(consensus_len){
  		consensus_cluster_oom(tabfile, temptabfile, dir, qfile1, qfile2, qfile3, num_v, num_iter, verbose,
- 													inflation, consensus_w, consensus_len);
+ 													inflation, consensus_w, consensus_len, should_shuffle_queue);
 
  	} else {
- 		cluster_oom_single(tabfile, temptabfile, dir, qfile1, qfile2, qfile3, num_v, num_iter, verbose, 0, inflation);
+ 		cluster_oom_single(tabfile, temptabfile, dir, qfile1, qfile2, qfile3, num_v, num_iter, verbose, 0, inflation, should_shuffle_queue);
  	}
 
 

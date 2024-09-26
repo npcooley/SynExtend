@@ -13,6 +13,7 @@ ExoLabel(edgelistfiles, outfile=tempfile(),
               add_self_loops=FALSE,
               ignore_weights=FALSE,
               normalize_weights=FALSE,
+              shuffle_queues=FALSE,
               iterations=0L, inflation=1.05,
               return_table=FALSE,
               consensus_cluster=FALSE,
@@ -45,6 +46,10 @@ Should weights be ignored? If \code{TRUE}, all edges will be treated as an edge 
 
 \item{normalize_weights}{
 Should weights be normalized? If \code{TRUE}, each vertex's edge weights are normalized such that the sum of outgoing edge weights is 1. This normalization is done after adding self loops.
+}
+
+\item{shuffle_queues}{
+Should queues be shuffled before processing? ExoLabel builds a queue of next nodes to visit during each iteration. If \code{TRUE}, ExoLabel will shuffle the order of nodes to visit during each iteration. This adds additional processing time with negligible effect on results.
 }
 
 \item{iterations}{
