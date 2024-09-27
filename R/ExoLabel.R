@@ -2,8 +2,9 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
                           mode=c("undirected", "directed"),
                           add_self_loops=FALSE,
                           ignore_weights=FALSE,
-                          normalize_weights=TRUE,
-                          iterations=0L, inflation=1.0,
+                          normalize_weights=FALSE,
+                          shuffle_queues=FALSE,
+                          iterations=0L, inflation=1.05,
                           return_table=FALSE,
                           consensus_cluster=FALSE,
                           verbose=interactive(),
@@ -53,6 +54,9 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
   if(ignore_weights && normalize_weights){
     warning("Cannot both ignore weights and normalize them")
   }
+  if(!is.logical(shuffle_queues) || is.na(shuffle_queues) || is.null(shuffle_queues)){
+    stop("invalid value for 'shuffle_queues' (should be TRUE or FALSE)")
+  }
   # verify that the first few lines of each file are correct
   if(!all(file.exists(edgelistfiles))) stop("edgelist file does not exist")
   edgelistfiles <- normalizePath(edgelistfiles, mustWork=TRUE)
@@ -79,20 +83,22 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
     if(any(consensus_cluster < 0))
       stop("'consensus_cluster' cannot contain negative values")
   }
+  tempfiledir <- normalizePath(tempfiledir, mustWork=TRUE)
+  tempfiledir <- file.path(tempfiledir, "ExoLabelTemp")
+  if(dir.exists(tempfiledir)){
+    for(f in list.files(tempfiledir, full.names=TRUE))
+      file.remove(f)
+  } else {
+    dir.create(tempfiledir)
+  }
   counter_cluster_binary <- tempfile(tmpdir=tempfiledir)
   csr_table_binary <- tempfile(tmpdir=tempfiledir)
   qfiles <- c(tempfile(tmpdir=tempfiledir),
               tempfile(tmpdir=tempfiledir),
               tempfile(tmpdir=tempfiledir))
-  hashdir <- file.path(tempfiledir, "OOMhashes")
   mode <- match.arg(mode)
   is_undirected <- mode == "undirected"
-  if(dir.exists(hashdir)){
-    for(f in list.files(hashdir, full.names=TRUE))
-      file.remove(f)
-  } else {
-    dir.create(hashdir)
-  }
+  outfile <- file.path(normalizePath(dirname(outfile), mustWork=TRUE), basename(outfile))
 
   if(verbose){
     cat("Temporary files stored at ", tempfiledir, "\n")
@@ -101,26 +107,23 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
     cat("\tQueue 1: ", basename(qfiles[1]), "\n")
     cat("\tQueue 2: ", basename(qfiles[2]), "\n")
     cat("\tQueue counter: ", basename(qfiles[3]), "\n")
-    cat("\tHashes: ", basename(hashdir), "\n")
   }
 
   seps <- paste(sep, "\n", sep='')
   ctr <- 1
   # R_hashedgelist(tsv, csr, clusters, queues, hashdir, seps, 1, iter, verbose)
   .Call("R_LPOOM_cluster", edgelistfiles, length(edgelistfiles), csr_table_binary,
-        counter_cluster_binary, qfiles, hashdir, seps, ctr, iterations,
+        counter_cluster_binary, qfiles, tempfiledir, outfile, seps, ctr, iterations,
         verbose, is_undirected, add_self_loops, ignore_weights, normalize_weights,
-        consensus_cluster, inflation)
+        consensus_cluster, inflation, shuffle_queues)
 
   # R_write_output_clusters(clusters, hashes, length(hashes), out_tsvpath, seps)
-  .Call("R_LP_write_output", counter_cluster_binary, hashdir,
-        outfile, seps, verbose)
+  #.Call("R_LP_write_output", counter_cluster_binary, hashdir,
+  #      outfile, seps, verbose)
   if(cleanup_files){
-    for(f in c(csr_table_binary, counter_cluster_binary, qfiles))
+    for(f in list.files(tempfiledir, full.names=TRUE))
       if(file.exists(f)) file.remove(f)
-    for(f in list.files(hashdir, full.names=TRUE))
-      if(file.exists(f)) file.remove(f)
-    file.remove(hashdir)
+    file.remove(tempfiledir)
   }
   if(return_table){
     tab <- read.table(outfile, sep=sep)
@@ -132,42 +135,47 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
   }
 }
 
-EstimateExoLabel <- function(num_v, avg_degree=1,
-                          num_edges=num_v*avg_degree, node_name_length=8L){
+EstimateExoLabel <- function(num_v, avg_degree=2,
+                          num_edges=num_v*avg_degree, node_name_length=10L){
   if(!missing(avg_degree) && !missing(num_edges)){
-    warning("Only one of 'avg_degree' and 'num_edges' are needed.")
+    warning("Only one of 'avg_degree' and 'num_edges' are needed, ignoring num_edges")
   } else if (missing(avg_degree)){
     avg_degree = num_edges / num_v
   }
   lv <- num_v*node_name_length
-  # file is v1 v2 %.3f, which is 2*node_name_len + 3 + 5
+  # assuming file is v1 v2 %.3f, which is 2*node_name_len + 3 + 5
   exp_size_file <- (2*node_name_length+8)*num_edges
-  exp_size_internal <- 56*num_v + lv + 12*num_edges
+  exp_size_internal <- 41*num_v+12*num_edges
+  exp_size_final <- (2+node_name_length+log10(num_v))*num_v
+  exp_size_ram_lower <- (24 + 16)*num_v + 104857600 # 1e8 is roughly the cache size
+  exp_size_ram_upper <- (24*node_name_length + 16)*num_v + 104857600
   exp_ratio <- exp_size_internal / exp_size_file
-  v <- c(exp_size_file, exp_size_internal, exp_ratio)
-  names(v) <- c("Expected total edgelist size", "Expected ExoLabel Disk Usage", "Ratio")
+  v <- c(exp_size_ram_lower, exp_size_ram_upper, exp_size_file, exp_size_internal, exp_size_final, exp_ratio)
+  names(v) <- c("Minimum RAM Usage", "Maximum RAM Usage", "Expected Input File Size", "Expected Internal File Size",
+    "Expected Final File Size", "Disk Usage Ratio")
 
-  unitsizes <- c("B", "KB", "MB", "GB", "TB", "PB", "EB")
-  unit <- ""
-  for(i in seq_along(unitsizes)){
-    unit <- unitsizes[i]
-    p <- 1024^(i-1)
-    if((exp_size_file / p) < 1024)
-      break
+  max_nchar <- max(nchar(names(v)[-length(v)]))
+  unitsizes <- c("B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB")
+  for(i in seq_along(v)){
+    if(i == length(v)){
+      if(exp_ratio < 0.001){
+        cat("\nExoLabel total disk consumption is <0.001x that of the original files\n")
+      } else {
+        cat("\nExoLabel total disk consumption is about ", round(exp_ratio, 2), "x that of the initial files.\n", sep='')
+      }
+      next # skip other stats for disk usage ratio
+    }
+    unit <- ""
+    for(j in seq_along(unitsizes)){
+      unit <- unitsizes[j]
+      p <- 1024^(j-1)
+      if((v[i] / p) < 1024)
+        break
+    }
+    n <- names(v)[i]
+    padding_required <- max_nchar - nchar(n)
+    pad <- paste(rep(' ', padding_required), collapse='')
+    cat(pad, names(v)[i], ": ", sprintf("%5.1f ", v[i]/p), unit, '\n', sep='')
   }
-  cat("Expected edgelist file size:", round(exp_size_file/p, 1), unit, '\n')
-
-  for(i in seq_along(unitsizes)){
-    unit <- unitsizes[i]
-    p <- 1024^(i-1)
-    if((exp_size_internal / p) < 1024)
-      break
-  }
-  cat("Expected ExoLabel disk usage:", round(exp_size_internal/p,1), unit, '\n')
-  if(exp_ratio < 0.001){
-    cat("Algorithm disk consumption is <0.001x that of the original files\n")
-  } else {
-    cat("Algorithm disk consumption is about ", round(exp_ratio, 2), "x that of the initial files.\n", sep='')
-  }
-  v
+  invisible(v)
 }

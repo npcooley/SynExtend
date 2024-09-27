@@ -1,5 +1,17 @@
 #include "SEutils.h"
 
+void *safe_malloc(size_t size){
+  void *data = malloc(size);
+  if(!data) error("Could not allocate %zu bytes (do you have enough RAM?)", size);
+  return data;
+}
+
+void *safe_calloc(size_t nitems, size_t size){
+  void *data = calloc(nitems, size);
+  if(!data) error("Could not allocate %zu bytes (do you have enough RAM?)", size);
+  return data;
+}
+
 int *sample(int n){
   int *r = malloc(sizeof(int) * n);
   int j;
