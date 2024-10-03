@@ -12,6 +12,17 @@ void *safe_calloc(size_t nitems, size_t size){
   return data;
 }
 
+void *safe_realloc(void *ptr, size_t new_size){
+  void *tmp = ptr;
+  ptr = realloc(ptr, new_size);
+  if(!ptr){
+    error("Could not re-allocate %zu bytes (do you have enough RAM?)", new_size);
+    if(tmp) free(tmp);
+  }
+
+  return ptr;
+}
+
 int *sample(int n){
   int *r = malloc(sizeof(int) * n);
   int j;
