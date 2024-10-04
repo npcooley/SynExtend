@@ -62,6 +62,18 @@
  * TODOs:
  *	- add safeguards around safe_malloc() / calloc() to break if allocation fails
  *	- add graceful failure to cleanup files on abort / interrupt
+ *		note Simon's suggestion for this:
+ *			static void chkIntFn(void *dummy) {
+ *			  R_CheckUserInterrupt();
+ *			}
+ *
+ *			// this will call the above in a top-level context so it won't longjmp-out of your context
+ *			bool checkInterrupt() {
+ *			  return (R_ToplevelExec(chkIntFn, NULL) == FALSE);
+ *			}
+ *
+ *			// your code somewhere ...
+ *			if (checkInterrupt()) { // user interrupted ... }
  */
 
 #ifndef PATH_MAX
@@ -1808,6 +1820,10 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, SEXP TABNAME, // files
 	 * R_hashedgelist(tsv, csr, clusters, queues, hashdir, seps, 1, iter, verbose)
 	 */
 
+	// TODOs:
+	//	- remove the following args:
+	//			QFILES, TABNAME, TEMPTABNAME
+
 	// main files
 	num_alloced_filenames = 0;
 	allocated_filenames = safe_malloc(sizeof(char*) * 7);
@@ -1821,17 +1837,6 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, SEXP TABNAME, // files
 	const char* qfile3 = create_filename(dir, "queue3.bin");
 	const char* outfile = CHAR(STRING_ELT(OUTFILE, 0));
 	const char* edgefile;
-
-	/*
-	const char* tabfile = CHAR(STRING_ELT(TABNAME, 0));
-	const char* temptabfile = CHAR(STRING_ELT(TEMPTABNAME, 0));
-	const char* outfile = CHAR(STRING_ELT(OUTFILE, 0));
-
-	// queue files
-	const char* qfile1 = CHAR(STRING_ELT(QFILES, 0));
-	const char* qfile2 = CHAR(STRING_ELT(QFILES, 1));
-	const char* qfile3 = CHAR(STRING_ELT(QFILES, 2));
-	*/
 
 	// required parameters
 	const char* seps = CHAR(STRING_ELT(SEPS, 0));
