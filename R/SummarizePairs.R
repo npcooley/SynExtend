@@ -139,6 +139,12 @@ SummarizePairs <- function(SynExtendObject,
   DataPool <- vector(mode = "list",
                      length = length(ObjectIDs))
   
+  MAT1 <- get(data("HEC_MI1",
+                   package = "DECIPHER",
+                   envir = environment()))
+  MAT2 <- get(data("HEC_MI2",
+                   package = "DECIPHER",
+                   envir = environment()))
   # set initial progress bars and iterators
   # PH is going to be the container that 'res' eventually gets constructed from
   # while Total
@@ -153,12 +159,6 @@ SummarizePairs <- function(SynExtendObject,
                         USE.NAMES = FALSE,
                         simplify = TRUE))
     
-    MAT1 <- get(data("HEC_MI1",
-                     package = "DECIPHER",
-                     envir = environment()))
-    MAT2 <- get(data("HEC_MI2",
-                     package = "DECIPHER",
-                     envir = environment()))
     structureMatrix <- matrix(c(0.187, -0.8, -0.873,
                                 -0.8, 0.561, -0.979,
                                 -0.873, -0.979, 0.221),
