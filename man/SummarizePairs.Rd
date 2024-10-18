@@ -9,8 +9,9 @@ Given \code{LinkedPairs} object and a \code{DECIPHER} database, return a data.fr
 \usage{
 SummarizePairs(SynExtendObject,
                DataBase01,
-               AlignmentFun = "AlignProfiles",
-               RetainAnchors = FALSE,
+               IncludeIndexSearch = TRUE,
+               AlignmentFun = "AlignPairs",
+               RetainAnchors = TRUE,
                DefaultTranslationTable = "11",
                KmerSize = 5,
                IgnoreDefaultStringSet = FALSE,
@@ -18,6 +19,8 @@ SummarizePairs(SynExtendObject,
                ShowPlot = FALSE,
                Processors = 1,
                Storage = 2,
+               IndexParams = list("K" = 6),
+               SearchParams = list("perPatternLimit" = 1),
                ...)
 }
 \arguments{
@@ -26,6 +29,9 @@ An object of class \code{LinkedPairs-class}.
 }
   \item{DataBase01}{
 A character string pointing to a SQLite database, or a connection to a \code{DECIPHER} database.
+}
+  \item{IncludeIndexSearch}{
+A logical determining whether to include \code{\link{SearchIndex}} results in the initial inference.
 }
   \item{AlignmentFun}{
 A character string specifying a \code{link{DECIPHER}} alignment function. Currently only supports \code{\link{AlignProfiles}} and \code{\link{AlignPairs}}.
@@ -53,6 +59,12 @@ An integer value indicating how many processors to supply to \code{\link{AlignPa
 }
   \item{Storage}{
 A soft memory limit for how much sequence data from the database to retain in memory while running. In Gb.
+}
+  \item{IndexParams}{
+Arguments to be passed to \code{\link{IndexSeqs}}.
+}
+  \item{SearchParams}{
+Arguments to be passed to \code{\link{SearchIndex}}.
 }
   \item{...}{
 Additional arguments to pass to interior functions. Currently not implemented.

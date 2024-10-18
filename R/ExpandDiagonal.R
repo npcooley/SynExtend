@@ -46,13 +46,14 @@ ExpandDiagonal <- function(SynExtendObject,
                             "AlignProfiles"))) {
     stop ("Unrecognized alignment function in the 'AlignmentFunction' attribute.")
   }
+  MAT1 <- get(data("HEC_MI1",
+                   package = "DECIPHER",
+                   envir = environment()))
+  MAT2 <- get(data("HEC_MI2",
+                   package = "DECIPHER",
+                   envir = environment()))
   if (AlignmentFun == "AlignProfiles") {
-    MAT1 <- get(data("HEC_MI1",
-                     package = "DECIPHER",
-                     envir = environment()))
-    MAT2 <- get(data("HEC_MI2",
-                     package = "DECIPHER",
-                     envir = environment()))
+    
     structureMatrix <- matrix(c(0.187, -0.8, -0.873,
                                 -0.8, 0.561, -0.979,
                                 -0.873, -0.979, 0.221),
