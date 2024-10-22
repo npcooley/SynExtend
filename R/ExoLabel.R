@@ -3,14 +3,14 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
                           add_self_loops=FALSE,
                           ignore_weights=FALSE,
                           normalize_weights=FALSE,
-                          shuffle_queues=FALSE,
-                          iterations=0L, inflation=1.05,
+                          iterations=25L, inflation=1.05,
                           return_table=FALSE,
                           consensus_cluster=FALSE,
                           verbose=interactive(),
                           sep='\t',
                           tempfiledir=tempdir(),
                           cleanup_files=TRUE){
+  on.exit(.C("cleanup_ondisklp_global_values"))
   if(!is.numeric(iterations)){
     stop("'iterations' must be an integer or numeric.")
   } else {
@@ -21,12 +21,9 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
   } else {
     inflation <- as.numeric(inflation)
   }
-  if(is.na(iterations) || is.null(iterations)){
-    warning("Invalid value of 'iterations', defaulting to 0.")
-    iterations <- 0L
-  }
-  if(is.infinite(iterations) || iterations < 0){
-    iterations <- 0L
+  if(is.na(iterations) || is.null(iterations) || is.infinite(iterations) || iterations <= 0){
+    warning("Invalid value of 'iterations', defaulting to 25.")
+    iterations <- 25L
   }
   if(is.infinite(inflation) || is.na(inflation) || inflation < 0){
     warning("Invalid value of 'inflation', defaulting to 1.0")
@@ -53,9 +50,6 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
   }
   if(ignore_weights && normalize_weights){
     warning("Cannot both ignore weights and normalize them")
-  }
-  if(!is.logical(shuffle_queues) || is.na(shuffle_queues) || is.null(shuffle_queues)){
-    stop("invalid value for 'shuffle_queues' (should be TRUE or FALSE)")
   }
   # verify that the first few lines of each file are correct
   if(!all(file.exists(edgelistfiles))) stop("edgelist file does not exist")
@@ -91,31 +85,19 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
   } else {
     dir.create(tempfiledir)
   }
-  counter_cluster_binary <- tempfile(tmpdir=tempfiledir)
-  csr_table_binary <- tempfile(tmpdir=tempfiledir)
-  qfiles <- c(tempfile(tmpdir=tempfiledir),
-              tempfile(tmpdir=tempfiledir),
-              tempfile(tmpdir=tempfiledir))
   mode <- match.arg(mode)
   is_undirected <- mode == "undirected"
   outfile <- file.path(normalizePath(dirname(outfile), mustWork=TRUE), basename(outfile))
 
-  if(verbose){
-    cat("Temporary files stored at ", tempfiledir, "\n")
-    cat("\tCSR: ", basename(csr_table_binary), "\n")
-    cat("\tClusters: ", basename(counter_cluster_binary), "\n")
-    cat("\tQueue 1: ", basename(qfiles[1]), "\n")
-    cat("\tQueue 2: ", basename(qfiles[2]), "\n")
-    cat("\tQueue counter: ", basename(qfiles[3]), "\n")
-  }
+  if(verbose) cat("Temporary files stored at ", tempfiledir, "\n")
 
   seps <- paste(sep, "\n", sep='')
   ctr <- 1
   # R_hashedgelist(tsv, csr, clusters, queues, hashdir, seps, 1, iter, verbose)
-  .Call("R_LPOOM_cluster", edgelistfiles, length(edgelistfiles), csr_table_binary,
-        counter_cluster_binary, qfiles, tempfiledir, outfile, seps, ctr, iterations,
+  .Call("R_LPOOM_cluster", edgelistfiles, length(edgelistfiles),
+        tempfiledir, outfile, seps, ctr, iterations,
         verbose, is_undirected, add_self_loops, ignore_weights, normalize_weights,
-        consensus_cluster, inflation, shuffle_queues)
+        consensus_cluster, inflation)
 
   # R_write_output_clusters(clusters, hashes, length(hashes), out_tsvpath, seps)
   #.Call("R_LP_write_output", counter_cluster_binary, hashdir,
