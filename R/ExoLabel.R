@@ -3,7 +3,7 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
                           add_self_loops=FALSE,
                           ignore_weights=FALSE,
                           normalize_weights=FALSE,
-                          iterations=25L, inflation=1.05,
+                          iterations=0L, inflation=1.05,
                           return_table=FALSE,
                           consensus_cluster=FALSE,
                           verbose=interactive(),
@@ -21,9 +21,9 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
   } else {
     inflation <- as.numeric(inflation)
   }
-  if(is.na(iterations) || is.null(iterations) || is.infinite(iterations) || iterations <= 0){
-    warning("Invalid value of 'iterations', defaulting to 25.")
-    iterations <- 25L
+  if(is.na(iterations) || is.null(iterations) || is.infinite(iterations) || iterations < 0){
+    warning("Invalid value of 'iterations', will determine automatically from node degree.")
+    iterations <- 0L
   }
   if(is.infinite(inflation) || is.na(inflation) || inflation < 0){
     warning("Invalid value of 'inflation', defaulting to 1.0")

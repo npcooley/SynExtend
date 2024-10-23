@@ -52,7 +52,7 @@
 #define l_uint uint_fast64_t
 #define lu_fprint PRIuFAST64
 #define w_float float
-#define aq_int uint16_t // size of "seen" counter in ArrayQueue
+#define aq_int int16_t // size of "seen" counter in ArrayQueue
 
 /*
  * common limits are defined in limits.h
@@ -247,6 +247,9 @@ static ArrayQueue* init_array_queue(l_uint size, int max_seen){
 		q->seen[i] = 1; // set each vertex to have been seen once
 	}
 	PutRNGstate();
+
+	// guard case: we have an extra slot, mark it as a never visit
+	q->seen[size] = 0;
 
 	// now start and end are both 0
 	// this is fine, since end is the next location to insert to and queue is full
@@ -935,11 +938,12 @@ h_uint hash_file_vnames_trie(const char* fname, prefix *trie, h_uint next_index,
 	return next_index;
 }
 
-void reindex_trie_and_write_counts(prefix *trie, FILE* csrfile){
+l_uint reindex_trie_and_write_counts(prefix *trie, FILE* csrfile, l_uint max_seen){
 	// Vertices are 0-indexed
 	// assume that we've already opened the file, since we'll call this recursively
 	// I'm NOT going to reindex, since the read indices will be better for cache locality
-	if(!trie) return;
+	// I am going to return the max count we see, for an auto-determination for max_iterations
+	if(!trie) return max_seen;
 	uint8_t bits_remaining = trie->count1 + trie->count2;
 	uint8_t ctr = 0;
 	l_uint cur_index;
@@ -947,6 +951,8 @@ void reindex_trie_and_write_counts(prefix *trie, FILE* csrfile){
 		leaf *l = (leaf*)(trie->child_nodes[ctr++]);
 		cur_index = l->index;
 		GLOBAL_all_leaves[cur_index] = l;
+		// save the maximum degree we observe
+		max_seen = max_seen > l->count ? max_seen : l->count;
 		//l->index = cur_index++;
 		// remove these lines later
 		fseek(csrfile, cur_index*L_SIZE, SEEK_SET);
@@ -956,9 +962,9 @@ void reindex_trie_and_write_counts(prefix *trie, FILE* csrfile){
 		l->count = cur_index+1;
 	}
 	while(ctr < bits_remaining)
-		reindex_trie_and_write_counts(trie->child_nodes[ctr++], csrfile);
+		max_seen = reindex_trie_and_write_counts(trie->child_nodes[ctr++], csrfile, max_seen);
 
-	return;
+	return max_seen;
 }
 
 void reset_trie_clusters(prefix *trie){
@@ -1302,7 +1308,7 @@ void add_remaining_to_queue(l_uint new_clust, leaf **neighbors, float *weights, 
 }
 
 
-void update_node_cluster(l_uint ind, double inflation,
+void update_node_cluster(l_uint ind, double inflation, aq_int times_seen,
 													FILE *offsets, FILE *clusterings,
 													FILE *weightsfile, FILE *neighborfile,
 													ArrayQueue *queue){
@@ -1330,18 +1336,10 @@ void update_node_cluster(l_uint ind, double inflation,
 	l_uint *indices;
 	leaf **neighbors;
 
-	/*
-	 * we're going to have floating point issues really fast here
-	 * note though that we don't really need to know *how* much more the top cluster is,
-	 * just that it *is* the top cluster.
-	 *
-	 * Thus, we're going to log everything, but never un-log it
-	 * the formula is new_w = w^(inflation^(times_seen-1))
-	 * log(new_w) = log(w^(inflation^(times_seen-1)))
-	 *            = inflation^(times_seen-1) * log(w)
-	 */
-	int times_seen = GLOBAL_queue->seen[ind];
-	double infl_pow = pow(inflation, times_seen-1);
+	// the log scaling slope is a nice curve that plateaus so we don't grow to infinity
+	double infl_pow = inflation;
+	if(times_seen-1 > 0)
+		infl_pow = pow(infl_pow, 1+log2((double)(times_seen-1)));
 
 	// move to information for the vertex and read in number of edges
 	fseek(offsets, L_SIZE*ind, SEEK_SET);
@@ -1374,6 +1372,19 @@ void update_node_cluster(l_uint ind, double inflation,
 	// read in the current node too
 	neighbors[num_edges] = GLOBAL_all_leaves[ind];
 
+	// update the weights according to current inflation
+	// we HAVE to renormalize because of thresholding
+	// (meaning collapsing weights below CLUSTER_MIN_WEIGHT to 0)
+	double total=0, err=0;
+	for(l_uint i=0; i<num_edges; i++){
+		weights_arr[i] = pow(weights_arr[i], infl_pow);
+		kahan_accu(&total, &err, weights_arr[i]);
+	}
+	for(l_uint i=0; i<num_edges; i++){
+		weights_arr[i] /= total;
+		if(weights_arr[i] < CLUSTER_MIN_WEIGHT) weights_arr[i] = 0;
+	}
+
 	indices = safe_malloc(L_SIZE*num_edges);
 	for(l_uint i=0; i<num_edges; i++) indices[i] = i;
 	GLOBAL_leaf = neighbors;
@@ -1390,9 +1401,8 @@ void update_node_cluster(l_uint ind, double inflation,
 			cur_weight = 0;
 			cur_error=0;
 		}
-		// don't need to normalize, relative differences will be identical
-		//cur_weight += pow(weights_arr[indices[i]], infl_pow);
-		kahan_accu(&cur_weight, &cur_error, pow(weights_arr[indices[i]], infl_pow));
+		if(weights_arr[indices[i]])
+			kahan_accu(&cur_weight, &cur_error, weights_arr[indices[i]]);
 	}
 	if(max_weight < cur_weight){
 		max_weight = cur_weight;
@@ -1464,7 +1474,10 @@ void cluster_file(const char* offsets_fname, const char* clust_fname,
 			}
 		}
 		l_uint next_vert = array_queue_pop(GLOBAL_queue);
-		update_node_cluster(next_vert, inflation, offsetsfile, clusterfile, weightsfile, neighborfile, GLOBAL_queue);
+		// will either be negative (because just removed from queue) or zero (because seen max_iteration times)
+		aq_int num_seen = -1*GLOBAL_queue->seen[next_vert];
+		if(!num_seen) num_seen = max_iterations;
+		update_node_cluster(next_vert, inflation, num_seen, offsetsfile, clusterfile, weightsfile, neighborfile, GLOBAL_queue);
 	}
 	if(v){
 		if(max_iterations > 0)
@@ -1826,7 +1839,7 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, // files
 	// required parameters
 	const char* seps = CHAR(STRING_ELT(SEPS, 0));
 	const int num_edgefiles = INTEGER(NUM_EFILES)[0];
-	const int num_iter = INTEGER(ITER)[0];
+	aq_int num_iter = INTEGER(ITER)[0];
 	const int verbose = LOGICAL(VERBOSE)[0];
 	l_uint num_v = (l_uint)(REAL(CTR)[0]);
 
@@ -1864,9 +1877,16 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, // files
 	FILE *tempcounts = safe_fopen(temptabfile, "wb");
 	if(!tempcounts) error("could not open file %s\n", temptabfile);
 
-	reindex_trie_and_write_counts(GLOBAL_trie, tempcounts);
+	l_uint max_degree = reindex_trie_and_write_counts(GLOBAL_trie, tempcounts, 0);
 	fclose_tracked(1);
 	if(verbose) Rprintf("\tFound %" lu_fprint " unique vertices!\n", num_v);
+	if(!num_iter){
+		max_degree = (l_uint)(sqrt((double)max_degree)) + 1 + add_self_loops;
+		size_t num_bits = sizeof(aq_int) * 8 - 1; // signed, so we have one less bit to work with
+		num_iter = ((aq_int)(1)) << num_bits;
+		num_iter = num_iter > max_degree ? max_degree : num_iter;
+		if(verbose) Rprintf("\tAutomatically setting iterations to %d\n", num_iter);
+	}
 
  	// next, create an indexed table file of where data for each vertex will be located
  	if(verbose) Rprintf("Reformatting vertex degree file...\n");
