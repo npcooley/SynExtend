@@ -55,7 +55,7 @@ Logical indicating whether or not to display a progress bar and print the time d
 Logical indicating whether or not to provide a plot of features collected by the function. Currently not implemented.
 }
   \item{Processors}{
-An integer value indicating how many processors to supply to \code{\link{AlignPairs}}.
+An integer value indicating how many processors to supply to \code{\link{AlignPairs}}. Supplying \code{NULL} will cause detection and use of all available cores.
 }
   \item{Storage}{
 A soft memory limit for how much sequence data from the database to retain in memory while running. In Gb.
