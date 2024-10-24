@@ -43,7 +43,7 @@ is the mean score of all gene pairings across the groups.
 Here \eqn{X=Y=\{0,1\}}, \eqn{x} is the direction of the gene with lower index, \eqn{y} is the direction of the gene with higher index, and \eqn{P_{(T)}(t)} is the probability of \eqn{T=t}. Note that this is a weighted MI as introduced by Beckley and Wright (2021). The mutual information is augmented by the addition of a single pseudocount to each value, and normalized by the joint entropy of \eqn{X,Y}. P-values are calculated using Fisher's Exact Test on the contingency table.
 }
 
-\value{
+\format{
   None.
 }
 

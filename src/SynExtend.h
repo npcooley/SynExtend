@@ -62,11 +62,12 @@ void free_dendrapply_list(void);
 SEXP do_dendrapply(SEXP tree, SEXP fn, SEXP env, SEXP order);
 
 /**** OnDiskLP.c ****/
-SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, SEXP TABNAME,
-                    SEXP TEMPTABNAME, SEXP QFILE, SEXP OUTDIR, SEXP OUTFILE,
+void cleanup_ondisklp_global_values(void);
+SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES,
+                    SEXP OUTDIR, SEXP OUTFILE,
                     SEXP SEPS, SEXP CTR, SEXP ITER, SEXP VERBOSE,
                     SEXP IS_UNDIRECTED, SEXP ADD_SELF_LOOPS, SEXP IGNORE_WEIGHTS, SEXP NORMALIZE_WEIGHTS,
-                    SEXP CONSENSUS_WEIGHTS, SEXP INFLATION_POW, SEXP SHUFFLE_QUEUES);
+                    SEXP CONSENSUS_WEIGHTS, SEXP INFLATION_POW);
 
 /**** RandomForest.c ****/
 SEXP R_learn_tree(SEXP DATA, SEXP NROWS, SEXP NCOLS, SEXP RESPONSE,

@@ -8,7 +8,7 @@ Example EvoWeaver Input Data from \emph{Streptomyces} Species
 Data from \emph{Streptomyces} species to test \code{\link{EvoWeaver}} functionality.
 }
 \usage{data("ExampleStreptomycesData")}
-\value{
+\format{
   The data contain two elements, \code{Genes} and \code{Tree}. \code{Genes} is
   a list of presence/absence vectors in the input required for \code{\link{EvoWeaver}}.
   \code{Tree} is a species tree used for additional input.

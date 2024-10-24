@@ -1,15 +1,32 @@
 #include "SEutils.h"
 
 void *safe_malloc(size_t size){
+  if(!size) return NULL;
   void *data = malloc(size);
   if(!data) error("Could not allocate %zu bytes (do you have enough RAM?)", size);
   return data;
 }
 
 void *safe_calloc(size_t nitems, size_t size){
+  if(!size) return NULL;
   void *data = calloc(nitems, size);
   if(!data) error("Could not allocate %zu bytes (do you have enough RAM?)", size);
   return data;
+}
+
+void *safe_realloc(void *ptr, size_t new_size){
+  if(!new_size){
+    free(ptr);
+    return NULL;
+  }
+  void *tmp = ptr;
+  ptr = realloc(ptr, new_size);
+  if(!ptr){
+    error("Could not re-allocate %zu bytes (do you have enough RAM?)", new_size);
+    if(tmp) free(tmp);
+  }
+
+  return ptr;
 }
 
 int *sample(int n){

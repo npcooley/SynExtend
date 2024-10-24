@@ -56,7 +56,7 @@ static const R_CallMethodDef callMethods[] = { // method call, pointer, num args
   CALLDEF(do_dendrapply, 4),
   CALLDEF(se_cophenetic, 5),
   CALLDEF(MIForSequenceSets, 7),
-  CALLDEF(R_LPOOM_cluster, 18),
+  CALLDEF(R_LPOOM_cluster, 14),
   CALLDEF(R_learn_tree, 9),
   CALLDEF(R_get_treeptr, 4),
   CALLDEF(R_rfpredict, 4),
@@ -77,6 +77,7 @@ static const R_CMethodDef cMethods[] = {
   C_DEF(genCostMatrix, 7),
   C_DEF(free_dendrapply_list, 0),
   C_DEF(R_combineDistObj, 6),
+  C_DEF(cleanup_ondisklp_global_values, 0),
   {NULL, NULL, 0}
 };
 

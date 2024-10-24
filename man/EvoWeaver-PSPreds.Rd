@@ -61,7 +61,7 @@ value of 4, but this can be specified further if necessary using the \code{JRFk}
 distance, but these have a negligible impact on performance so use of the default parameter is encouraged for simplicity. Multiple metrics can be specified.
 }
 
-\value{
+\format{
   None.
 }
 

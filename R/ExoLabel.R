@@ -3,14 +3,13 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
                           add_self_loops=FALSE,
                           ignore_weights=FALSE,
                           normalize_weights=FALSE,
-                          shuffle_queues=FALSE,
                           iterations=0L, inflation=1.05,
                           return_table=FALSE,
                           consensus_cluster=FALSE,
                           verbose=interactive(),
                           sep='\t',
-                          tempfiledir=tempdir(),
-                          cleanup_files=TRUE){
+                          tempfiledir=tempdir()){
+  on.exit(.C("cleanup_ondisklp_global_values"))
   if(!is.numeric(iterations)){
     stop("'iterations' must be an integer or numeric.")
   } else {
@@ -21,11 +20,12 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
   } else {
     inflation <- as.numeric(inflation)
   }
-  if(is.na(iterations) || is.null(iterations)){
-    warning("Invalid value of 'iterations', defaulting to 0.")
-    iterations <- 0L
+  if(iterations > 2^15){
+    warning("'iterations' currently only supports signed 16-bit numbers, defaulting to max possible value of 32767.")
+    iterations <- 32767L
   }
-  if(is.infinite(iterations) || iterations < 0){
+  if(is.na(iterations) || is.null(iterations) || is.infinite(iterations) || iterations < 0){
+    warning("Invalid value of 'iterations', will determine automatically from node degree.")
     iterations <- 0L
   }
   if(is.infinite(inflation) || is.na(inflation) || inflation < 0){
@@ -53,9 +53,6 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
   }
   if(ignore_weights && normalize_weights){
     warning("Cannot both ignore weights and normalize them")
-  }
-  if(!is.logical(shuffle_queues) || is.na(shuffle_queues) || is.null(shuffle_queues)){
-    stop("invalid value for 'shuffle_queues' (should be TRUE or FALSE)")
   }
   # verify that the first few lines of each file are correct
   if(!all(file.exists(edgelistfiles))) stop("edgelist file does not exist")
@@ -91,40 +88,26 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
   } else {
     dir.create(tempfiledir)
   }
-  counter_cluster_binary <- tempfile(tmpdir=tempfiledir)
-  csr_table_binary <- tempfile(tmpdir=tempfiledir)
-  qfiles <- c(tempfile(tmpdir=tempfiledir),
-              tempfile(tmpdir=tempfiledir),
-              tempfile(tmpdir=tempfiledir))
   mode <- match.arg(mode)
   is_undirected <- mode == "undirected"
   outfile <- file.path(normalizePath(dirname(outfile), mustWork=TRUE), basename(outfile))
 
-  if(verbose){
-    cat("Temporary files stored at ", tempfiledir, "\n")
-    cat("\tCSR: ", basename(csr_table_binary), "\n")
-    cat("\tClusters: ", basename(counter_cluster_binary), "\n")
-    cat("\tQueue 1: ", basename(qfiles[1]), "\n")
-    cat("\tQueue 2: ", basename(qfiles[2]), "\n")
-    cat("\tQueue counter: ", basename(qfiles[3]), "\n")
-  }
+  if(verbose) cat("Temporary files stored at ", tempfiledir, "\n")
 
   seps <- paste(sep, "\n", sep='')
-  ctr <- 1
+  ctr <- 0
   # R_hashedgelist(tsv, csr, clusters, queues, hashdir, seps, 1, iter, verbose)
-  .Call("R_LPOOM_cluster", edgelistfiles, length(edgelistfiles), csr_table_binary,
-        counter_cluster_binary, qfiles, tempfiledir, outfile, seps, ctr, iterations,
+  .Call("R_LPOOM_cluster", edgelistfiles, length(edgelistfiles),
+        tempfiledir, outfile, seps, ctr, iterations,
         verbose, is_undirected, add_self_loops, ignore_weights, normalize_weights,
-        consensus_cluster, inflation, shuffle_queues)
+        consensus_cluster, inflation)
 
   # R_write_output_clusters(clusters, hashes, length(hashes), out_tsvpath, seps)
   #.Call("R_LP_write_output", counter_cluster_binary, hashdir,
   #      outfile, seps, verbose)
-  if(cleanup_files){
-    for(f in list.files(tempfiledir, full.names=TRUE))
-      if(file.exists(f)) file.remove(f)
-    file.remove(tempfiledir)
-  }
+  for(f in list.files(tempfiledir, full.names=TRUE))
+    if(file.exists(f)) file.remove(f)
+  file.remove(tempfiledir)
   if(return_table){
     tab <- read.table(outfile, sep=sep)
     colnames(tab) <- c("Vertex", "Cluster")
@@ -140,7 +123,7 @@ EstimateExoLabel <- function(num_v, avg_degree=2,
   if(!missing(avg_degree) && !missing(num_edges)){
     warning("Only one of 'avg_degree' and 'num_edges' are needed, ignoring num_edges")
   } else if (missing(avg_degree)){
-    avg_degree = num_edges / num_v
+    avg_degree <- num_edges / num_v
   }
   lv <- num_v*node_name_length
   # assuming file is v1 v2 %.3f, which is 2*node_name_len + 3 + 5

@@ -17,7 +17,7 @@ predictions..
 to make formatting and printing of results slightly nicer. This currently
 only implements a \code{plot} function, but future functionality is in the works.
 }
-\value{
+\format{
 An object of class \code{"EvoWeb"}, which inherits from \code{"simMat"}.
 }
 \author{

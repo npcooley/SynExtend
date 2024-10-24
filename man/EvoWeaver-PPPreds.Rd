@@ -80,7 +80,7 @@ a species tree as input. If the \code{EvoWeaver} object is initialized with \cod
 \code{GLDistance}, then uses a Pearson's correlation coefficient weighted by p-value to infer similarity.
 }
 
-\value{
+\format{
   None.
 }
 

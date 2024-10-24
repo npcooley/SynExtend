@@ -8,19 +8,19 @@ ExoLabel: Out of Memory Fast Label Propagation
 Runs Fast Label Propagation using disk space for constant memory complexity.
 }
 \usage{
-ExoLabel(edgelistfiles, outfile=tempfile(),
+ExoLabel(edgelistfiles,
+              outfile=tempfile(),
               mode=c("undirected", "directed"),
               add_self_loops=FALSE,
               ignore_weights=FALSE,
               normalize_weights=FALSE,
-              shuffle_queues=FALSE,
-              iterations=0L, inflation=1.05,
+              iterations=0L,
+              inflation=1.05,
               return_table=FALSE,
               consensus_cluster=FALSE,
               verbose=interactive(),
               sep='\t',
-              tempfiledir=tempdir(),
-              cleanup_files=TRUE)
+              tempfiledir=tempdir())
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -37,7 +37,7 @@ String specifying whether edges should be interpreted as undirected (default) or
 }
 
 \item{add_self_loops}{
-Should self loops be added to the network? If \code{TRUE}, adds self loops of weight 1.0 to all vertices. If set to numeric value \code{w}, adds self loops of weight \code{w} to all nodes. Note that this takes place prior to edge weight normalization (if requested).
+Should self loops be added to the network? If \code{TRUE}, adds self loops of weight 1.0 to all vertices. If set to numeric value \code{w}, adds self loops of weight \code{w} to all nodes.
 }
 
 \item{ignore_weights}{
@@ -48,16 +48,12 @@ Should weights be ignored? If \code{TRUE}, all edges will be treated as an edge 
 Should weights be normalized? If \code{TRUE}, each vertex's edge weights are normalized such that the sum of outgoing edge weights is 1. This normalization is done after adding self loops.
 }
 
-\item{shuffle_queues}{
-Should queues be shuffled before processing? ExoLabel builds a queue of next nodes to visit during each iteration. If \code{TRUE}, ExoLabel will shuffle the order of nodes to visit during each iteration. This adds additional processing time with negligible effect on results.
-}
-
 \item{iterations}{
-Number of iterations to run fast label propagation algorithm for. Set to a value of 0 or less for infinite iterations.
+Maximum number of times to process each node. If set to zero or \code{NULL}, automatically uses the square root of the max node degree. See "Algorithm Convergence" for more information.
 }
 
 \item{inflation}{
-Inflation parameter for edges. Every other iteration, all edges are raised to the power of \code{inflation} and then renormalized. Higher values speed up algorithm convergence but produce smaller clusters. Defaults to 1.05; set to 1.0 to disable inflation.
+Inflation parameter for edges. See "Algorithm Convergence" below for a description of this parameter. Higher values speed up algorithm convergence but produce smaller clusters. Defaults to 1.05; set to 1.0 to disable inflation.
 }
 
 \item{return_table}{
@@ -65,7 +61,7 @@ Should result of clustering be returned as a file, or a \code{data.frame} object
 }
 
 \item{consensus_cluster}{
-Should consensus clustering be used? If \code{TRUE}, runs the clustering algorithm nine times and forms a consensus clustering based on the agreement of each run. Can be set to a double to control the number of iterations, see Details for more information.
+Should consensus clustering be used? If \code{TRUE}, runs the clustering algorithm multiple times and forms a consensus clustering based on the agreement of each run. Can be set to a vector of doubles to control the number of iterations. See "Consensus Clustering" below for more information.
 }
 
 \item{verbose}{
@@ -77,9 +73,6 @@ Character that separates entries on a line in each file in \code{edgelistfiles}.
 }
 \item{tempfiledir}{
 Character vector corresponding to the location where temporary files used during execution should be stored. Defaults to R's \code{\link{tempdir}}.
-}
-\item{cleanup_files}{
-Should intermediary files be deleted when the process completes? Note that \code{outfile} will only be deleted if \code{return_table=TRUE} AND \code{cleanup_files=TRUE}.
 }
 }
 \details{
@@ -96,9 +89,24 @@ If \code{ignore_weight=TRUE}, the file can be formatted as:
 \code{VERTEX1<sep>VERTEX2<linesep>}
 
 Note that the \code{v1 v2 w} format is still accepted for \code{ignore_weight=FALSE}, but the specified weights will be ignored.
-
-Consensus clustering can be enabled by setting \code{consensus_cluster=TRUE}. Consensus clustering runs this algorithm on the graph multiple times, transforming weight values according to a sigmoid function. By default, this runs nine times for sigmoids with scale 0.5 and shape \code{c(0,0.2,0.4,0.6,0.8,1.0,1.33,1.67,2.0)}, collapsing weights below 0.1 to zero. The resulting clusters form a network such that the edge weight between any two nodes connected in the initial graph is the proportion of clusters they shared over clustering runs. This network is used for a final label propagation run, which identifies the consensus clusters. Users can specify a numeric vector as input to \code{consensus_cluster}, which will override the default shape parameters and number of iterations.
 }
+
+\section{Algorithm Convergence}{
+One of the main issues of Label Propagation algorithms is that they can fail to converge. Consider an unweighted directed graph with four nodes connected in a loop. That is, \code{A->B, B->C, C->D, D->A}. If \code{A,C} are in cluster 1 and \code{B,D} are in cluster 2, this algorithm could keep processing all the nodes in a loop and never converge. To solve this issue, we introduce two measures for convergence: \code{inflation} and \code{iterations}.
+
+\code{iterations} is the simpler parameter to understand. If \code{iterations=x}, then we only allow the algorithm to process each node \code{x} times. Once a given node has been seen \code{x} times, it is no longer updated.
+
+\code{inflation} gradually increases the influence of stronger weighted edges as we see a node more. In other words, the more often we see a node, the more bias we add towards its strongest weighted edges. For each node, we use the following weighting:
+
+\eqn{w' = w^{1+log_2(n-1)}}
+
+Here \eqn{w} is the original edge weight, \eqn{w'} is the new edge weight, and \eqn{n} is the number of times we've already processed the node. After this transformation, the edge weights are renormalized, meaning that large weights tend to get larger, and small weights tend to get smaller. Logarithms prevent the exponents from growing too large, and base 2 is chosen for computational efficiency.
+}
+
+\section{Consensus Clustering}{
+Consensus clustering can be enabled by setting \code{consensus_cluster=TRUE}. Consensus clustering runs ExoLabel on the input graph multiple times, transforming weight values according to a sigmoid function. By default, this runs nine times for sigmoids with scale 0.5 and shape \code{c(0,0.2,0.4,0.6,0.8,1.0,1.33,1.67,2.0)}, collapsing weights below 0.1 to zero. The resulting clusters form a network such that the edge weight between any two nodes connected in the initial graph is the proportion of clusters they shared over clustering runs. This network is used for a final label propagation run, which identifies the consensus clusters. Users can specify a numeric vector as input to \code{consensus_cluster}, which will override the default shape parameters and number of iterations.
+}
+
 \value{
 If \code{return_table=TRUE}, returns a \code{\link{data.frame}} object with two columns. The first column contains the name of each vertex, and the second column contains the cluster it was assigned to.
 
@@ -122,20 +130,15 @@ Third, this algorithm uses disk space to store large objects. As such, please en
 \section{Memory Consumption}{
   Let \eqn{v} be the number of unique nodes, \eqn{d} the average outdegree of nodes, and \eqn{l} the average length of node labels.
 
-  Specific calculations for memory/disk consumption are detailed below. In summary, the absolute worst case memory consumption is roughly \eqn{(24l+16)v} bytes, and the disk consumption during computation is \eqn{(41+12d)v} bytes. The final table returned consumes \eqn{(2+l+\log_{10}{v})v} bytes.
+  Specific calculations for memory/disk consumption are detailed below. In summary, the absolute worst case memory consumption is roughly \eqn{(24l+34)v} bytes, and the disk consumption during computation is \eqn{(8+12d)v} bytes. The final table returned consumes \eqn{(2+l+\log_{10}{v})v} bytes.
 
   ExoLabel builds a trie to keep track of vertex names. Each internal node of the trie consumes 24 bytes, and each leaf node consumes 16 bytes. The lowest possible RAM consumption of the trie (if every label is length \eqn{l} and shares the same prefix of length \eqn{l-1}) is roughly \eqn{40v} bytes, and the maximum RAM consumption (if no two node labels have any prefix in common) is \eqn{(24l + 16)v} bytes. We can generalize this to estimate the total memory consumption as roughly \eqn{(24(l-p)+16)v}, where \eqn{p} is the average length of common prefix between any two node labels.
 
-  ExoLabel also uses a number of internal caches to speed up read/writes from files. These caches take less than 100MB of RAM in total.
+  ExoLabel also uses a number of internal caches to speed up read/writes from files. These caches take less than 100MB of RAM in total. It also uses an internal queue for processing nodes, which consumes roughly \eqn{10v} bytes. It also uses an internal index of size \eqn{8v} bytes.
 
-  As for disk space, ExoLabel produces five total files during its runtime: a cluster file, a CSR-compressed network, two queues, a bitmap, and two temp files for sorting. The two queues together contain no more than a total of \eqn{v} entries of 8 bytes each, and the bitmap contains \eqn{v} entries of 1 byte each. The cluster file also contains \eqn{v} entries of 8 bytes each, and the two sorting files are at most each the same size as the cluster file. The CSR file contains a header of \eqn{v+1} entries of 8 bytes, and then one 12 byte entry per outgoing edge. The number of edges to record is \eqn{vd}. Thus, the total disk consumption in bytes is \eqn{8v + v + 3*8v + 8(v+1) + 12vd \approx (41+12d)v}.
+  As for disk space, ExoLabel transforms the graph into a CSR-compressed network, which is split across three files: a header, a neighbors list, and a weights list. The header file contains \eqn{v+1} entries of 8 bytes, and the other two files consume a total of 12 bytes  per outgoing edge. The number of edges to record is \eqn{vd}. Thus, the total disk consumption in bytes is \eqn{8(v+1) + 12vd \approx (8+12d)v}.
 
   The final table returned is a tab-separated table containing vertex names and cluster numbers in human-readable format. Each line consumes at most \eqn{l + 2 + \log_{10}{v}} bytes. In the worst case, the number of clusters is equal to the number of vertices, which have \eqn{\log_{10}{v}} digits. The average number of digits is close to the number of digits of the largest number due to how number of digits scale with numbers. The extra two bytes are for the tab and newline characters. Thus, the total size of the file is at most \eqn{(2+l+\log_{10}{v})v} bytes.
-
-  Average node outdegree can be difficult to predict. Many biological networks are approximately scale-free, meaning their degree distribution roughly follows a power law with exponent in the range 2-3. The average of a general power law distribution is not always well-defined, but for the purposes of the below example I'll conservatively assume a minimum value of 2 and shape parameter of 2, leading to an average node outdegree of 4 if the degree is distributed according to a Pareto distribution.
-
-  What does this look like in practice? For a set of one million unique nodes and average label length 10, the RAM consumption is \code{140-356MB} (note an extra \code{100MB} is added due to cache sizes). Sequence similarity networks often have  The intermediate files consume a total of \code{89MB}, and the final file consumes roughly \code{19MB}. At one billion unique nodes and the same other parameters, the RAM consumption is \code{40-256GB}, the intermediate files consume \code{89GB}, and the final file is roughly \code{19GB} (\code{108GB} total). This sounds like a lot, but consider that an input file with two decimal places for each edge weight must necessarily be at least \eqn{(2l+3+4)vd} bytes (each of the \eqn{vd} edges contains two vertex labels, two tabs, newline, and 4 characters for weight). Thus the input file is \code{108GB}, which is equivalent to the total disk space consumed by ExoLabel.
-
 }
 
 \examples{
