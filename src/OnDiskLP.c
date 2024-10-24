@@ -989,11 +989,14 @@ void reformat_counts(const char* curcounts, const char* mastertable, l_uint n_ve
 	FILE *tmptab = safe_fopen(curcounts, "rb");
 	FILE *mtab = safe_fopen(mastertable, "wb+");
 	int self_loop = add_self_loops ? 1 : 0;
-
 	for(l_uint i=0; i<n_vert; i++){
+
 		safe_fwrite(&cumul_total, l_size, 1, mtab);
 		safe_fread(&curcount, l_size, 1, tmptab);
 		cumul_total += curcount + self_loop; // add an extra count for each node if we add self loops
+
+		// also write this information to the leaves to optimize writing edges later
+		GLOBAL_all_leaves[i]->count = cumul_total; // end of block for this vertex
 	}
 
 	// ending position of file
@@ -1105,12 +1108,14 @@ void csr_compress_edgelist_trie_batch(const char* edgefile, prefix *trie, const 
 	 *  fneighbors: file where edge end nodes will be written
 	 *  curcountfile: counts file, becomes clustering file later
 	 */
-	// TODO: is it faster to just read in a huge number of bytes and then process?
-	//				rather than calling getc() a bunch of times?
+	// TODO: store counts/offsets in the trie structure directly so we don't need to go query offsets
+	//				use index to store offset, count to store offset from there
+	//				can always reset later
 	l_uint *restrict node1, *restrict node2, *restrict locations;
 	float *weights;
 	int cachectr = 0;
 	int *indexes;
+	leaf *node_leaf;
 
 	const int self_loop_inc = has_self_loops ? 1 : 0;
 	l_uint inds[2], loc, offset;
@@ -1216,6 +1221,16 @@ void csr_compress_edgelist_trie_batch(const char* edgefile, prefix *trie, const 
 			prev_ind = 0;
 			offset = 0;
 
+			/*
+			 * UPDATE: this data is now stored in the leaves themselves
+			 * 					counts-1 is the last free location for this block
+			 */
+			for(int i=0; i<cachectr; i++){
+				cur_ind = node1[indexes[i]];
+				locations[i] = --GLOBAL_all_leaves[cur_ind]->count;
+			}
+
+			/*
 			for(int i=0; i<=cachectr; i++){
 				if(i < cachectr) cur_ind = node1[indexes[i]];
 				if(i==0 || i==cachectr || prev_ind != cur_ind){
@@ -1239,11 +1254,14 @@ void csr_compress_edgelist_trie_batch(const char* edgefile, prefix *trie, const 
 
 					fseek(offsetstable, cur_ind*L_SIZE, SEEK_SET);
 					safe_fread(&loc, L_SIZE, 1, offsetstable);
+
+					// decrement first because offsets are 1 larger than needed
 					prev_ind = cur_ind;
 				}
 				offset--; // decrement first because offsets are 1 larger than needed
 				locations[i] = loc+offset+self_loop_inc;
 			}
+			*/
 
 			// now we have all the offsets to write to in [locations]
 			offset = 0;
@@ -1855,6 +1873,7 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, // files
  																seps[0], seps[1], num_v, verbose,
  																is_undirected, add_self_loops, ignore_weights);
  	}
+ 	reset_trie_clusters(num_v);
  	time2 = clock();
 	if(verbose) report_time(time1, time2, "\t");
 
