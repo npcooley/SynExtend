@@ -87,7 +87,7 @@
 
 #define MAX_NODE_NAME_SIZE 254 // max size of a vertex name (char array will have 2 extra spaces for terminator and flag)
 #define NODE_NAME_CACHE_SIZE 40960 // holds pointers char* of size MAX_NODE_NAME_SIZE, 4096 is 1MB
-#define FILE_READ_CACHE_SIZE 8192*4//8192 // used for mergesorting files
+#define FILE_READ_CACHE_SIZE 8192*8 // used for mergesorting files
 // number of entries, so total consumption often multiplied by 8
 #define CLUSTER_MIN_WEIGHT 0.01
 
@@ -110,7 +110,7 @@ const char CONSENSUS_CLUSTER[] = "tmpclust";
 const int use_limited_nodes = 0;
 const l_uint MAX_EDGES_EXACT = 50000;
 const int PRINT_COUNTER_MOD = 811*13;
-const int PROGRESS_COUNTER_MOD = 3083;
+const int PROGRESS_COUNTER_MOD = 6043;
 
 // fast, non-threadsafe getc() for better performance if opening for reading only
 #ifdef WIN32
@@ -814,8 +814,9 @@ void report_time(clock_t start, clock_t end, const char* prefix){
 	Rprintf("%sTime difference of ", prefix);
 	if(days) Rprintf("%d days, ", days);
 	if(hours) Rprintf("%d hrs, ", hours);
-	if(mins) Rprintf("%dmins, ", mins);
-	Rprintf("%0.2f secs\n", secs);
+	if(mins) Rprintf("%d mins, ", mins);
+	if(mins) Rprintf("%d secs\n", (int)secs);
+	else Rprintf("%0.2f secs\n", secs);
 	return;
 }
 
@@ -1092,7 +1093,7 @@ void normalize_csr_edgecounts_batch(const char* ftable, const char* fweights, l_
 	return;
 }
 
-void csr_compress_edgelist_trie_batch(const char* edgefile, prefix *trie, const char* curcountfile,
+void csr_compress_edgelist_trie_batch(const char* edgefile, prefix *trie,
 																	const char* ftable, const char* fweight, const char* fneighbor,
 																	const char sep, const char linesep, l_uint num_v, int v,
 																	const int is_undirected, int has_self_loops, const int ignore_weights){
@@ -1108,21 +1109,16 @@ void csr_compress_edgelist_trie_batch(const char* edgefile, prefix *trie, const 
 	 *  fneighbors: file where edge end nodes will be written
 	 *  curcountfile: counts file, becomes clustering file later
 	 */
-	// TODO: store counts/offsets in the trie structure directly so we don't need to go query offsets
-	//				use index to store offset, count to store offset from there
-	//				can always reset later
 	l_uint *restrict node1, *restrict node2, *restrict locations;
 	float *weights;
 	int cachectr = 0;
 	int *indexes;
-	leaf *node_leaf;
 
-	const int self_loop_inc = has_self_loops ? 1 : 0;
-	l_uint inds[2], loc, offset;
+	l_uint inds[2];
 	float weight;
 
 	// additional variables for writing to cache
-	l_uint prev_ind, cur_ind;
+	l_uint cur_ind;
 
 	// allocate space for all the stuff
 	int stringctr=0;
@@ -1135,7 +1131,7 @@ void csr_compress_edgelist_trie_batch(const char* edgefile, prefix *trie, const 
 	indexes = safe_malloc(FILE_READ_CACHE_SIZE * sizeof(int));
 	GLOBAL_ptr = node1;
 
-	FILE *offsetstable, *countstable, *edgelist, *weightstable, *neighbortable;
+	FILE *offsetstable, *edgelist, *weightstable, *neighbortable;
 	offsetstable = safe_fopen(ftable, "rb+");
 	if(!offsetstable){
 		fclose_tracked(1); // handling for NULL is done in this function
@@ -1143,8 +1139,6 @@ void csr_compress_edgelist_trie_batch(const char* edgefile, prefix *trie, const 
 		fclose_tracked(1);
 		offsetstable = safe_fopen(ftable, "rb+");
 	}
-
-	countstable = safe_fopen(curcountfile, "rb+");
 	edgelist = safe_fopen(edgefile, "rb");
 
 	// initialize neighbors and weights table
@@ -1218,9 +1212,6 @@ void csr_compress_edgelist_trie_batch(const char* edgefile, prefix *trie, const 
 			qsort(indexes, cachectr, sizeof(int), index_compar);
 
 			// get the offset and start location for where we write to in the counts file
-			prev_ind = 0;
-			offset = 0;
-
 			/*
 			 * UPDATE: this data is now stored in the leaves themselves
 			 * 					counts-1 is the last free location for this block
@@ -1230,42 +1221,7 @@ void csr_compress_edgelist_trie_batch(const char* edgefile, prefix *trie, const 
 				locations[i] = --GLOBAL_all_leaves[cur_ind]->count;
 			}
 
-			/*
-			for(int i=0; i<=cachectr; i++){
-				if(i < cachectr) cur_ind = node1[indexes[i]];
-				if(i==0 || i==cachectr || prev_ind != cur_ind){
-					// have to be sure to write the final entry as well
-					// (this happens when i==cachectr)
-
-					// get new offset and start
-					if(i){
-						// if not on the first entry, update counts
-						// note counts should already be at the right spot
-						safe_fwrite(&offset, L_SIZE, 1, countstable);
-						if(i==cachectr) break; // exit if writing final entry
-						fseek(countstable, -1*L_SIZE, SEEK_CUR);
-					}
-
-					// at this point the entry should be at position prev_ind (or 0)
-					// this should always be positive since we already sorted the array
-					fseek(countstable, cur_ind*L_SIZE, SEEK_SET);
-					safe_fread(&offset, L_SIZE, 1, countstable);
-					fseek(countstable, cur_ind*L_SIZE, SEEK_SET);
-
-					fseek(offsetstable, cur_ind*L_SIZE, SEEK_SET);
-					safe_fread(&loc, L_SIZE, 1, offsetstable);
-
-					// decrement first because offsets are 1 larger than needed
-					prev_ind = cur_ind;
-				}
-				offset--; // decrement first because offsets are 1 larger than needed
-				locations[i] = loc+offset+self_loop_inc;
-			}
-			*/
-
 			// now we have all the offsets to write to in [locations]
-			offset = 0;
-			loc = 0;
 			for(int i=0; i < cachectr; i++){
 				fseek(neighbortable, locations[i]*L_SIZE, SEEK_SET);
 				fseek(weightstable, locations[i]*W_SIZE, SEEK_SET);
@@ -1289,7 +1245,7 @@ void csr_compress_edgelist_trie_batch(const char* edgefile, prefix *trie, const 
 	free(weights);
 	free(indexes);
 	free(vname);
-	fclose_tracked(5);
+	fclose_tracked(4);
 	return;
 }
 
@@ -1869,7 +1825,7 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, // files
  	for(int i=0; i<num_edgefiles; i++){
  		edgefile = CHAR(STRING_ELT(FILENAME, i));
  		csr_compress_edgelist_trie_batch(edgefile, GLOBAL_trie,
- 																temptabfile, tabfile, weightsfile, neighborfile,
+ 																tabfile, weightsfile, neighborfile,
  																seps[0], seps[1], num_v, verbose,
  																is_undirected, add_self_loops, ignore_weights);
  	}
