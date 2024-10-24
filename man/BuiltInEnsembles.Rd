@@ -18,7 +18,7 @@ and aren't explicitly designed to be accessed by the user.
 See the examples for how to train your own ensemble model.
 }
 \usage{data("BuiltInEnsembles")}
-\value{
+\format{
   The data contain a named list of objects of class \code{\link[stats]{glm}}.
   This list currently has two entries: \code{"KEGG"} and \code{"CORUM"}
 }

@@ -432,9 +432,9 @@ AdjMatToDf <- function(preds, Verbose=TRUE, Subset=NULL, CombinePVal=TRUE){
 
   if(!CombinePVal){
     ## First two columns are the gene names
-    pos_comp <- (unlist(lapply(AdjDf, class)) == "complex")[-(1:2)]
-    AdjDf_names <- AdjDf[,1:2]
-    AdjDf_scores <- AdjDf_pvals <- AdjDf[,-(1:2)]
+    pos_comp <- (unlist(lapply(AdjDf, class)) == "complex")[-(c(1,2))]
+    AdjDf_names <- AdjDf[,c(1,2)]
+    AdjDf_scores <- AdjDf_pvals <- AdjDf[,-(c(1,2))]
     colnames(AdjDf_pvals) <- paste0(colnames(AdjDf_pvals), '.pval')
     colnames(AdjDf_scores) <- paste0(colnames(AdjDf_scores), '.score')
 

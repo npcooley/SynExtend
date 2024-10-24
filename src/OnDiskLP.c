@@ -1503,20 +1503,12 @@ void resolve_cluster_consensus(const char* clusters, const char* csrheader, cons
 
 		// tabulate clusters
 		memset(tmp_space, 0, L_SIZE*num_v);
-		for(l_uint j=0; j<num_v; j++){
-			if(read_clusts[j] == 0){
-				printf("0 cluster\n");
-			}
+		for(l_uint j=0; j<num_v; j++)
 			tmp_space[read_clusts[j]-1]++;
-		}
 
-		for(l_uint j=0; j<num_v; j++){
-			if(tmp_space[read_clusts[j]-1] == 0){
-				printf("0 count: %llu %llu %llu\n",j,read_clusts[j], tmp_space[read_clusts[j]-1]);
-			}
+		for(l_uint j=0; j<num_v; j++)
 			// number of elements in this cluster must be at least 1 if this node is in it
 			counts[j] += tmp_space[read_clusts[j]-1] - 1;
-		}
 	}
 
 	// convert to cumulative counts

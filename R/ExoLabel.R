@@ -123,7 +123,7 @@ EstimateExoLabel <- function(num_v, avg_degree=2,
   if(!missing(avg_degree) && !missing(num_edges)){
     warning("Only one of 'avg_degree' and 'num_edges' are needed, ignoring num_edges")
   } else if (missing(avg_degree)){
-    avg_degree = num_edges / num_v
+    avg_degree <- num_edges / num_v
   }
   lv <- num_v*node_name_length
   # assuming file is v1 v2 %.3f, which is 2*node_name_len + 3 + 5
