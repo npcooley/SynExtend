@@ -8,6 +8,7 @@ ExpandDiagonal <- function(SynExtendObject,
                            GapTolerance = 100L,
                            DropSingletons = FALSE,
                            UserConfidence = list("PID" = 0.3),
+                           Processors = 1,
                            Verbose = FALSE) {
   # start with timing
   if (Verbose) {
@@ -40,19 +41,36 @@ ExpandDiagonal <- function(SynExtendObject,
   # check that user criteria makes sense
   # check the dimensions of the object
 
+  # deal with Processors, this mimics Erik's error checking
+  if (!is.null(Processors) && !is.numeric(Processors)) {
+    stop("Processors must be a numeric.")
+  }
+  if (!is.null(Processors) && floor(Processors) != Processors) {
+    stop("Processors must be a whole number.")
+  }
+  if (!is.null(Processors) && Processors < 1) {
+    stop("Processors must be at least 1.")
+  }
+  if (is.null(Processors)) {
+    Processors <- DECIPHER:::.detectCores()
+  } else {
+    Processors <- as.integer(Processors)
+  }
+  
   AlignmentFun <- attr(x = SynExtendObject,
                        which = "AlignmentFunction")
   if (!(AlignmentFun %in% c("AlignPairs",
                             "AlignProfiles"))) {
     stop ("Unrecognized alignment function in the 'AlignmentFunction' attribute.")
   }
+  MAT1 <- get(data("HEC_MI1",
+                   package = "DECIPHER",
+                   envir = environment()))
+  MAT2 <- get(data("HEC_MI2",
+                   package = "DECIPHER",
+                   envir = environment()))
   if (AlignmentFun == "AlignProfiles") {
-    MAT1 <- get(data("HEC_MI1",
-                     package = "DECIPHER",
-                     envir = environment()))
-    MAT2 <- get(data("HEC_MI2",
-                     package = "DECIPHER",
-                     envir = environment()))
+    
     structureMatrix <- matrix(c(0.187, -0.8, -0.873,
                                 -0.8, 0.561, -0.979,
                                 -0.873, -0.979, 0.221),
@@ -95,6 +113,15 @@ ExpandDiagonal <- function(SynExtendObject,
   POIDs <- paste(SynExtendObject$p1,
                  SynExtendObject$p2,
                  sep = "_")
+  
+  if (is.null(attr(x = SynExtendObject,
+                   which = "Retain"))) {
+    NewClusterID <- -1L
+  } else {
+    NewClusterID <- max(as.integer(names(attr(x = SynExtendObject,
+                                              which = "Retain")))) + 1L
+  }
+  
   FeaturesMat <- do.call(rbind,
                          strsplit(x = POIDs,
                                   split = "_",
@@ -591,16 +618,16 @@ ExpandDiagonal <- function(SynExtendObject,
             # third ask if these sequences have already been aligned
             # CURRENTLY NOT IMPLEMENTED
             # third ask if both f1 and f2 are both coding
-            if (CurrentW1Seqs$CodingVal1[f1 - ci1lower + 1L] &
-                CurrentW1Seqs$CodingVal2[f1 - ci1lower + 1L] &
-                CurrentW2Seqs$CodingVal1[f2 - ci2lower + 1L] &
-                CurrentW2Seqs$CodingVal2[f2 - ci2lower + 1L]) {
+            if (CurrentW1Seqs$CodingVal1[f1] &
+                CurrentW1Seqs$CodingVal2[f1] &
+                CurrentW2Seqs$CodingVal1[f2] &
+                CurrentW2Seqs$CodingVal2[f2]) {
               # both are coding
               
-              ali <- AlignProfiles(pattern = CurrentW1Seqs$AA[Features01Match[f1 - ci1lower + 1L]],
-                                   subject = CurrentW2Seqs$AA[Features02Match[f2 - ci2lower + 1L]],
-                                   p.struct = CurrentW1Seqs$Struct[Features01Match[f1 - ci1lower + 1L]],
-                                   s.struct = CurrentW2Seqs$Struct[Features02Match[f2 - ci2lower + 1L]])
+              ali <- AlignProfiles(pattern = CurrentW1Seqs$AA[Features01Match[f1]],
+                                   subject = CurrentW2Seqs$AA[Features02Match[f2]],
+                                   p.struct = CurrentW1Seqs$Struct[Features01Match[f1]],
+                                   s.struct = CurrentW2Seqs$Struct[Features02Match[f2]])
               PID <- 1 - DistanceMatrix(myXStringSet = ali,
                                         type = "matrix",
                                         includeTerminalGaps = TRUE,
@@ -615,8 +642,8 @@ ExpandDiagonal <- function(SynExtendObject,
               CType <- "AA"
             } else {
               # at least one is not coding
-              ali <- AlignProfiles(pattern = CurrentW1Seqs$DNA[f1 - ci1lower + 1L],
-                                   subject = CurrentW2Seqs$DNA[f2 - ci2lower + 1L])
+              ali <- AlignProfiles(pattern = CurrentW1Seqs$DNA[f1],
+                                   subject = CurrentW2Seqs$DNA[f2])
               PID <- 1 - DistanceMatrix(myXStringSet = ali,
                                         type = "matrix",
                                         includeTerminalGaps = TRUE,
@@ -625,7 +652,7 @@ ExpandDiagonal <- function(SynExtendObject,
                                       substitutionMatrix = substitutionMatrix)
               CType <- "NT"
             } # end if else statement for coding / non
-            CurrentDist <- sqrt(sum((nuc1[f1 - ci1lower + 1L, ] - nuc2[f2 - ci2lower + 1L, ])^2)) / ((sum(nuc1[f1 - ci1lower + 1L, ]) + sum(nuc2[f2 - ci2lower + 1L, ])) / 2)
+            CurrentDist <- sqrt(sum((nuc1[f1, ] - nuc2[f2, ])^2)) / ((sum(nuc1[f1, ]) + sum(nuc2[f2, ])) / 2)
             # assign the dist 
             # update the count
             if (Criteria == "PID") {
@@ -642,8 +669,8 @@ ExpandDiagonal <- function(SynExtendObject,
               # assign integers to result vectors
               p1placeholder[Count] <- f1
               p2placeholder[Count] <- f2
-              p1FeatureLength[Count] <- CurrentW1Seqs$NTCount[f1 - ci1lower + 1L]
-              p2FeatureLength[Count] <- CurrentW2Seqs$NTCount[f2 - ci2lower + 1L]
+              p1FeatureLength[Count] <- CurrentW1Seqs$NTCount[f1]
+              p2FeatureLength[Count] <- CurrentW2Seqs$NTCount[f2]
               PIDVector[Count] <- PID
               SCOREVector[Count] <- SCORE
               AType[Count] <- CType
@@ -726,13 +753,7 @@ ExpandDiagonal <- function(SynExtendObject,
           SCOREVector <- SCOREVector[seq_len(L2)]
           AType <- AType[seq_len(L2)]
           NucDist <- NucDist[seq_len(L2)]
-          if (is.null(attr(x = SynExtendObject,
-                           which = "Retain"))) {
-            NewClusterID <- -1L
-          } else {
-            NewClusterID <- max(as.integer(names(attr(x = SynExtendObject,
-                                                      which = "Retain")))) + 1L
-          }
+          
           Res[[m1]][[m2]] <- data.frame("p1" = paste(rep(w1,
                                                          times = L2),
                                                      rep(IMat[[m2]][1L, 2L],
@@ -772,7 +793,214 @@ ExpandDiagonal <- function(SynExtendObject,
         }
         
       } else if (AlignmentFun == "AlignPairs") {
-        stop ("Expansion with AlignPairs() is not yet implemented.")
+        # split dr6 into coding and non-coding then align
+        if (Verbose) {
+          pBar <- txtProgressBar(style = 1)
+        }
+        dr6 <- unique(dr6[, c(1, 2)])
+        rownames(dr6) <- NULL
+        code_select <- CurrentW1Seqs$CodingVal1[dr6[, 1L]] &
+          CurrentW1Seqs$CodingVal2[dr6[, 1L]] &
+          CurrentW2Seqs$CodingVal1[dr6[, 2L]] &
+          CurrentW2Seqs$CodingVal2[dr6[, 2L]]
+        
+        # if (m2 == 2) {
+        #   return(dr6)
+        # }
+        
+        if (any(code_select)) {
+          aa_pairs <- data.frame("Pattern" = Features01Match[dr6$f1[code_select]],
+                                 "Subject" = Features02Match[dr6$f2[code_select]])
+          # return(list("a" = aa_pairs,
+          #             "b" = dr6,
+          #             "c" = CurrentW1Seqs,
+          #             "d" = CurrentW2Seqs))
+          aa_pairs$Position <- mapply(SIMPLIFY = FALSE,
+                                      FUN = function(y, z) {
+                                        cbind(matrix(0L,
+                                                     4),
+                                              matrix(data = c(y,y,z,z),
+                                                     4))
+                                      },
+                                      y = width(CurrentW1Seqs$AA[aa_pairs$Pattern]) + 1L,
+                                      z = width(CurrentW2Seqs$AA[aa_pairs$Subject]) + 1L)
+          aa_res <- AlignPairs(pattern = CurrentW1Seqs$AA,
+                               subject = CurrentW2Seqs$AA,
+                               pairs = aa_pairs,
+                               processors = Processors,
+                               verbose = FALSE)
+          
+          aa_pid <- aa_res$Matches / aa_res$AlignmentLength
+          aa_score <- aa_res$Score / aa_res$AlignmentLength
+          aa_dist <- mapply(USE.NAMES = FALSE,
+                            FUN = function(x, y) {
+                              sqrt(sum((nuc1[x, ] - nuc2[y, ])^2)) / ((sum(nuc1[x, ]) + sum(nuc2[y, ])) / 2)
+                            },
+                            x = dr6$f1[code_select],
+                            y = dr6$f2[code_select])
+          # build out a df
+          L2 <- nrow(aa_res)
+          aa_int <- data.frame("p1" = names(CurrentW1Seqs$AA[aa_pairs$Pattern]),
+                               "p2" = names(CurrentW2Seqs$AA[aa_pairs$Subject]),
+                               "Consensus" = rep(0,
+                                                 times = L2),
+                               "p1featurelength" = CurrentW1Seqs$NTCount[dr6$f1[code_select]],
+                               "p2featurelength" = CurrentW2Seqs$NTCount[dr6$f2[code_select]],
+                               "blocksize" = rep(1L,
+                                                 times = L2),
+                               "KDist" = aa_dist,
+                               "TotalMatch" = rep(0L,
+                                                  times = L2),
+                               "MaxMatch" = rep(0L,
+                                                times = L2),
+                               "UniqueMatches" = rep(0L,
+                                                     times = L2),
+                               "PID" = aa_pid,
+                               "Score" = aa_score,
+                               "Alignment" = rep("AA",
+                                                 times = L2),
+                               "Block_UID" = rep(-1L,
+                                                 times = L2),
+                               "ClusterID" = rep(NewClusterID,
+                                                 times = L2),
+                               stringsAsFactors = FALSE)
+        } else {
+          # build a df with no rows
+          aa_int <- data.frame("p1" = character(0L),
+                               "p2" = character(0L),
+                               "Consensus" = numeric(0L),
+                               "p1featurelength" = integer(0L),
+                               "p2featurelength" = integer(0L),
+                               "blocksize" = integer(0L),
+                               "KDist" = numeric(0L),
+                               "TotalMatch" = integer(0L),
+                               "MaxMatch" = integer(0L),
+                               "UniqueMatches" = integer(0L),
+                               "PID" = numeric(0L),
+                               "Score" = numeric(0L),
+                               "Alignment" = character(0L),
+                               "Block_UID" = integer(0L),
+                               "ClusterID" = integer(0L),
+                               stringsAsFactors = FALSE)
+        }
+        
+        if (Verbose) {
+          setTxtProgressBar(pb = pBar,
+                            value = 1 / 2)
+        }
+        
+        if (any(!code_select)) {
+          nt_pairs <- dr6[!code_select, ]
+          colnames(nt_pairs) <- c("Pattern",
+                                  "Subject")
+          rownames(nt_pairs) <- NULL
+          nt_pairs$Position <- mapply(SIMPLIFY = FALSE,
+                                      FUN = function(y, z) {
+                                        cbind(matrix(0L,
+                                                     4),
+                                              matrix(data = c(y,y,z,z),
+                                                     4))
+                                      },
+                                      y = width(CurrentW1Seqs$DNA[nt_pairs$Pattern]) + 1L,
+                                      z = width(CurrentW2Seqs$DNA[nt_pairs$Subject]) + 1L)
+          nt_res <- AlignPairs(pattern = CurrentW1Seqs$DNA,
+                               subject = CurrentW2Seqs$DNA,
+                               pairs = nt_pairs,
+                               processors = Processors,
+                               verbose = FALSE)
+          nt_pid <- nt_res$Matches / nt_res$AlignmentLength
+          nt_score <- nt_res$Score / nt_res$AlignmentLength
+          nt_dist <- mapply(USE.NAMES = FALSE,
+                            FUN = function(x, y) {
+                              sqrt(sum((nuc1[x, ] - nuc2[y, ])^2)) / ((sum(nuc1[x, ]) + sum(nuc2[y, ])) / 2)
+                            },
+                            x = nt_res$Pattern,
+                            y = nt_res$Subject)
+          L2 <- nrow(nt_res)
+          # build out a df
+          # return(list("p1" = names(CurrentW1Seqs$DNA[nt_pairs$Pattern]),
+          #             "p2" = names(CurrentW2Seqs$DNA[nt_pairs$Subject]),
+          #             "Consensus" = rep(0,
+          #                               times = L2),
+          #             "p1featurelength" = CurrentW1Seqs$NTCount[dr6$f1[!code_select]],
+          #             "p2featurelength" = CurrentW2Seqs$NTCount[dr6$f2[!code_select]],
+          #             "blocksize" = rep(1L,
+          #                               times = L2),
+          #             "KDist" = nt_dist,
+          #             "TotalMatch" = rep(0L,
+          #                                times = L2),
+          #             "MaxMatch" = rep(0L,
+          #                              times = L2),
+          #             "UniqueMatches" = rep(0L,
+          #                                   times = L2),
+          #             "PID" = nt_pid,
+          #             "Score" = nt_score,
+          #             "Alignment" = rep("AA",
+          #                               times = L2),
+          #             "Block_UID" = rep(-1L,
+          #                               times = L2),
+          #             "ClusterID" = rep(NewClusterID,
+          #                               times = L2)))
+          nt_int <- data.frame("p1" = names(CurrentW1Seqs$DNA[nt_pairs$Pattern]),
+                               "p2" = names(CurrentW2Seqs$DNA[nt_pairs$Subject]),
+                               "Consensus" = rep(0,
+                                                 times = L2),
+                               "p1featurelength" = CurrentW1Seqs$NTCount[dr6$f1[!code_select]],
+                               "p2featurelength" = CurrentW2Seqs$NTCount[dr6$f2[!code_select]],
+                               "blocksize" = rep(1L,
+                                                 times = L2),
+                               "KDist" = nt_dist,
+                               "TotalMatch" = rep(0L,
+                                                  times = L2),
+                               "MaxMatch" = rep(0L,
+                                                times = L2),
+                               "UniqueMatches" = rep(0L,
+                                                     times = L2),
+                               "PID" = nt_pid,
+                               "Score" = nt_score,
+                               "Alignment" = rep("AA",
+                                                 times = L2),
+                               "Block_UID" = rep(-1L,
+                                                 times = L2),
+                               "ClusterID" = rep(NewClusterID,
+                                                 times = L2),
+                               stringsAsFactors = FALSE)
+        } else {
+          # build out a df with no rows
+          nt_int <- data.frame("p1" = character(0L),
+                               "p2" = character(0L),
+                               "Consensus" = numeric(0L),
+                               "p1featurelength" = integer(0L),
+                               "p2featurelength" = integer(0L),
+                               "blocksize" = integer(0L),
+                               "KDist" = numeric(0L),
+                               "TotalMatch" = integer(0L),
+                               "MaxMatch" = integer(0L),
+                               "UniqueMatches" = integer(0L),
+                               "PID" = numeric(0L),
+                               "Score" = numeric(0L),
+                               "Alignment" = character(0L),
+                               "Block_UID" = integer(0L),
+                               "ClusterID" = integer(0L),
+                               stringsAsFactors = FALSE)
+        }
+        
+        if (Verbose) {
+          setTxtProgressBar(pb = pBar,
+                            value = 2 / 2)
+        }
+        
+        Res[[m1]][[m2]] <- rbind(aa_int,
+                                 nt_int)
+        Res[[m1]][[m2]] <- Res[[m1]][[m2]][Res[[m1]][[m2]][, Criteria] > Floor, ]
+        # return(list("aa" = aa_res,
+        #             "nt" = nt_res,
+        #             "in1" = aa_pairs,
+        #             "in2" = nt_pairs))
+        # stop ("Expansion with AlignPairs() is not yet implemented.")
+        if (Verbose) {
+          close(pBar)
+        }
       }
       
     } # end m2 loop

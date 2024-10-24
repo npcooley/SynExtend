@@ -13,6 +13,7 @@ ExpandDiagonal(SynExtendObject,
                GapTolerance = 100L,
                DropSingletons = FALSE,
                UserConfidence = list("PID" = 0.3),
+               Processors = 1,
                Verbose = FALSE)
 }
 \arguments{
@@ -33,6 +34,9 @@ Ignore solo pairs when planning expansion routes. Set to \code{FALSE} by default
 }
   \item{UserConfidence}{
 A named list of length 1 where the name identifies a column of the \code{PairSummaries} object, and the value identifies a user confidence. To be retained, a pair evaluated for expansion must be above all user specified confidences.
+}
+  \item{Processors}{
+An integer value indicating how many processors to supply to \code{\link{AlignPairs}}. Supplying \code{NULL} will cause detection and use of all available cores.
 }
   \item{Verbose}{
 Logical indicating whether or not to display a progress bar and print the time difference upon completion.

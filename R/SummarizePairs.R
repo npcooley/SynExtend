@@ -6,16 +6,17 @@
 # object
 # this function will always align, unlike PairSummaries
 # TODO:
-# implement ShowPlot Processors and elipses
-# It's not necessarily good to store the structure calls that align profiles needs
-# so we're going to generate them on the fly
-# we're switching the DataBase that we're pulling from because we shouldn't need
-# the raw genome
+# implement:
+# ShowPlot
+# Processors -- partially implemented, at least for AlignPairs
+# ellipses
+# SearchIndex subsetting to only search non-occupied spaces -- erik thinks we can avoid this
 
 SummarizePairs <- function(SynExtendObject,
                            DataBase01,
-                           AlignmentFun = "AlignProfiles",
-                           RetainAnchors = FALSE,
+                           IncludeIndexSearch = TRUE,
+                           AlignmentFun = "AlignPairs",
+                           RetainAnchors = TRUE,
                            DefaultTranslationTable = "11",
                            KmerSize = 5,
                            IgnoreDefaultStringSet = FALSE,
@@ -23,6 +24,8 @@ SummarizePairs <- function(SynExtendObject,
                            ShowPlot = FALSE,
                            Processors = 1,
                            Storage = 2,
+                           IndexParams = list("K" = 6),
+                           SearchParams = list("perPatternLimit" = 1),
                            ...) {
   
   if (Verbose) {
@@ -139,6 +142,12 @@ SummarizePairs <- function(SynExtendObject,
   DataPool <- vector(mode = "list",
                      length = length(ObjectIDs))
   
+  MAT1 <- get(data("HEC_MI1",
+                   package = "DECIPHER",
+                   envir = environment()))
+  MAT2 <- get(data("HEC_MI2",
+                   package = "DECIPHER",
+                   envir = environment()))
   # set initial progress bars and iterators
   # PH is going to be the container that 'res' eventually gets constructed from
   # while Total
@@ -153,12 +162,6 @@ SummarizePairs <- function(SynExtendObject,
                         USE.NAMES = FALSE,
                         simplify = TRUE))
     
-    MAT1 <- get(data("HEC_MI1",
-                     package = "DECIPHER",
-                     envir = environment()))
-    MAT2 <- get(data("HEC_MI2",
-                     package = "DECIPHER",
-                     envir = environment()))
     structureMatrix <- matrix(c(0.187, -0.8, -0.873,
                                 -0.8, 0.561, -0.979,
                                 -0.873, -0.979, 0.221),
@@ -216,6 +219,392 @@ SummarizePairs <- function(SynExtendObject,
   Prev_m1 <- 0L
   for (m1 in seq_len(Size - 1L)) {
     for (m2 in (m1 + 1L):Size) {
+      
+      # build our data pool first
+      # regardless of how we align or if we're including search index or not, we need to prepare and collect
+      # the same basic statistics and look aheads
+      if (is.null(DataPool[[m1]])) {
+        # the pool position is empty, pull from the DB
+        # and generate the AAStructures
+        DataPool[[m1]]$DNA <- SearchDB(dbFile = dbConn,
+                                       tblName = "NTs",
+                                       identifier = ObjectIDs[m1],
+                                       verbose = FALSE,
+                                       nameBy = "description")
+        DataPool[[m1]]$AA <- SearchDB(dbFile = dbConn,
+                                      tblName = "AAs",
+                                      identifier = ObjectIDs[m1],
+                                      verbose = FALSE,
+                                      nameBy = "description")
+        DataPool[[m1]]$len <- width(DataPool[[m1]]$DNA)
+        DataPool[[m1]]$mod <- DataPool[[m1]]$len %% 3L == 0
+        DataPool[[m1]]$code <- GeneCalls[[m1]]$Coding
+        DataPool[[m1]]$cds <- lengths(GeneCalls[[m1]]$Range)
+        
+        DataPool[[m1]]$struct <- PredictHEC(myAAStringSet = DataPool[[m1]]$AA,
+                                            type = "probabilities",
+                                            HEC_MI1 = MAT1,
+                                            HEC_MI2 = MAT2)
+        if (IncludeIndexSearch & !IgnoreDefaultStringSet) {
+          # return(list(DataPool[[m1]]$AA,
+          #             DataPool[[m1]]$mod,
+          #             DataPool[[m1]]$code))
+          DataPool[[m1]]$index <- do.call(what = "IndexSeqs",
+                                          args = c(list("subject" = DataPool[[m1]]$AA[DataPool[[m1]]$mod[DataPool[[m1]]$code]],
+                                                        "verbose" = FALSE),
+                                                   IndexParams))
+        } else if (IncludeIndexSearch & IgnoreDefaultStringSet) {
+          DataPool[[m1]]$index <- do.call(what = "IndexSeqs",
+                                          args = c(list("subject" = DataPool[[m1]]$DNA,
+                                                        "verbose" = FALSE),
+                                                   IndexParams))
+        }
+        
+      } else {
+        # the pool position is not empty, assume that it's populated with all the information
+        # that it needs
+      }
+      
+      if (is.null(DataPool[[m2]])) {
+        # the pool position is empty, pull from DB
+        # and generate the AAStructures
+        DataPool[[m2]]$DNA <- SearchDB(dbFile = dbConn,
+                                       tblName = "NTs",
+                                       identifier = ObjectIDs[m2],
+                                       verbose = FALSE,
+                                       nameBy = "description")
+        DataPool[[m2]]$AA <- SearchDB(dbFile = dbConn,
+                                      tblName = "AAs",
+                                      identifier = ObjectIDs[m2],
+                                      verbose = FALSE,
+                                      nameBy = "description")
+        DataPool[[m2]]$len <- width(DataPool[[m2]]$DNA)
+        DataPool[[m2]]$mod <- DataPool[[m2]]$len %% 3L == 0
+        DataPool[[m2]]$code <- GeneCalls[[m2]]$Coding
+        DataPool[[m2]]$cds <- lengths(GeneCalls[[m2]]$Range)
+        
+        DataPool[[m2]]$struct <- PredictHEC(myAAStringSet = DataPool[[m2]]$AA,
+                                            type = "probabilities",
+                                            HEC_MI1 = MAT1,
+                                            HEC_MI2 = MAT2)
+        if (IncludeIndexSearch & !IgnoreDefaultStringSet) {
+          DataPool[[m2]]$index <- do.call(what = "IndexSeqs",
+                                          args = c(list("subject" = DataPool[[m2]]$AA[DataPool[[m2]]$mod[DataPool[[m2]]$code]],
+                                                        "verbose" = FALSE),
+                                                   IndexParams))
+        } else if (IncludeIndexSearch & IgnoreDefaultStringSet) {
+          DataPool[[m2]]$index <- do.call(what = "IndexSeqs",
+                                          args = c(list("subject" = DataPool[[m2]]$DNA,
+                                                        "verbose" = FALSE),
+                                                   IndexParams))
+        }
+      } else {
+        # the pool position is not empty, assume that it's populated with all the information
+        # that it needs
+      }
+      
+      if (Prev_m1 != m1) {
+        QueryDNA <- DataPool[[m1]]$DNA
+        QueryAA <- DataPool[[m1]]$AA
+        QNTCount <- DataPool[[m1]]$len
+        QMod <- DataPool[[m1]]$mod
+        QCode <- DataPool[[m1]]$code
+        QCDSCount <- DataPool[[m1]]$cds
+        QueryStruct <- DataPool[[m1]]$struct
+        QueryIndex <- DataPool[[m1]]$index
+      } else {
+        # do something else?
+      }
+      
+      SubjectDNA <- DataPool[[m2]]$DNA
+      SubjectAA <- DataPool[[m2]]$AA
+      SNTCount <- DataPool[[m2]]$len
+      SMod <- DataPool[[m2]]$mod
+      SCode <- DataPool[[m2]]$code
+      SCDSCount <- DataPool[[m2]]$cds
+      SubjectStruct <- DataPool[[m2]]$struct
+      SubjectIndex <- DataPool[[m2]]$index
+      
+      if (IncludeIndexSearch) {
+        # step 1: build indexes into the data pool if they don't exist already
+        # # this is already accomplished
+        
+        # step 2: run the searches
+        
+        if (IgnoreDefaultStringSet) {
+          search_df1 <- do.call(what = "SearchIndex",
+                                args = c(list("pattern" = QueryDNA,
+                                              "invertedIndex" = SubjectIndex,
+                                              "verbose" = FALSE,
+                                              "processors" = Processors),
+                                         SearchParams))
+          search_df2 <- do.call(what = "SearchIndex",
+                                args = c(list("pattern" = SubjectDNA,
+                                              "invertedIndex" = QueryIndex,
+                                              "verbose" = FALSE,
+                                              "processors" = Processors),
+                                         SearchParams))
+        } else {
+          search_df1 <- do.call(what = "SearchIndex",
+                                args = c(list("pattern" = QueryAA[QMod[QCode]],
+                                              "invertedIndex" = SubjectIndex,
+                                              "verbose" = FALSE,
+                                              "processors" = Processors),
+                                         SearchParams))
+          search_df2 <- do.call(what = "SearchIndex",
+                                args = c(list("pattern" = SubjectAA[SMod[SCode]],
+                                              "invertedIndex" = QueryIndex,
+                                              "verbose" = FALSE,
+                                              "processors" = Processors),
+                                         SearchParams))
+          # return(list("seq" = QueryAA,
+          #             "code" = QCode,
+          #             "mod" = QMod))
+          #direction 1 is pattern -> subject
+          #direction 2 is subject -> pattern
+          search_df1 <- search_df1[order(search_df1$Pattern,
+                                         search_df1$Subject), ]
+          search_df2 <- search_df2[order(search_df2$Subject,
+                                         search_df2$Pattern), ]
+          # return(list(search_df1,
+          #             search_df2))
+          search_i1 <- paste(search_df1$Pattern,
+                             search_df1$Subject,
+                             sep = "_")
+          search_i2 <- paste(search_df2$Subject,
+                             search_df2$Pattern,
+                             sep = "_")
+          search_pairs <- data.frame("p1" = names(QueryAA[QMod[QCode]])[search_df1$Pattern[search_i1 %in% search_i2]],
+                                     "p2" = names(SubjectAA[SMod[SCode]])[search_df1$Subject[search_i1 %in% search_i2]])
+          place_holder1 <- do.call(rbind,
+                                   strsplit(x = search_pairs$p1,
+                                            split = "_",
+                                            fixed = TRUE))
+          search_pairs$i1 <- as.integer(place_holder1[, 2L])
+          search_pairs$f1 <- as.integer(place_holder1[, 3L])
+          place_holder2 <- do.call(rbind,
+                                   strsplit(x = search_pairs$p2,
+                                            split = "_",
+                                            fixed = TRUE))
+          search_pairs$i2 <- as.integer(place_holder2[, 2L])
+          search_pairs$f2 <- as.integer(place_holder2[, 3L])
+          search_pairs$f_hits <- search_df1$Position[search_i1 %in% search_i2]
+          search_pairs$s1 <- GeneCalls[[m1]]$Strand[search_pairs$f1]
+          search_pairs$s2 <- GeneCalls[[m2]]$Strand[search_pairs$f2]
+          search_pairs$start1 <- GeneCalls[[m1]]$Start[search_pairs$f1]
+          search_pairs$start2 <- GeneCalls[[m2]]$Start[search_pairs$f2]
+          search_pairs$stop1 <- GeneCalls[[m1]]$Stop[search_pairs$f1]
+          search_pairs$stop2 <- GeneCalls[[m2]]$Stop[search_pairs$f2]
+          
+          # slam everything together -- i.e. build out rows that need to be
+          # added to the linked pairs object
+          hit_adjust_start <- do.call(cbind,
+                                      search_pairs$f_hits)
+          hit_key <- vapply(X = search_pairs$f_hits,
+                            FUN = function(x) {
+                              ncol(x)
+                            },
+                            FUN.VALUE = vector(mode = "integer",
+                                               length = 1L))
+          hit_q_partner <- rep(search_pairs$f1,
+                               times = hit_key)
+          hit_s_partner <- rep(search_pairs$f2,
+                               times = hit_key)
+          # should be a list in the same shape as the SearchIndex Positions
+          # but with the hits mapped to (mostly) the right spots
+          # !!! IMPORTANT !!! This is limited to sequences without introns
+          # for this to work correctly with introns, I need to be able to divy
+          # these offsets up across CDSs, which though possible now will need
+          # some significant infrastructure changes to make work cleanly
+          
+          # return(list("a" = search_pairs$f_hits,
+          #             "d" = search_pairs$s1,
+          #             "e" = search_pairs$s2,
+          #             "f" = search_pairs$start1,
+          #             "g" = search_pairs$start2,
+          #             "h" = search_pairs$stop1,
+          #             "i" = search_pairs$stop2))
+          
+          hit_arrangement <- mapply(SIMPLIFY = FALSE,
+                                    FUN = function(a, d, e, f, g, h, i) {
+                                      # 0 == FALSE
+                                      # 1 == TRUE
+                                      # strand is 0 or 1, 1 == negative strand
+                                      if (d) {
+                                        # negative strand, flip, offset, then assign
+                                        # feature starts at 100
+                                        # 1 == 100
+                                        # 2 == 97
+                                        # 3 == 94
+                                        # etc
+                                        # right - (x - 1) * 3 = position
+                                        h1 <- h - (a[c(1, 2), , drop = FALSE] - 1) * 3
+                                        h1 <- apply(X = h1,
+                                                    MARGIN = 2,
+                                                    FUN = function(x) {
+                                                      sort(x)
+                                                    },
+                                                    simplify = TRUE)
+                                      } else {
+                                        # positive strand, just offset and assign
+                                        # feature starts at 10,
+                                        # 1 == 10
+                                        # 2 == 13
+                                        # 3 == 14 
+                                        # etc
+                                        # left + (x - 1) * 3 = position
+                                        h1 <- f + (a[c(1, 2), , drop = FALSE] - 1) * 3
+                                        
+                                      }
+                                      # repeat for feature 2
+                                      if (e) {
+                                        h2 <- i - (a[c(3,4), , drop = FALSE] - 1) * 3
+                                        h2 <- apply(X = h2,
+                                                    MARGIN = 2,
+                                                    FUN = function(x) {
+                                                      sort(x)
+                                                    },
+                                                    simplify = TRUE)
+                                      } else {
+                                        h2 <- g + (a[c(3,4), , drop = FALSE] - 1) * 3
+                                      }
+                                      return(rbind(h1, h2))
+                                    },
+                                    a = search_pairs$f_hits,
+                                    d = search_pairs$s1,
+                                    e = search_pairs$s2,
+                                    f = search_pairs$start1,
+                                    g = search_pairs$start2,
+                                    h = search_pairs$stop1,
+                                    i = search_pairs$stop2)
+          
+          hit_rearrangement <- t(do.call(cbind,
+                                         hit_arrangement))
+          block_bounds <- lapply(X = hit_arrangement,
+                                 FUN = function(x) {
+                                   c(min(x[1, ]),
+                                     max(x[2, ]),
+                                     min(x[3, ]),
+                                     max(x[4, ]))
+                                 })
+          block_bounds <- do.call(rbind,
+                                  block_bounds)
+          
+          hit_widths <- lapply(X = search_pairs$f_hits,
+                               FUN = function(x) {
+                                 x[2, ] - x[1, ] + 1L
+                               })
+          hit_totals <- vapply(X = hit_widths,
+                               FUN = function(x) {
+                                 sum(x)
+                               },
+                               FUN.VALUE = vector(mode = "integer",
+                                                  length = 1))
+          hit_max <- vapply(X = hit_widths,
+                            FUN = function(x) {
+                              max(x)
+                            },
+                            FUN.VALUE = vector(mode = "integer",
+                                               length = 1))
+          # return(list("QueryGene" = hit_q_partner,
+          #             "SubjectGene" = hit_s_partner,
+          #             "ExactOverlap" = unlist(hit_widths),
+          #             "QueryIndex" = rep(search_pairs$i1,
+          #                                times = hit_key),
+          #             "SubjectIndex" = rep(search_pairs$i2,
+          #                                  times = hit_key),
+          #             "QLeftPos" = hit_rearrangement[, 1],
+          #             "QRightPos" = hit_rearrangement[, 2],
+          #             "SLeftPos" = hit_rearrangement[, 3],
+          #             "SRightPos" = hit_rearrangement[, 4]))
+          add_by_hit <- data.frame("QueryGene" = hit_q_partner,
+                                   "SubjectGene" = hit_s_partner,
+                                   "ExactOverlap" = unlist(hit_widths),
+                                   "QueryIndex" = rep(search_pairs$i1,
+                                                      times = hit_key),
+                                   "SubjectIndex" = rep(search_pairs$i2,
+                                                        times = hit_key),
+                                   "QLeftPos" = hit_rearrangement[, 1],
+                                   "QRightPos" = hit_rearrangement[, 2],
+                                   "SLeftPos" = hit_rearrangement[, 3],
+                                   "SRightPos" = hit_rearrangement[, 4])
+          add_by_block <- data.frame("QueryGene" = search_pairs$f1,
+                                     "SubjectGene" = search_pairs$f2,
+                                     "ExactOverlap" = hit_totals,
+                                     "QueryIndex" = search_pairs$i1,
+                                     "SubjectIndex" = search_pairs$i2,
+                                     "QLeftPos" = block_bounds[, 1],
+                                     "QRightPos" = block_bounds[, 2],
+                                     "SLeftPos" = block_bounds[, 3],
+                                     "SRightPos" = block_bounds[, 4],
+                                     "MaxKmerSize" = hit_max,
+                                     "TotalKmerHits" = hit_key)
+          
+          # using forward hits from here:
+          # append pairs that don't appear in the current linked pairs object
+          # onto the current linked pairs object
+        }
+        
+        # hits are now transposed into the context of the whole sequence
+        # as opposed to the feature
+        # build out rows to add, and then add them
+        if (nrow(SynExtendObject[[m1, m2]]) > 0) {
+          select_row1 <- paste(SynExtendObject[[m1, m2]][, 1L],
+                               SynExtendObject[[m1, m2]][, 4L],
+                               SynExtendObject[[m1, m2]][, 2L],
+                               SynExtendObject[[m1, m2]][, 5L],
+                               sep = "_")
+          select_row2 <- paste(SynExtendObject[[m2, m1]][, 1L],
+                               SynExtendObject[[m2, m1]][, 4L],
+                               SynExtendObject[[m2, m1]][, 2L],
+                               SynExtendObject[[m2, m1]][, 5L],
+                               sep = "_")
+        } else {
+          select_row1 <- select_row2 <- vector(mode = "character",
+                                               length = 0)
+        }
+        # upper diagonal is blocks,
+        # lower diagonal is hits
+        select_row3 <- paste(add_by_block$QueryGene,
+                             add_by_block$QueryIndex,
+                             add_by_block$SubjectGene,
+                             add_by_block$SubjectIndex,
+                             sep = "_")
+        select_row4 <- paste(add_by_hit$QueryGene,
+                             add_by_hit$QueryIndex,
+                             add_by_hit$SubjectGene,
+                             add_by_hit$SubjectIndex,
+                             sep = "_")
+        sr_upper <- !(select_row3 %in% select_row1)
+        sr_lower <- !(select_row4 %in% select_row2)
+        
+        # return(list(select_row1,
+        #             select_row2,
+        #             select_row3,
+        #             select_row4,
+        #             SynExtendObject[[m1, m2]],
+        #             SynExtendObject[[m2, m1]],
+        #             add_by_hit,
+        #             add_by_block))
+        if (any(sr_upper)) {
+          SynExtendObject[[m1, m2]] <- rbind(SynExtendObject[[m1, m2]],
+                                             as.matrix(add_by_block[sr_upper, ]))
+          SynExtendObject[[m2, m1]] <- rbind(SynExtendObject[[m2, m1]],
+                                             as.matrix(add_by_hit[sr_lower, ]))
+        }
+        
+        
+        
+        # step 3: morph the searches into the SynExtendObject so other things
+        # go smoothly
+        
+        # alignments happen later and profile vs pairs is chosen by the user
+        
+      } # end include index search logical
+      
+      # return(list(add_by_hit,
+      #             add_by_block))
+      
       ###### -- only evaluate valid positions ---------------------------------
       if (nrow(SynExtendObject[[m1, m2]]) > 0L) {
         # links table is populated, do whatever
@@ -384,6 +773,7 @@ SummarizePairs <- function(SynExtendObject,
           BlockID_Map <- -1L
         }
         # BlockSize evaluation is complete
+        # we're eventually moving blocksize stuff down to happen post everything else
         
         # from here we need to get the kmer differences
         # the PIDs
@@ -400,107 +790,6 @@ SummarizePairs <- function(SynExtendObject,
         #   TMPSeqs01 <- FALSE
         #   TMPSeqs02 <- FALSE
         # }
-        
-        # regardless of how we align, we need to prepare and collect
-        # the same basic statistics and look aheads
-        # this needs to change a little,
-        # I'll be pulling the seqs from a DB, and the integers and things as well
-        if (is.null(DataPool[[m1]])) {
-          # the pool position is empty, pull from the DB
-          # and generate the AAStructures
-          DataPool[[m1]]$DNA <- SearchDB(dbFile = dbConn,
-                                         tblName = "NTs",
-                                         identifier = ObjectIDs[m1],
-                                         verbose = FALSE,
-                                         nameBy = "description")
-          DataPool[[m1]]$AA <- SearchDB(dbFile = dbConn,
-                                        tblName = "AAs",
-                                        identifier = ObjectIDs[m1],
-                                        verbose = FALSE,
-                                        nameBy = "description")
-          DataPool[[m1]]$len <- width(DataPool[[m1]]$DNA)
-          DataPool[[m1]]$mod <- DataPool[[m1]]$len %% 3L == 0
-          DataPool[[m1]]$code <- GeneCalls[[m1]]$Coding
-          DataPool[[m1]]$cds <- lengths(GeneCalls[[m1]]$Range)
-          # DBQUERY <- paste("select len, mod, code, cds from NTs where identifier is",
-          #                  ObjectIDs[m1])
-          # DBOUT <- dbGetQuery(conn = dbConn,
-          #                     statement = DBQUERY)
-          # DataPool[[m1]]$len <- DBOUT$len
-          # DataPool[[m1]]$mod <- DBOUT$mod
-          # DataPool[[m1]]$code <- DBOUT$code
-          # DataPool[[m1]]$cds <- DBOUT$cds
-          DataPool[[m1]]$struct <- PredictHEC(myAAStringSet = DataPool[[m1]]$AA,
-                                              type = "probabilities",
-                                              HEC_MI1 = MAT1,
-                                              HEC_MI2 = MAT2)
-          
-        } else {
-          # the pool position is not empty, assume that it's populated with all the information
-          # that it needs
-          # DataPool[[m1]]$struct <- PredictHEC(myAAStringSet = DataPool[[m1]]$QueryAA,
-          #                                     type = "probabilities",
-          #                                     HEC_MI1 = MAT1,
-          #                                     HEC_MI2 = MAT2)
-        }
-        
-        if (is.null(DataPool[[m2]])) {
-          # the pool position is empty, pull from DB
-          # and generate the AAStructures
-          DataPool[[m2]]$DNA <- SearchDB(dbFile = dbConn,
-                                         tblName = "NTs",
-                                         identifier = ObjectIDs[m2],
-                                         verbose = FALSE,
-                                         nameBy = "description")
-          DataPool[[m2]]$AA <- SearchDB(dbFile = dbConn,
-                                        tblName = "AAs",
-                                        identifier = ObjectIDs[m2],
-                                        verbose = FALSE,
-                                        nameBy = "description")
-          DataPool[[m2]]$len <- width(DataPool[[m2]]$DNA)
-          DataPool[[m2]]$mod <- DataPool[[m2]]$len %% 3L == 0
-          DataPool[[m2]]$code <- GeneCalls[[m2]]$Coding
-          DataPool[[m2]]$cds <- lengths(GeneCalls[[m2]]$Range)
-          # DBQUERY <- paste("select len, mod, code, cds from NTs where identifier is",
-          #                  ObjectIDs[m2])
-          # DBOUT <- dbGetQuery(conn = dbConn,
-          #                     statement = DBQUERY)
-          # DataPool[[m2]]$len <- DBOUT$len
-          # DataPool[[m2]]$mod <- DBOUT$mod
-          # DataPool[[m2]]$code <- DBOUT$code
-          # DataPool[[m2]]$cds <- DBOUT$cds
-          DataPool[[m2]]$struct <- PredictHEC(myAAStringSet = DataPool[[m2]]$AA,
-                                              type = "probabilities",
-                                              HEC_MI1 = MAT1,
-                                              HEC_MI2 = MAT2)
-        } else {
-          # the pool position is not empty, assume that it's populated with all the information
-          # that it needs
-          # DataPool[[m2]]$struct <- PredictHEC(myAAStringSet = DataPool[[m2]]$QueryAA,
-          #                                     type = "probabilities",
-          #                                     HEC_MI1 = MAT1,
-          #                                     HEC_MI2 = MAT2)
-        }
-        
-        if (Prev_m1 != m1) {
-          QueryDNA <- DataPool[[m1]]$DNA
-          QueryAA <- DataPool[[m1]]$AA
-          QNTCount <- DataPool[[m1]]$len
-          QMod <- DataPool[[m1]]$mod
-          QCode <- DataPool[[m1]]$code
-          QCDSCount <- DataPool[[m1]]$cds
-          QueryStruct <- DataPool[[m1]]$struct
-        } else {
-          # do something else?
-        }
-        
-        SubjectDNA <- DataPool[[m2]]$DNA
-        SubjectAA <- DataPool[[m2]]$AA
-        SNTCount <- DataPool[[m2]]$len
-        SMod <- DataPool[[m2]]$mod
-        SCode <- DataPool[[m2]]$code
-        SCDSCount <- DataPool[[m2]]$cds
-        SubjectStruct <- DataPool[[m2]]$struct
         
         # align everyone as AAs who can be, i.e. modulo of 3, is coding, etc
         # then align everyone else as nucs
@@ -582,7 +871,7 @@ SummarizePairs <- function(SynExtendObject,
           if (RetainAnchors) {
             # set the anchors
             # start with nucleotide positions 
-            hitsets <- SynExtendObject[[m2, m1]][, seq_len(2L), drop = FALSE]
+            hitsets <- SynExtendObject[[m2, m1]][, c(1, 2), drop = FALSE]
             WithinQueryNucs <- mapply(USE.NAMES = FALSE,
                                       SIMPLIFY = FALSE,
                                       FUN = function(i1,
@@ -643,7 +932,7 @@ SummarizePairs <- function(SynExtendObject,
               o2 <- order(WithinQueryNucs[[m3]][3L, , drop = FALSE])
               if (length(o1) > 1L) {
                 if (o1[1L] > o1[2L]) {
-                  WithinQueryNucs[[m3]][seq_len(2L), ] <- WithinQueryNucs[[m3]][seq_len(2L), o1, drop = FALSE]
+                  WithinQueryNucs[[m3]][c(1,2), ] <- WithinQueryNucs[[m3]][c(1,2), o1, drop = FALSE]
                 }
                 
                 if (o2[1L] > o2[2L]) {
@@ -688,29 +977,106 @@ SummarizePairs <- function(SynExtendObject,
                   WithinQueryAAs[[m3]] <- matrix(data = as.integer((WithinQueryAAs[[m3]] + c(2L, 0L)) / 3L),
                                                  nrow = nrow(WithinQueryAAs[[m3]]),
                                                  ncol = ncol(WithinQueryAAs[[m3]]))
+                  # ensure that anchors are in ascending order
                 }
                 
               } # end of m3 loop
             } # WithinQueryAAs logical check
+            # df_aa$Position <- WithinQueryAAs
+            # ph_obj <- WithinQueryAAs
+            if (IncludeIndexSearch) {
+              full_aa_set <- paste(df_aa$Pattern,
+                                   df_aa$Subject,
+                                   sep = "_")
+              # this isn't right because these need to be indexed to the
+              # available coding sequences
+              aa_w_index <- paste(match(x = search_pairs$f1,
+                                        table = aa_match1),
+                                  match(x = search_pairs$f2,
+                                        table = aa_match2),
+                                  sep = "_")
+              # return(list("a" = full_aa_set,
+              #             "b" = aa_w_index))
+              WithinQueryAAs[match(x = aa_w_index,
+                                   table = full_aa_set)] <- search_pairs$f_hits
+            }
             df_aa$Position <- WithinQueryAAs
+            df_aa$Position <- mapply(SIMPLIFY = FALSE,
+                                     FUN = function(x, y, z) {
+                                       if (length(x) > 4) {
+                                         cbind(matrix(0L,
+                                                      4),
+                                               x,
+                                               matrix(c(y, y, z, z),
+                                                      4))
+                                       } else {
+                                         cbind(matrix(0L,
+                                                      4),
+                                               matrix(data = c(y,y,z,z),
+                                                      4))
+                                       }
+                                     },
+                                     x = df_aa$Position,
+                                     y = width(QueryAA[df_aa$Pattern]) + 1L,
+                                     z = width(SubjectAA[df_aa$Subject]) + 1L)
+            
             df_nt$Position <- WithinQueryNucs[NTSelect]
+            df_nt$Position <- mapply(SIMPLIFY = FALSE,
+                                     FUN = function(x, y, z) {
+                                       if (length(x) > 4) {
+                                         cbind(matrix(0L,
+                                                      4),
+                                               x,
+                                               matrix(c(y, y, z, z),
+                                                      4))
+                                       } else {
+                                         cbind(matrix(0L,
+                                                      4),
+                                               matrix(data = c(y,y,z,z),
+                                                      4))
+                                       }
+                                       
+                                     },
+                                     x = df_nt$Position,
+                                     y = QNTCount[df_nt$Pattern] + 1L,
+                                     z = SNTCount[df_nt$Subject] + 1L)
             # return(list(WithinQueryAAs,
             #             WithinQueryNucs,
             #             QueryAA,
             #             SubjectAA))
-            
+            # one last check to reject hits that alignpairs views as overlapping
+            for (m3 in seq_along(df_aa$Position)) {
+              while (is.unsorted(df_aa$Position[[m3]][1, ]) |
+                     is.unsorted(df_aa$Position[[m3]][3, ])) {
+                hit_sizes <- df_aa$Position[[m3]][2, ] - df_aa$Position[[m3]][1, ] + 1L
+                # drop the smallest hit that is not an anchor
+                z1 <- which.min(hit_sizes[hit_sizes > 1])
+                # i'm not sure if this is safe, but this will be refactored to
+                # occur before anchoring anyway
+                if (length(z1) < 1) {
+                  stop("an unexpected condition occurred, please contact maintainer")
+                } else {
+                  df_aa$Position[[m3]] <- df_aa$Position[[m3]][, -(z1 + 1L), drop = FALSE]
+                }
+              }
+            }
           } else {
             # don't set anchors at all
             WithinQueryAAs <- WithinQueryNucs <- list()
           }
           
           if (sum(AASelect) > 0) {
+            # return(list("q" = QueryAA,
+            #             "s" = SubjectAA,
+            #             "df" = df_aa,
+            #             "ph" = ph_obj))
             aapairs <- AlignPairs(pattern = QueryAA,
                                   subject = SubjectAA,
                                   pairs = df_aa,
-                                  verbose = FALSE)
+                                  verbose = FALSE,
+                                  processors = Processors)
             current_aa_pids <- aapairs$Matches / aapairs$AlignmentLength
-            current_aa_scores <- aapairs$Score
+            current_aa_scores <- aapairs$Score / aapairs$AlignmentLength
           } else {
             current_aa_pids <- numeric()
             current_aa_scores <- numeric()
@@ -725,9 +1091,10 @@ SummarizePairs <- function(SynExtendObject,
             ntpairs <- AlignPairs(pattern = QueryDNA,
                                   subject = SubjectDNA,
                                   pairs = df_nt,
-                                  verbose = FALSE)
+                                  verbose = FALSE,
+                                  processors = Processors)
             current_nt_pids <- ntpairs$Matches / ntpairs$AlignmentLength
-            current_nt_scores <- ntpairs$Score
+            current_nt_scores <- ntpairs$Score / ntpairs$AlignmentLength
           } else {
             current_nt_pids <- numeric()
             current_nt_scores <- numeric()
@@ -747,6 +1114,8 @@ SummarizePairs <- function(SynExtendObject,
           # For Testing
           # AA_Anchors[[Count]] <- WithinQueryAAs
           # NT_Anchors[[Count]] <- WithinQueryNucs[NTSelect]
+          # return(list(aapairs,
+          #             ntpairs))
           
         } else if (AlignmentFun == "AlignProfiles") {
           
