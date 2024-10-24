@@ -87,7 +87,7 @@
 
 #define MAX_NODE_NAME_SIZE 254 // max size of a vertex name (char array will have 2 extra spaces for terminator and flag)
 #define NODE_NAME_CACHE_SIZE 40960 // holds pointers char* of size MAX_NODE_NAME_SIZE, 4096 is 1MB
-#define FILE_READ_CACHE_SIZE 8192*8 // used for mergesorting files
+#define FILE_READ_CACHE_SIZE 8192*4 // used for mergesorting files
 // number of entries, so total consumption often multiplied by 8
 #define CLUSTER_MIN_WEIGHT 0.01
 
