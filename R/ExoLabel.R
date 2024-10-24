@@ -8,8 +8,7 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
                           consensus_cluster=FALSE,
                           verbose=interactive(),
                           sep='\t',
-                          tempfiledir=tempdir(),
-                          cleanup_files=TRUE){
+                          tempfiledir=tempdir()){
   on.exit(.C("cleanup_ondisklp_global_values"))
   if(!is.numeric(iterations)){
     stop("'iterations' must be an integer or numeric.")
@@ -20,6 +19,10 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
     stop("'inflation' must be a numeric value")
   } else {
     inflation <- as.numeric(inflation)
+  }
+  if(iterations > 2^15){
+    warning("'iterations' currently only supports signed 16-bit numbers, defaulting to max possible value of 32767.")
+    iterations <- 32767L
   }
   if(is.na(iterations) || is.null(iterations) || is.infinite(iterations) || iterations < 0){
     warning("Invalid value of 'iterations', will determine automatically from node degree.")
@@ -92,7 +95,7 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
   if(verbose) cat("Temporary files stored at ", tempfiledir, "\n")
 
   seps <- paste(sep, "\n", sep='')
-  ctr <- 1
+  ctr <- 0
   # R_hashedgelist(tsv, csr, clusters, queues, hashdir, seps, 1, iter, verbose)
   .Call("R_LPOOM_cluster", edgelistfiles, length(edgelistfiles),
         tempfiledir, outfile, seps, ctr, iterations,
@@ -102,11 +105,9 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
   # R_write_output_clusters(clusters, hashes, length(hashes), out_tsvpath, seps)
   #.Call("R_LP_write_output", counter_cluster_binary, hashdir,
   #      outfile, seps, verbose)
-  if(cleanup_files){
-    for(f in list.files(tempfiledir, full.names=TRUE))
-      if(file.exists(f)) file.remove(f)
-    file.remove(tempfiledir)
-  }
+  for(f in list.files(tempfiledir, full.names=TRUE))
+    if(file.exists(f)) file.remove(f)
+  file.remove(tempfiledir)
   if(return_table){
     tab <- read.table(outfile, sep=sep)
     colnames(tab) <- c("Vertex", "Cluster")
