@@ -54,7 +54,8 @@ SummarizePairs <- function(SynExtendObject,
     }
     if (!("package:RSQLite" %in% search())) {
       print("Eventually character vector access to DECIPHER DBs will be deprecated.")
-      require(RSQLite, quietly = TRUE)
+      requireNamespace(package = "RSQLite",
+                       quietly = TRUE)
     }
     dbConn <- dbConnect(dbDriver("SQLite"), DataBase01)
     on.exit(dbDisconnect(dbConn))
