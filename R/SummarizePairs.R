@@ -1046,9 +1046,53 @@ SummarizePairs <- function(SynExtendObject,
             #             SubjectAA))
             # one last check to reject hits that alignpairs views as overlapping
             for (m3 in seq_along(df_aa$Position)) {
-              while (is.unsorted(df_aa$Position[[m3]][1, ]) |
-                     is.unsorted(df_aa$Position[[m3]][3, ])) {
+              check_this_pattern <- check_this_subject <- vector(mode = "integer",
+                                                                 length = ncol(df_aa$Position[[m3]]) * 2L)
+              check_this_pattern[c(T,F)] <- df_aa$Position[[m3]][1, ]
+              check_this_pattern[c(F,T)] <- df_aa$Position[[m3]][2, ]
+              check_this_subject[c(T,F)] <- df_aa$Position[[m3]][3, ]
+              check_this_subject[c(F,T)] <- df_aa$Position[[m3]][4, ]
+              
+              while (is.unsorted(check_this_pattern) |
+                     is.unsorted(check_this_subject)) {
+                # print(m3)
+                # print(check_this_pattern)
+                # print(check_this_subject)
+                # print(df_aa$Position[[m3]])
                 hit_sizes <- df_aa$Position[[m3]][2, ] - df_aa$Position[[m3]][1, ] + 1L
+                # drop the smallest hit that is not an anchor
+                z1 <- which.min(hit_sizes[hit_sizes > 1])
+                # i'm not sure if this is safe, but this will be refactored to
+                # occur before anchoring anyway
+                if (length(z1) < 1) {
+                  print("unexpected condition")
+                  return(list("pos" = m3,
+                              "hits" = df_aa$Position))
+                  stop("an unexpected condition occurred, please contact maintainer")
+                } else {
+                  df_aa$Position[[m3]] <- df_aa$Position[[m3]][, -(z1 + 1L), drop = FALSE]
+                }
+                check_this_pattern <- check_this_subject <- vector(mode = "integer",
+                                                                   length = ncol(df_aa$Position[[m3]]) * 2L)
+                check_this_pattern[c(T,F)] <- df_aa$Position[[m3]][1, ]
+                check_this_pattern[c(F,T)] <- df_aa$Position[[m3]][2, ]
+                check_this_subject[c(T,F)] <- df_aa$Position[[m3]][3, ]
+                check_this_subject[c(F,T)] <- df_aa$Position[[m3]][4, ]
+              }
+            }
+            
+            # repeat for nt positions
+            for (m3 in seq_along(df_nt$Position)) {
+              check_this_pattern <- check_this_subject <- vector(mode = "integer",
+                                                                 length = ncol(df_nt$Position[[m3]]) * 2L)
+              check_this_pattern[c(T,F)] <- df_nt$Position[[m3]][1, ]
+              check_this_pattern[c(F,T)] <- df_nt$Position[[m3]][2, ]
+              check_this_subject[c(T,F)] <- df_nt$Position[[m3]][3, ]
+              check_this_subject[c(F,T)] <- df_nt$Position[[m3]][4, ]
+              
+              while (is.unsorted(check_this_pattern) |
+                     is.unsorted(check_this_subject)) {
+                hit_sizes <- df_nt$Position[[m3]][2, ] - df_nt$Position[[m3]][1, ] + 1L
                 # drop the smallest hit that is not an anchor
                 z1 <- which.min(hit_sizes[hit_sizes > 1])
                 # i'm not sure if this is safe, but this will be refactored to
@@ -1056,10 +1100,17 @@ SummarizePairs <- function(SynExtendObject,
                 if (length(z1) < 1) {
                   stop("an unexpected condition occurred, please contact maintainer")
                 } else {
-                  df_aa$Position[[m3]] <- df_aa$Position[[m3]][, -(z1 + 1L), drop = FALSE]
+                  df_nt$Position[[m3]] <- df_nt$Position[[m3]][, -(z1 + 1L), drop = FALSE]
                 }
+                check_this_pattern <- check_this_subject <- vector(mode = "integer",
+                                                                   length = ncol(df_nt$Position[[m3]]) * 2L)
+                check_this_pattern[c(T,F)] <- df_nt$Position[[m3]][1, ]
+                check_this_pattern[c(F,T)] <- df_nt$Position[[m3]][2, ]
+                check_this_subject[c(T,F)] <- df_nt$Position[[m3]][3, ]
+                check_this_subject[c(F,T)] <- df_nt$Position[[m3]][4, ]
               }
             }
+            
           } else {
             # don't set anchors at all
             WithinQueryAAs <- WithinQueryNucs <- list()
