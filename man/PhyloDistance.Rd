@@ -48,7 +48,7 @@ Information on each of these algorithms, how scores are calculated, and referenc
 Returns a normalized distance, with 0 indicating identical trees and 1 indicating
 maximal difference. If the trees have no leaves in common, the function will return \code{1} if \code{RawScore=FALSE}, or \code{c(0,NA,NA)} if \code{RawScore=TRUE}.
 
-If \code{RawScore=TRUE}, returns a vector of the components used to calculate the distance. This is typically a length 3 vector, but specific details can be found on the description for each algorithm.
+If \code{RawScore=TRUE}, returns a vector of the components used to calculate the distance. This is typically a length 3 vector, but specific details can be found on the description for each algorithm linked above.
 }
 
 \author{
