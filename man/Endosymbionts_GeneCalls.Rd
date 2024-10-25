@@ -8,7 +8,7 @@ Example genecalls
 A named list of \code{DataFrame}s.
 }
 \usage{data("Endosymbionts_GeneCalls")}
-\value{
+\format{
 A named list.
 }
 \details{

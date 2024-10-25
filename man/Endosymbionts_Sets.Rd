@@ -8,7 +8,7 @@ A list of disjoint sets.
 A named list of disjoint sets representing hypothetical COGs.
 }
 \usage{data("Endosymbionts_Sets")}
-\value{
+\format{
 A named list of disjoint sets representing hypothetical COGs.
 }
 \details{

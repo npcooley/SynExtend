@@ -1048,10 +1048,10 @@ SummarizePairs <- function(SynExtendObject,
             for (m3 in seq_along(df_aa$Position)) {
               check_this_pattern <- check_this_subject <- vector(mode = "integer",
                                                                  length = ncol(df_aa$Position[[m3]]) * 2L)
-              check_this_pattern[c(T,F)] <- df_aa$Position[[m3]][1, ]
-              check_this_pattern[c(F,T)] <- df_aa$Position[[m3]][2, ]
-              check_this_subject[c(T,F)] <- df_aa$Position[[m3]][3, ]
-              check_this_subject[c(F,T)] <- df_aa$Position[[m3]][4, ]
+              check_this_pattern[c(TRUE, FALSE)] <- df_aa$Position[[m3]][1, ]
+              check_this_pattern[c(FALSE, TRUE)] <- df_aa$Position[[m3]][2, ]
+              check_this_subject[c(TRUE, FALSE)] <- df_aa$Position[[m3]][3, ]
+              check_this_subject[c(FALSE, TRUE)] <- df_aa$Position[[m3]][4, ]
               
               while (is.unsorted(check_this_pattern) |
                      is.unsorted(check_this_subject)) {
@@ -1074,10 +1074,10 @@ SummarizePairs <- function(SynExtendObject,
                 }
                 check_this_pattern <- check_this_subject <- vector(mode = "integer",
                                                                    length = ncol(df_aa$Position[[m3]]) * 2L)
-                check_this_pattern[c(T,F)] <- df_aa$Position[[m3]][1, ]
-                check_this_pattern[c(F,T)] <- df_aa$Position[[m3]][2, ]
-                check_this_subject[c(T,F)] <- df_aa$Position[[m3]][3, ]
-                check_this_subject[c(F,T)] <- df_aa$Position[[m3]][4, ]
+                check_this_pattern[c(TRUE, FALSE)] <- df_aa$Position[[m3]][1, ]
+                check_this_pattern[c(FALSE, TRUE)] <- df_aa$Position[[m3]][2, ]
+                check_this_subject[c(TRUE, FALSE)] <- df_aa$Position[[m3]][3, ]
+                check_this_subject[c(FALSE, TRUE)] <- df_aa$Position[[m3]][4, ]
               }
             }
             
@@ -1085,10 +1085,10 @@ SummarizePairs <- function(SynExtendObject,
             for (m3 in seq_along(df_nt$Position)) {
               check_this_pattern <- check_this_subject <- vector(mode = "integer",
                                                                  length = ncol(df_nt$Position[[m3]]) * 2L)
-              check_this_pattern[c(T,F)] <- df_nt$Position[[m3]][1, ]
-              check_this_pattern[c(F,T)] <- df_nt$Position[[m3]][2, ]
-              check_this_subject[c(T,F)] <- df_nt$Position[[m3]][3, ]
-              check_this_subject[c(F,T)] <- df_nt$Position[[m3]][4, ]
+              check_this_pattern[c(TRUE, FALSE)] <- df_nt$Position[[m3]][1, ]
+              check_this_pattern[c(FALSE, TRUE)] <- df_nt$Position[[m3]][2, ]
+              check_this_subject[c(TRUE, FALSE)] <- df_nt$Position[[m3]][3, ]
+              check_this_subject[c(FALSE, TRUE)] <- df_nt$Position[[m3]][4, ]
               
               while (is.unsorted(check_this_pattern) |
                      is.unsorted(check_this_subject)) {
@@ -1104,10 +1104,10 @@ SummarizePairs <- function(SynExtendObject,
                 }
                 check_this_pattern <- check_this_subject <- vector(mode = "integer",
                                                                    length = ncol(df_nt$Position[[m3]]) * 2L)
-                check_this_pattern[c(T,F)] <- df_nt$Position[[m3]][1, ]
-                check_this_pattern[c(F,T)] <- df_nt$Position[[m3]][2, ]
-                check_this_subject[c(T,F)] <- df_nt$Position[[m3]][3, ]
-                check_this_subject[c(F,T)] <- df_nt$Position[[m3]][4, ]
+                check_this_pattern[c(TRUE, FALSE)] <- df_nt$Position[[m3]][1, ]
+                check_this_pattern[c(FALSE, TRUE)] <- df_nt$Position[[m3]][2, ]
+                check_this_subject[c(TRUE, FALSE)] <- df_nt$Position[[m3]][3, ]
+                check_this_subject[c(FALSE, TRUE)] <- df_nt$Position[[m3]][4, ]
               }
             }
             

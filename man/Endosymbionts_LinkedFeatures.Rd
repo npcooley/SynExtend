@@ -8,7 +8,7 @@ Example synteny links
 An object of class \code{LinkedPairs}.
 }
 \usage{data("Endosymbionts_LinkedFeatures")}
-\value{
+\format{
 An object of class \code{LinkedPairs}.
 }
 \details{

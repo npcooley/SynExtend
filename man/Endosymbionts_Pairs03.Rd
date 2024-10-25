@@ -8,7 +8,7 @@ Example predicted pairs
 An object of class \code{PairSummaries} where blocks have been expanded and competitors have been rejected.
 }
 \usage{data("Endosymbionts_Pairs03")}
-\value{
+\format{
 An object of class \code{PairSummaries}.
 }
 \details{
