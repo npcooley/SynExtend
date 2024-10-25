@@ -7,7 +7,7 @@ CIDist <- function(val, incommonLabs, RawScore=FALSE){
     data('CIDist_NullDist', package="SynExtend", envir=environment())
     if (val[1] == 0){
       retval[c(2,3)] <- c(NA, NA)
-    } 
+    }
     if(length(incommonLabs) < 4){
       retval[4] <- NA
     } else if (!is.null(CI_DISTANCE_INTERNAL)) {
@@ -33,7 +33,7 @@ CIDist <- function(val, incommonLabs, RawScore=FALSE){
     names(retval) <- c("Similarity", "dend1.Entropy", "dend2.Entropy", "p.value")
     return(retval)
   }
-  
+
   if (val[1] == 0) return(1)
   maxval <- 0.5*(val[2] + val[3])
   retval <- (maxval - val[1]) / maxval
@@ -48,7 +48,7 @@ RFDist <- function(val, RawScore=FALSE){
     names(retval) <- c("UniqueSplits", "dend1.Splits", "dend2.Splits")
     return(retval)
   }
-  
+
   maxval <- val[2] + val[3]
   retval <- val[1] / maxval
   if (maxval == 0)
@@ -80,9 +80,9 @@ JRFDist <- function(val, RawScore=FALSE){
 PhyloDistance <- function(dend1, dend2, Method=c("CI", "RF", "KF", "JRF"), RawScore=FALSE, JRFExp=2){
   Method <- match.arg(Method)
   stopifnot("inputs must both be dendrograms!"=is(dend1, 'dendrogram') && is(dend2, 'dendrogram'))
-  if (is.integer(JRFExp)) JRFExp <- as.numeric(JRFExp) 
+  if (is.integer(JRFExp)) JRFExp <- as.numeric(JRFExp)
   stopifnot("ExpVal must be numeric or integer"=is.numeric(JRFExp))
-  
+
   if (!is(labels(dend1), 'character')){
     dend1 <- rapply(dend1, \(x){
       if (!is.null(attr(x, 'leaf')))
@@ -98,34 +98,37 @@ PhyloDistance <- function(dend1, dend2, Method=c("CI", "RF", "KF", "JRF"), RawSc
     }, how='replace')
   }
   incommonLabs <- intersect(labels(dend1), labels(dend2))
-  if (length(incommonLabs) == 0){ 
-    val <- c(0, NA, NA)
+  if (length(incommonLabs) == 0){
+    if(RawScore)
+      val <- c(0, NA, NA)
+    else
+      val <- 1
   } else {
     tree1ptr <- .Call("initCDend", dend1, PACKAGE="SynExtend")
     on.exit(rm(tree1ptr))
     tree2ptr <- .Call("initCDend", dend2, PACKAGE="SynExtend")
     on.exit(rm(tree2ptr))
-    
+
     if (Method == 'CI'){
-      val <- .Call("GRFInfo", tree1ptr, tree2ptr, 
+      val <- .Call("GRFInfo", tree1ptr, tree2ptr,
                    incommonLabs, FALSE, 0, PACKAGE="SynExtend")
       return(CIDist(val, incommonLabs, RawScore))
     } else if (Method == 'JRF'){
-      val <- .Call("GRFInfo", tree1ptr, tree2ptr, 
+      val <- .Call("GRFInfo", tree1ptr, tree2ptr,
                    incommonLabs, TRUE, JRFExp, PACKAGE="SynExtend")
       return(JRFDist(val, RawScore))
     } else if (Method == 'RF'){
-      val <- .Call("RFDist", tree1ptr, tree2ptr, 
+      val <- .Call("RFDist", tree1ptr, tree2ptr,
                    incommonLabs, PACKAGE="SynExtend")
       return(RFDist(val, RawScore))
     } else if (Method == 'KF') {
-      val <- .Call("KFDist", tree1ptr, tree2ptr, 
+      val <- .Call("KFDist", tree1ptr, tree2ptr,
                    incommonLabs, PACKAGE="SynExtend")
       return(KFDist(val))
     }
     else
       stop("Method not recognized!")
   }
-  
+
   return(val)
 }

@@ -9,7 +9,7 @@ Calculates distance between two unrooted phylogenies using a variety of metrics.
 }
 \usage{
 PhyloDistance(dend1, dend2,
-              Method=c("CI", "RF", "KF", "JRF"), 
+              Method=c("CI", "RF", "KF", "JRF"),
               RawScore=FALSE, JRFExp=2)
 }
 %- maybe also 'usage' for other objects documented here.
@@ -19,7 +19,7 @@ PhyloDistance(dend1, dend2,
   tree.
 }
   \item{dend2}{
-  An object of class \code{dendrogram}, representing an unrooted bifurcating phylogenetic 
+  An object of class \code{dendrogram}, representing an unrooted bifurcating phylogenetic
   tree.
 }
 \item{Method}{
@@ -45,10 +45,10 @@ This function implements a variety of tree distances, specified by the value of 
 Information on each of these algorithms, how scores are calculated, and references to literature can be found at the above links. Method \code{"CI"} is selected by default due to recent work showing this method as the most robust tree distance metric under general conditions.
 }
 \value{
-Returns a normalized distance, with 0 indicating identical trees and 1 indicating 
-maximal difference. If the trees have no leaves in common, the function will return \code{1}.
+Returns a normalized distance, with 0 indicating identical trees and 1 indicating
+maximal difference. If the trees have no leaves in common, the function will return \code{1} if \code{RawScore=FALSE}, or \code{c(0,NA,NA)} if \code{RawScore=TRUE}.
 
-If \code{RawScore=TRUE}, returns a vector of the components used to calculate the distance. This is typically a length 3 vector, but specific details can be found on the description for each algorithm.
+If \code{RawScore=TRUE}, returns a vector of the components used to calculate the distance. This is typically a length 3 vector, but specific details can be found on the description for each algorithm linked above.
 }
 
 \author{
@@ -56,9 +56,9 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 }
 \note{
 Note that this function requires the input dendrograms to be labeled alike (ex.
-leaf labeled \code{abc} in \code{dend1} represents the same species as 
-leaf labeled \code{abc} in \code{dend2}). 
-Labels can easily be modified using \code{\link{dendrapply}}. 
+leaf labeled \code{abc} in \code{dend1} represents the same species as
+leaf labeled \code{abc} in \code{dend2}).
+Labels can easily be modified using \code{\link{dendrapply}}.
 }
 
 \seealso{

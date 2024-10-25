@@ -62,19 +62,9 @@
 
 /*
  * TODOs:
- *	- add graceful failure to cleanup files on abort / interrupt
- *		note Simon's suggestion for this:
- *			static void chkIntFn(void *dummy) {
- *			  R_CheckUserInterrupt();
- *			}
- *
- *			// this will call the above in a top-level context so it won't longjmp-out of your context
- *			bool checkInterrupt() {
- *			  return (R_ToplevelExec(chkIntFn, NULL) == FALSE);
- *			}
- *
- *			// your code somewhere ...
- *			if (checkInterrupt()) { // user interrupted ... }
+ *	- further optimization: can we offload anything else to the trie?
+ *			eg could store offsets during clustering step so we don't have
+ *			to query the header file
  */
 
 #ifndef PATH_MAX
@@ -1310,6 +1300,9 @@ void update_node_cluster(l_uint ind, double inflation, aq_int times_seen,
 		infl_pow = pow(infl_pow, 1+log2((double)(times_seen-1)));
 
 	// move to information for the vertex and read in number of edges
+	// TODO: can we put this in the trie?
+	//				would have to have an extra value so we could get start/end
+	//				from leaves[ind] and leaves[ind+1]
 	fseek(offsets, L_SIZE*ind, SEEK_SET);
 	safe_fread(&start, L_SIZE, 1, offsets);
 	safe_fread(&end, L_SIZE, 1, offsets);
