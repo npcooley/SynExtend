@@ -1013,7 +1013,7 @@ NucleotideOverlap <- function(SyntenyObject,
       if (dim(OverLapMatrix)[1] == 0L) {
         OverLapMatrix <- matrix(NA_integer_,
                                 nrow = 1L,
-                                ncol = 11L)
+                                ncol = 9L) # was 11, does this need to be 11 somewhere else?
         OutPutMatrix <- matrix(NA_integer_,
                                nrow = 1L,
                                ncol = 11L)
@@ -1077,7 +1077,8 @@ NucleotideOverlap <- function(SyntenyObject,
                                                       drop = FALSE]),
                                    ,
                                    drop = FALSE]
-      
+      # return(list(OutPutMatrix,
+      #             OverLapMatrix))
       colnames(OutPutMatrix) <- c("QueryGene",
                                   "SubjectGene",
                                   "ExactOverlap",
