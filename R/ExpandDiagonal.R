@@ -28,7 +28,8 @@ ExpandDiagonal <- function(SynExtendObject,
     }
     if (!("package:RSQLite" %in% search())) {
       print("Eventually character vector access to DECIPHER DBs will be deprecated.")
-      require(RSQLite, quietly = TRUE)
+      requireNamespace(package = "RSQLite",
+                       quietly = TRUE)
     }
     dbConn <- dbConnect(dbDriver("SQLite"), DataBase01)
     on.exit(dbDisconnect(dbConn))
@@ -958,7 +959,7 @@ ExpandDiagonal <- function(SynExtendObject,
                                                      times = L2),
                                "PID" = nt_pid,
                                "Score" = nt_score,
-                               "Alignment" = rep("AA",
+                               "Alignment" = rep("NT",
                                                  times = L2),
                                "Block_UID" = rep(-1L,
                                                  times = L2),
