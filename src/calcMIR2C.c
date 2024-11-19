@@ -20,7 +20,7 @@ static node *corrs = NULL;
 
 void cleanupFxn(){
   node *ptr = corrs;
-  // Free allocated memory in linked list
+  // R_Free allocated memory in linked list
   while (corrs != NULL){
     ptr = corrs;
     corrs = corrs->next;
