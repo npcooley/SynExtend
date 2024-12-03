@@ -159,7 +159,8 @@ RPContextTree.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE, precalcProfs=
                     Verbose=Verbose,
                     precalcCProfs=precalcProfs,
                     MySpeciesTree=MySpeciesTree,
-                    CombinePVal=CombinePVal))
+                    CombinePVal=CombinePVal,
+                    Subset=Subset))
 }
 
 TreeDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,

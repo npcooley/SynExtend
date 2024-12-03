@@ -388,7 +388,7 @@ predict.EvoWeaver <- function(object, Method='Ensemble', Subset=NULL, Processors
     if (methodtype=='TreeDistance'){
       pnames <- names(preds)
       for (i in seq_along(pnames)){
-        names(preds[[i]]) <- n
+        #names(preds[[i]]) <- n
         preds[[i]] <- structure(preds[[i]],
                                 method=pnames[i],
                                 class=c('EvoWeb', 'simMat'))
