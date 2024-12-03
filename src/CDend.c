@@ -262,7 +262,7 @@ SEXP RFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
     return retval;
   }
 
-  unsigned int *allHashed = Calloc(numLabels, unsigned int);
+  unsigned int *allHashed = R_Calloc(numLabels, unsigned int);
   for (int i=0; i<numLabels; i++){
     allHashed[i] = hashLabel(STRING_ELT(allLabels, i));
   }
@@ -270,9 +270,9 @@ SEXP RFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
   int t1pl = tree1->value-1;
   int t2pl = tree2->value-1;
 
-  ulong *keyvals = Calloc(numLabels, ulong);
-  ulong *ht1 = Calloc(t1pl, ulong);
-  ulong *ht2 = Calloc(t2pl, ulong);
+  ulong *keyvals = R_Calloc(numLabels, ulong);
+  ulong *ht1 = R_Calloc(t1pl, ulong);
+  ulong *ht2 = R_Calloc(t2pl, ulong);
 
   // seed random number generator
   GetRNGstate();
@@ -287,12 +287,12 @@ SEXP RFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
 
   RFHashMap(tree1, ht1, keyvals, allHashed, numLabels, t1pl);
   RFHashMap(tree2, ht2, keyvals, allHashed, numLabels, t2pl);
-  Free(allHashed);
-  Free(keyvals);
+  R_Free(allHashed);
+  R_Free(keyvals);
 
   int ctr1 = 0, ctr2=0;
-  int *idxToKeep1 = Calloc(t1pl, int);
-  int *idxToKeep2 = Calloc(t2pl, int);
+  int *idxToKeep1 = R_Calloc(t1pl, int);
+  int *idxToKeep2 = R_Calloc(t2pl, int);
   for (int i=0; i<t1pl; i++){
     if (ht1[i] != 0 && ht1[i] != totalval){
       idxToKeep1[ctr1] = i;
@@ -310,8 +310,8 @@ SEXP RFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
     ht1[i] = ht1[idxToKeep1[i]];
   for (int i=0; i<ctr2; i++)
     ht2[i] = ht2[idxToKeep2[i]];
-  Free(idxToKeep1);
-  Free(idxToKeep2);
+  R_Free(idxToKeep1);
+  R_Free(idxToKeep2);
 
   int num_unique = 0;
   ulong curval, test;
@@ -343,8 +343,8 @@ SEXP RFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
   }
 
   // cleanup
-  Free(ht1);
-  Free(ht2);
+  R_Free(ht1);
+  R_Free(ht2);
   SEXP retval = PROTECT(allocVector(INTSXP, 3));
   int *rptr = INTEGER(retval);
   rptr[0] = num_unique;
@@ -371,7 +371,7 @@ SEXP KFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
     return retval;
   }
 
-  unsigned int *allHashed = Calloc(numLabels, unsigned int);
+  unsigned int *allHashed = R_Calloc(numLabels, unsigned int);
   for (int i=0; i<numLabels; i++){
     allHashed[i] = hashLabel(STRING_ELT(allLabels, i));
   }
@@ -379,11 +379,11 @@ SEXP KFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
   int t1pl = tree1->value-1;
   int t2pl = tree2->value-1;
 
-  ulong *keyvals = Calloc(numLabels, ulong);
-  ulong *ht1 = Calloc(t1pl, ulong);
-  ulong *ht2 = Calloc(t2pl, ulong);
-  double *dists1 = Calloc(t1pl+2, double);
-  double *dists2 = Calloc(t2pl+2, double);
+  ulong *keyvals = R_Calloc(numLabels, ulong);
+  ulong *ht1 = R_Calloc(t1pl, ulong);
+  ulong *ht2 = R_Calloc(t2pl, ulong);
+  double *dists1 = R_Calloc(t1pl+2, double);
+  double *dists2 = R_Calloc(t2pl+2, double);
 
   // seed random number generator
   GetRNGstate();
@@ -398,8 +398,8 @@ SEXP KFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
 
   KFHashMap(tree1, ht1, dists1, keyvals, allHashed, numLabels, t1pl);
   KFHashMap(tree2, ht2, dists2, keyvals, allHashed, numLabels, t2pl);
-  Free(allHashed);
-  Free(keyvals);
+  R_Free(allHashed);
+  R_Free(keyvals);
 
   // Correct length of root node
   if (tree1->left && tree1->right)
@@ -409,8 +409,8 @@ SEXP KFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
     dists2[t2pl-1] = 2*tree2->height - tree2->left->height - tree2->right->height;
 
   int ctr1 = 0, ctr2=0;
-  int *idxToKeep1 = Calloc(t1pl, int);
-  int *idxToKeep2 = Calloc(t2pl, int);
+  int *idxToKeep1 = R_Calloc(t1pl, int);
+  int *idxToKeep2 = R_Calloc(t2pl, int);
   for (int i=0; i<t1pl; i++){
     if (ht1[i] != 0 && ht1[i] != totalval){
       idxToKeep1[ctr1] = i;
@@ -432,8 +432,8 @@ SEXP KFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
     ht2[i] = ht2[idxToKeep2[i]];
     dists2[i] = dists2[idxToKeep2[i]];
   }
-  Free(idxToKeep1);
-  Free(idxToKeep2);
+  R_Free(idxToKeep1);
+  R_Free(idxToKeep2);
 
   double score = 0, maxval=0, curh;
   ulong curval, test;
@@ -471,10 +471,10 @@ SEXP KFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels){
   }
 
   // cleanup
-  Free(ht1);
-  Free(ht2);
-  Free(dists1);
-  Free(dists2);
+  R_Free(ht1);
+  R_Free(ht2);
+  R_Free(dists1);
+  R_Free(dists2);
   SEXP retval = PROTECT(allocVector(REALSXP, 2));
   double *rptr = REAL(retval);
   rptr[0] = score;
@@ -493,7 +493,7 @@ SEXP calcDValue(SEXP tnPtr, SEXP occVec){
     presMap[i] = hashLabel(STRING_ELT(occVec, i));
   }
 
-  double *scores = Calloc(head->value+1, double);
+  double *scores = R_Calloc(head->value+1, double);
   calcSisterClades(head, presMap, ovLen, scores);
 
   double score = scoreSisterClades(head, scores);
@@ -502,7 +502,7 @@ SEXP calcDValue(SEXP tnPtr, SEXP occVec){
   SEXP retval = PROTECT(allocVector(REALSXP, 1));
   REAL(retval)[0] = score;
   free(presMap);
-  Free(scores);
+  R_Free(scores);
   UNPROTECT(1);
 
   return retval;
@@ -573,7 +573,7 @@ SEXP calcDBrownValue(SEXP tnPtr, SEXP allLabels, SEXP iterNum, SEXP SD, SEXP STA
 
   int numScores = head->value+1;
   double *scores = calloc(numScores, sizeof(double));
-  unsigned int *labs = Calloc(numLabels, unsigned int);
+  unsigned int *labs = R_Calloc(numLabels, unsigned int);
   double randSum = 0.0;
   int ctr;
   for (int i=0; i<numIter; i++){
@@ -608,7 +608,7 @@ SEXP calcDBrownValue(SEXP tnPtr, SEXP allLabels, SEXP iterNum, SEXP SD, SEXP STA
   SEXP retval = PROTECT(allocVector(REALSXP, 1));
   REAL(retval)[0] = randSum;
   free(scores);
-  Free(labs);
+  R_Free(labs);
   free(allHashed);
   PutRNGstate();
   UNPROTECT(1);
@@ -1234,7 +1234,7 @@ int populateVector(treeNode* node, int *container, int idx){
 /****** Allocation Functions ******/
 
 treeNode *allocTreeNode(double h, int v, int m, unsigned int l, double parentheight){
-  treeNode *newNode = Calloc(1, treeNode);
+  treeNode *newNode = R_Calloc(1, treeNode);
   newNode->left = NULL;
   newNode->right = NULL;
   newNode->height = h;
@@ -1350,7 +1350,7 @@ static void CleanupTree(treeNode* head){
   if (!head) return;
   CleanupTree(head->left);
   CleanupTree(head->right);
-  Free(head);
+  R_Free(head);
 
   return;
 }
