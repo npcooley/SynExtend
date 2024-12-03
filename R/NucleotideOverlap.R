@@ -21,9 +21,10 @@ NucleotideOverlap <- function(SyntenyObject,
   if (!is(SyntenyObject, "Synteny")) {
     stop ("Object is not a synteny object.")
   }
-  if (L != length(GeneCalls)) {
-    stop ("Synteny Object and Gene Calls have differing number of genomes.")
-  }
+  # this needs to be dropped if i'm going to work with self-synteny objects
+  # if (L != length(GeneCalls)) {
+  #   stop ("Synteny Object and Gene Calls have differing number of genomes.")
+  # }
   if (is.null(names(GeneCalls))) {
     stop ("Gene Predictions must be named.")
   }
@@ -32,6 +33,9 @@ NucleotideOverlap <- function(SyntenyObject,
   }
   if (any(names(GeneCalls) != rownames(SyntenyObject))) {
     stop ("Names between Synteny Object and Gene Predictions do not match.")
+  }
+  if (!all(rownames(SyntenyObject) %in% names(GeneCalls))) {
+    stop ("All distinct identifiers in the Synteny object require matching gene calls.")
   }
   if (L <= 1L) {
     stop ("SyntenyObject is too small.")
@@ -54,15 +58,14 @@ NucleotideOverlap <- function(SyntenyObject,
   
   SynNames <- unname(sapply(diag(SyntenyObject),
                             function(x) gsub(x = names(x),
-                                             pattern = " .+",
+                                             pattern = " .*",
                                              replacement = ""),
                             simplify = FALSE,
                             USE.NAMES = FALSE))
-  FeatureRepresentations <- vector(mode = "list",
-                                   length = L)
+  # this can no longer be length L and needs to just be the length of GeneCalls
+  FeatureRepresentations <- ContigNames <- vector(mode = "list",
+                                                  length = length(GeneCalls))
   names(FeatureRepresentations) <- names(GeneCalls)
-  ContigNames <- vector(mode = "list",
-                        length = L)
   
   GCallClasses <- sapply(GeneCalls,
                          function(x) class(x),
@@ -275,7 +278,7 @@ NucleotideOverlap <- function(SyntenyObject,
                   SIMPLIFY = FALSE)
       ContigNames[[m1]] <- unique(CurrentIndices)
       names(ContigNames[[m1]]) <- gsub(x = names(attr(ans, "widths")),
-                                       pattern = " .+",
+                                       pattern = " .*",
                                        replacement = "")
       if (AcceptContigNames) {
         C.Index <- CurrentIndices
@@ -294,6 +297,7 @@ NucleotideOverlap <- function(SyntenyObject,
                                values = ph2[m3])
           }
         }
+        ContigNames[[m1]] <- ContigNames[[m1]][ph2]
         rm(list = c("ph1",
                     "ph2",
                     "ph3"))
@@ -314,7 +318,9 @@ NucleotideOverlap <- function(SyntenyObject,
                      "Gene" = CurrentGene,
                      "Coding" = CurrentCoding,
                      "Translation_Table" = rep(NA_character_,
-                                               length(o)))
+                                               length(o)),
+                     "Contig" = rep(names(ContigNames[[m1]]),
+                                    times = table(CurrentIndices)))
       D <- D[o, ]
       D <- D[as.vector(ans[, "Gene"]) != 0L, ]
       rownames(D) <- NULL
@@ -365,6 +371,9 @@ NucleotideOverlap <- function(SyntenyObject,
     }
   }
   diag(ResultMatrix) <- ContigNames
+  feature_match <- match(x = rownames(SyntenyObject),
+                         table = names(FeatureRepresentations))
+  
   
   ###### -- End Gene call stuff -----------------------------------------------
   
@@ -376,15 +385,15 @@ NucleotideOverlap <- function(SyntenyObject,
       # Collect Index Start Stop Strand from hit table
       ######
       
-      Q.Index <- FeatureRepresentations[[m1]][, 1L]
-      Q.Start <- FeatureRepresentations[[m1]][, 3L]
-      Q.Stop <- FeatureRepresentations[[m1]][, 4L]
-      QG.Strand <- FeatureRepresentations[[m1]][, 2L]
+      Q.Index <- FeatureRepresentations[[feature_match[m1]]][, 1L]
+      Q.Start <- FeatureRepresentations[[feature_match[m1]]][, 3L]
+      Q.Stop <- FeatureRepresentations[[feature_match[m1]]][, 4L]
+      QG.Strand <- FeatureRepresentations[[feature_match[m1]]][, 2L]
       
-      S.Index <- FeatureRepresentations[[m2]][, 1L]
-      S.Start <- FeatureRepresentations[[m2]][, 3L]
-      S.Stop <- FeatureRepresentations[[m2]][, 4L]
-      SG.Strand <- FeatureRepresentations[[m2]][, 2L]
+      S.Index <- FeatureRepresentations[[feature_match[m2]]][, 1L]
+      S.Start <- FeatureRepresentations[[feature_match[m2]]][, 3L]
+      S.Stop <- FeatureRepresentations[[feature_match[m2]]][, 4L]
+      SG.Strand <- FeatureRepresentations[[feature_match[m2]]][, 2L]
       
       # if (AcceptContigNames) {
       #   Q.Index <- FeatureRepresentations[[m1]][, 1L]
@@ -1125,9 +1134,11 @@ NucleotideOverlap <- function(SyntenyObject,
       }
       if (nrow(OutPutMatrix) == 1L &
           all(is.na(OutPutMatrix))) {
-        OutPutMatrix <- OutPutMatrix[-1L, ]
+        OutPutMatrix <- OutPutMatrix[-1L, ] # i'm not sure this is safe in the long run?
+        # double check this with erik
         # DisplacementMatrix[1, ] <- rep(0L, ncol(DisplacementMatrix))
-        OverLapMatrix[1, ] <- rep(0L, ncol(OverLapMatrix))
+        # OverLapMatrix[1, ] <- rep(0L, ncol(OverLapMatrix))
+        OverLapMatrix <- OverLapMatrix[-1L, ]
       }
       ResultMatrix[m1, m2] <- list(OutPutMatrix)
       ResultMatrix[m2, m1] <- list(OverLapMatrix)
