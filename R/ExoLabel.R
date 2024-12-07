@@ -162,3 +162,14 @@ EstimateExoLabel <- function(num_v, avg_degree=2,
   }
   invisible(v)
 }
+
+TestExo <- function(f){
+  on.exit(.C("cleanup_ondisklp_global_values"))
+  if(!file.exists(f)) stop("file doesn't exist")
+  tmps <- replicate(4, tempfile())
+
+  file.copy(f, tmps[1])
+  file.copy(f, tmps[2])
+
+  .Call("R_TestRW", tmps, tempdir())
+}

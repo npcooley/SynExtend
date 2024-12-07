@@ -44,6 +44,7 @@
 #include "SEutils.h"
 #include "SynExtend.h"
 #include "PrefixTrie.h"
+#include "LoserTree.h"
 #include <time.h>
 
 #define h_uint uint64_t
@@ -109,7 +110,6 @@ const int PROGRESS_COUNTER_MOD = 6043;
 	inline int getc_unsafe(FILE *f) { return getc_unlocked(f); }
 #endif
 
-
 /**********************/
 /* Struct Definitions */
 /**********************/
@@ -152,20 +152,28 @@ typedef struct {
 	l_uint length;
 } ArrayQueue;
 
+typedef struct {
+	l_uint v;
+	double w;
+} edge;
+
 /*********************************/
 /* Global Vars to Cleanup at End */
 /*********************************/
-static l_uint GLOBAL_verts_remaining;
-static l_uint *GLOBAL_ptr;
-static leaf **GLOBAL_leaf;
-static leaf **GLOBAL_all_leaves;
-static char **GLOBAL_filenames; // holds file NAMES
-static int GLOBAL_nfiles;
-static l_uint CLUST_MAP_CTR;
-static ArrayQueue *GLOBAL_queue;
-static prefix *GLOBAL_trie;
-static FILE **GLOBAL_ftracker; // holds file POINTERS
-static int GLOBAL_num_files;
+static l_uint GLOBAL_verts_remaining = 0;
+static l_uint *GLOBAL_ptr = NULL;
+static leaf **GLOBAL_leaf = NULL;
+static leaf **GLOBAL_all_leaves = NULL;
+static char **GLOBAL_filenames = NULL; // holds file NAMES
+static int GLOBAL_nfiles = 0;
+static l_uint CLUST_MAP_CTR = 0;
+static ArrayQueue *GLOBAL_queue = NULL;
+static prefix *GLOBAL_trie = NULL;
+static FILE **GLOBAL_ftracker = NULL; // holds file POINTERS
+static int GLOBAL_num_files = 0;
+static int GLOBAL_nbuffers = 0;
+static void **GLOBAL_mergebuffers = NULL;
+static LoserTree *GLOBAL_mergetree = NULL;
 
 /***************************/
 /* Struct Helper Functions */
@@ -424,6 +432,15 @@ void cleanup_ondisklp_global_values(){
 	if(GLOBAL_all_leaves) free(GLOBAL_all_leaves);
 	free_trie(GLOBAL_trie);
 
+	if(GLOBAL_mergebuffers){
+		for(int i=0; i<GLOBAL_nbuffers; i++){
+			if(GLOBAL_mergebuffers[i]) free(GLOBAL_mergebuffers[i]);
+		}
+		if(GLOBAL_mergebuffers) free(GLOBAL_mergebuffers);
+	}
+
+	if(GLOBAL_mergetree) LT_free(GLOBAL_mergetree);
+
 	// NULL out all remaining pointers
 	GLOBAL_num_files = 0;
 	GLOBAL_nfiles = 0;
@@ -433,6 +450,15 @@ void cleanup_ondisklp_global_values(){
 	GLOBAL_filenames = NULL;
 
 	return;
+}
+
+static inline char get_buffchar(char *buf, size_t bufsize, size_t *cur_ind,
+																size_t *remaining, FILE *stream){
+	if(*cur_ind == *remaining){
+		*cur_ind = 0;
+		*remaining = fread(buf, 1, bufsize, stream);
+	}
+	return *remaining ? buf[(*cur_ind)++] : 0;
 }
 
 /************************/
@@ -459,6 +485,14 @@ int leaf_index_compar(const void *a, const void *b){
 	l_uint aa = GLOBAL_leaf[*(l_uint*)a]->count;
 	l_uint bb = GLOBAL_leaf[*(l_uint*)b]->count;
 	return (aa > bb) - (aa < bb);
+}
+
+int edge_compar(const void *a, const void *b){
+	const edge aa = *(const edge *)a;
+	const edge bb = *(const edge *)b;
+	int cmp = aa.v - bb.v;
+	if(cmp == 0) cmp = aa.w - bb.w;
+	return cmp;
 }
 
 /**************************/
@@ -718,6 +752,138 @@ void mergesort_clust_file(const char* f, const char* dir, size_t element_size,
 	return;
 }
 
+void kway_mergesort_file(const char* f1, const char* f2, l_uint nlines,
+													size_t element_size,
+													l_uint block_size, int buf_size,
+													int num_bins, int output_size,
+													int (*compar)(const void *, const void *),
+													const int verbose){
+	/*
+	 * Input variables:
+	 *	-				f1, f2: file names (f1: source, f2: temp)
+	 *  -				nlines: number of lines to sort in file
+	 *	- element_size: size (in bytes) of a single element
+	 *	-  	block_size: number of elements in each pre-sorted block
+	 *	- 		buf_size: number of elements to store in each buffer
+	 *	-     num_bins: "k" in k-way merge. Set to power of 2 for best performance.
+	 *	-  output_size: number of elements to store in output buffer.
+	 *	- 			compar: comparison function for comparing elements
+	 *	-			 verbose: print status?
+	 *
+	 */
+
+	// file should already be sorted into x blocks of size block_size*element_size
+
+	FILE *file1, *file2;
+
+	LoserTree *mergetree = LT_alloc(num_bins, output_size, element_size, compar);
+	GLOBAL_mergetree = mergetree;
+	int cur_start, to_read, empty_bin;
+	l_uint nblocks, num_iter;
+
+	// allocate space for the buffers
+	void **buffers = malloc(sizeof(void*)*num_bins);
+	for(int i=0; i<num_bins; i++) buffers[i] = malloc(buf_size*element_size);
+	GLOBAL_mergebuffers = buffers;
+	GLOBAL_nbuffers = num_bins;
+
+	long int *offsets, *remaining;
+	offsets = malloc(sizeof(long int)*num_bins);
+	remaining = malloc(sizeof(long int)*num_bins);
+
+	const char *cur_source = f1;
+	const char *cur_target = f2;
+	const char *tmp_swap_char;
+	while(block_size < nlines){
+		file1 = safe_fopen(cur_source, "rb");
+		file2 = safe_fopen(cur_target, "wb");
+
+		// number of blocks
+		nblocks = nlines / block_size + !!(nlines % block_size);
+		// number of iterations is nblocks / num bins
+		num_iter = nblocks / num_bins + !!(nblocks % num_bins);
+
+		cur_start = 0;
+		for(l_uint iter=0; iter<num_iter; iter++){
+			if(verbose) Rprintf("\tIteration %llu of %llu (%6.01f%% complete)       \r",
+				iter+1, num_iter, 100*(double)block_size/(double)nlines);
+			R_CheckUserInterrupt();
+			// run one k-way merge operation
+
+			// first initialize offsets and number of remaining values
+			for(int i=0; i<num_bins; i++){
+				offsets[i] = cur_start;
+				if(cur_start != nlines-1)
+					cur_start += block_size;
+				cur_start = cur_start > (nlines) ? nlines : cur_start;
+				remaining[i] = cur_start - offsets[i];
+			}
+
+			// load data into the buffers and assign into tree
+			for(int i=0; i<num_bins; i++){
+				if(remaining[i]){
+					fseek(file1, offsets[i]*element_size, SEEK_SET);
+					to_read = remaining[i] > buf_size ? buf_size : remaining[i];
+					safe_fread(buffers[i], to_read, element_size, file1);
+					LT_fillBin(mergetree, i, to_read, buffers[i]);
+					remaining[i] -= to_read;
+					offsets[i] += to_read;
+				}
+			}
+
+			// merge all the data
+			LT_initGame(mergetree);
+			while(mergetree->full_bins){
+				empty_bin = LT_runFileGame(mergetree, file2);
+				// refill the bin
+				to_read = 0;
+				if(remaining[empty_bin]){
+					fseek(file1, offsets[empty_bin]*element_size, SEEK_SET);
+					to_read = remaining[empty_bin] > buf_size ? buf_size : remaining[empty_bin];
+					safe_fread(buffers[empty_bin], to_read, element_size, file1);
+					remaining[empty_bin] -= to_read;
+					offsets[empty_bin] += to_read;
+				}
+
+				// note that the bin must be refilled even with no elements
+				// so the tree moves on to the next step prior to next pop
+				LT_refillBin(mergetree, empty_bin, to_read, buffers[empty_bin]);
+			}
+
+			// finally, call fdumpOutput to dump any remaining values
+			LT_fdumpOutput(mergetree, file2);
+		}
+		printf("\nWrote %ld values\n", mergetree->nwritten);
+		mergetree->nwritten = 0;
+		block_size *= num_bins;
+		fclose_tracked(2);
+		tmp_swap_char = cur_source;
+		cur_source = cur_target;
+		cur_target = tmp_swap_char;
+		if(verbose) printf("\n");
+	}
+	// cur_source will always be the file we just WROTE to here
+
+	if(verbose) Rprintf("\t100.00%% complete                                 \n");
+	for(int i=0; i<num_bins; i++) free(buffers[i]);
+	free(buffers);
+
+	GLOBAL_mergebuffers = NULL;
+	GLOBAL_nbuffers = 0;
+	LT_free(mergetree);
+	GLOBAL_mergetree = NULL;
+
+	remove(cur_target);
+	if(f1 != cur_source){
+		// if we used an odd number of iterations,
+		// the final file is the temp file
+		// so we have to "swap" them
+		rename(cur_source, f1);
+	}
+
+	return;
+}
+
 void copy_csrfile_sig(const char* dest, const char* src, l_uint num_v, const double w){
 	l_uint *restrict vbuf = safe_malloc(FILE_READ_CACHE_SIZE*L_SIZE);
 	float *restrict wbuf = safe_malloc(FILE_READ_CACHE_SIZE*sizeof(float));
@@ -857,23 +1023,24 @@ h_uint hash_file_vnames_trie(const char* fname, prefix *trie, h_uint next_index,
 	 * hashfname: file to write vertices to
 	 */
 	FILE *f = safe_fopen(fname, "rb");
-
+	size_t rc_size = FILE_READ_CACHE_SIZE*8;
+	size_t remaining=0, rcache_i=0;
 	// size + 1 so that there's space for marking if it's an outgoing edge
-	//char *vname = safe_malloc(MAX_NODE_NAME_SIZE+1);
 	char *vname;
 	char **restrict namecache = safe_malloc(sizeof(char*) * NODE_NAME_CACHE_SIZE);
 	uint *restrict str_counts = safe_malloc(sizeof(uint) * NODE_NAME_CACHE_SIZE);
+	char *read_cache = safe_malloc(rc_size);
 	int num_unique;
 
 	for(int i=0; i<NODE_NAME_CACHE_SIZE; i++) namecache[i] = safe_malloc(MAX_NODE_NAME_SIZE+1);
 
 	int cur_pos = 0, cachectr=0;
-	char c = getc_unsafe(f);
+	char c = get_buffchar(read_cache, rc_size, &rcache_i, &remaining, f);
 	l_uint print_counter = 0;
 
 	if(v) Rprintf("\tReading file %s...\n", fname);
 
-	while(!feof(f)){
+	while(!feof(f) || remaining){
 		// going to assume we're at the beginning of a line
 		// lines should be of the form `start end weight` or `start end`
 		// separation is by char `sep`
@@ -883,11 +1050,11 @@ h_uint hash_file_vnames_trie(const char* fname, prefix *trie, h_uint next_index,
 			cur_pos = 0;
 			while(c != sep && c != line_sep){
 				vname[cur_pos++] = c;
-				c = getc_unsafe(f);
+				c = get_buffchar(read_cache, rc_size, &rcache_i, &remaining, f);
 				if(cur_pos == MAX_NODE_NAME_SIZE-1) // max size has to include the null terminator
 					error("Node name is larger than max allowed name size.\n");
 
-				if(feof(f)) error("Unexpected end of file.\n");
+				if(feof(f) && !remaining) error("Unexpected end of file.\n");
 			}
 
 			// mark if edge is outgoing -- always if undirected, otherwise only if the first node name
@@ -904,11 +1071,11 @@ h_uint hash_file_vnames_trie(const char* fname, prefix *trie, h_uint next_index,
 
 			// if lines are of the form `start end`, we need to leave c on the terminator
 			if(c == sep)
-				c = getc_unsafe(f);
+				c = get_buffchar(read_cache, rc_size, &rcache_i, &remaining, f);
 		}
 
-		while(c != line_sep && !feof(f)) c = getc_unsafe(f);
-		if(c == line_sep) c=getc_unsafe(f);
+		while(c != line_sep && (!feof(f) || remaining)) c = get_buffchar(read_cache, rc_size, &rcache_i, &remaining, f);
+		if(c == line_sep) c = get_buffchar(read_cache, rc_size, &rcache_i, &remaining, f);
 		print_counter++;
 		if(!(print_counter % PRINT_COUNTER_MOD)){
 			if(v) Rprintf("\t%" lu_fprint " lines read\r", print_counter);
@@ -927,6 +1094,7 @@ h_uint hash_file_vnames_trie(const char* fname, prefix *trie, h_uint next_index,
 
 	for(int i=0; i<NODE_NAME_CACHE_SIZE; i++) free(namecache[i]);
 	free(namecache);
+	free(read_cache);
 	return next_index;
 }
 
@@ -1098,11 +1266,16 @@ void csr_compress_edgelist_trie_batch(const char* edgefile, prefix *trie,
 	 *  fweight: file where edge weights will be written
 	 *  fneighbors: file where edge end nodes will be written
 	 *  curcountfile: counts file, becomes clustering file later
+	 *
+	 * Changes from previous version:
+	 * 	use fread(...) to read into buffer rather than getc.
 	 */
 	l_uint *restrict node1, *restrict node2, *restrict locations;
 	float *weights;
 	int cachectr = 0;
 	int *indexes;
+	char *read_cache;
+	size_t rc_size = FILE_READ_CACHE_SIZE*8;
 
 	l_uint inds[2];
 	float weight;
@@ -1113,12 +1286,15 @@ void csr_compress_edgelist_trie_batch(const char* edgefile, prefix *trie,
 	// allocate space for all the stuff
 	int stringctr=0;
 	l_uint print_counter = 0;
+	size_t rcache_i = 0;
+	size_t remaining = 0;
 	char *restrict vname = safe_malloc(MAX_NODE_NAME_SIZE);
 	node1 = safe_malloc(FILE_READ_CACHE_SIZE * L_SIZE);
 	node2 = safe_malloc(FILE_READ_CACHE_SIZE * L_SIZE);
 	locations = safe_malloc(FILE_READ_CACHE_SIZE * L_SIZE);
 	weights = safe_malloc(FILE_READ_CACHE_SIZE * sizeof(float));
 	indexes = safe_malloc(FILE_READ_CACHE_SIZE * sizeof(int));
+	read_cache = safe_malloc(rc_size);
 	GLOBAL_ptr = node1;
 
 	FILE *offsetstable, *edgelist, *weightstable, *neighbortable;
@@ -1140,20 +1316,19 @@ void csr_compress_edgelist_trie_batch(const char* edgefile, prefix *trie,
 
 	if(v) Rprintf("\tReading file %s...\n", edgefile);
 
-	char c = getc_unsafe(edgelist);
-	while(!feof(edgelist)){
+	char c = get_buffchar(read_cache, rc_size, &rcache_i, &remaining, edgelist);
+	while(!feof(edgelist) || remaining){ // file isn't done OR buffer has data
 		// read in the two vertex names
 		for(int i=0; i<2; i++){
 			stringctr = 0;
-			//memset(vname, 0, MAX_NODE_NAME_SIZE);
 			while(c != sep && c != linesep){
 				vname[stringctr++] = c;
-				c = getc_unsafe(edgelist);
+				c = get_buffchar(read_cache, rc_size, &rcache_i, &remaining, edgelist);
 			}
 			// short circuit to skip a length-0 name
 			if(stringctr == 0){
 				i--;
-				c = getc_unsafe(edgelist);
+				c = get_buffchar(read_cache, rc_size, &rcache_i, &remaining, edgelist);
 				continue;
 			}
 			vname[stringctr] = 0;
@@ -1162,22 +1337,22 @@ void csr_compress_edgelist_trie_batch(const char* edgefile, prefix *trie,
 			// advance one past the separator if it isn't linesep
 			// it would equal linesep if we don't have weights included
 			if(c == sep)
-				c = getc_unsafe(edgelist);
+				c = get_buffchar(read_cache, rc_size, &rcache_i, &remaining, edgelist);
 		}
 		if(!ignore_weights){
 			// read in the weight
 			stringctr = 0;
 			memset(vname, 0, MAX_NODE_NAME_SIZE);
-			c = getc_unsafe(edgelist);
+			c = get_buffchar(read_cache, rc_size, &rcache_i, &remaining, edgelist);
 			while(c != linesep){
 				vname[stringctr++] = c;
-				c = getc_unsafe(edgelist);
+				c = get_buffchar(read_cache, rc_size, &rcache_i, &remaining, edgelist);
 			}
 			weight = atof(vname);
 		} else {
 			weight = 1.0;
 			while(c != linesep)
-				c = getc_unsafe(edgelist);
+				c = get_buffchar(read_cache, rc_size, &rcache_i, &remaining, edgelist);
 		}
 
 		// add to cache
@@ -1193,7 +1368,7 @@ void csr_compress_edgelist_trie_batch(const char* edgefile, prefix *trie,
 		}
 
 		// advance one past the separator
-		c = getc_unsafe(edgelist);
+		c = get_buffchar(read_cache, rc_size, &rcache_i, &remaining, edgelist);
 
 		if((cachectr+is_undirected) >= FILE_READ_CACHE_SIZE || (feof(edgelist) && cachectr)){
 			// get the order of the edges to write
@@ -1235,6 +1410,7 @@ void csr_compress_edgelist_trie_batch(const char* edgefile, prefix *trie,
 	free(weights);
 	free(indexes);
 	free(vname);
+	free(read_cache);
 	fclose_tracked(4);
 	return;
 }
@@ -1716,6 +1892,178 @@ l_uint write_output_clusters_trie(FILE *outfile, prefix *trie, l_uint *clust_map
 	return num_v;
 }
 
+void check_merged_file(const char* filename){
+	FILE *f = safe_fopen(filename, "rb");
+	edge x;
+	for(int i=0; i<20; i++){
+		fread(&x, sizeof(edge), 1, f);
+		printf("%llu %.02f\n", x.v, x.w);
+	}
+	return;
+}
+
+SEXP R_TestRW(SEXP FILES, SEXP DIR){
+	GLOBAL_nfiles = 0;
+	GLOBAL_filenames = safe_malloc(sizeof(char*) * 8);
+	GLOBAL_ftracker = safe_malloc(sizeof(FILE*) * 20);
+	GLOBAL_trie = NULL;
+	GLOBAL_all_leaves = NULL;
+	GLOBAL_mergebuffers = NULL;
+	GLOBAL_nbuffers = 0;
+	GLOBAL_mergetree = NULL;
+
+	const char* inf1 = CHAR(STRING_ELT(FILES, 0));
+	const char* inf2 = CHAR(STRING_ELT(FILES, 1));
+	const char* outf1 = CHAR(STRING_ELT(FILES, 2));
+	const char* outf2 = CHAR(STRING_ELT(FILES, 3));
+	const char* tmpdir = CHAR(STRING_ELT(DIR, 0));
+	const char* tempfile = create_filename(tmpdir, "tempfile.bin");
+	int stringctr=0, cachectr=0;
+	l_uint print_counter = 0;
+	float weight;
+
+	char *restrict vname = safe_malloc(MAX_NODE_NAME_SIZE);
+	edge *edges = safe_malloc(FILE_READ_CACHE_SIZE * sizeof(edge));
+	//GLOBAL_ptr = node1;
+	l_uint inds[2];
+	char sep='\t', linesep='\n';
+
+	clock_t time1, time2;
+	size_t rc_size = FILE_READ_CACHE_SIZE*8;
+	char *read_cache = safe_malloc(rc_size);
+	size_t curi=0, remaining=0;
+	l_uint hashval = 0, tmphash = 0, p=137, mod=pow(10,9)+9;
+	char c;
+
+	// Reading from a file speed
+	// Rprintf("about to read (%p %lu %lu %lu)\n", read_cache, rc_size, curi, remaining);
+	// FILE *f1 = fopen(inf1, "rb");
+	// Rprintf("Opened file\n");
+	// time1 = clock();
+	// while(!feof(f1) || remaining){
+	// 	if(curi == remaining){
+	// 		hashval ^= tmphash;
+	// 		tmphash = 0;
+	// 	}
+	// 	c = get_buffchar(read_cache, rc_size, &curi, &remaining, f1);
+	// 	tmphash += (l_uint)(pow(p, curi-1)*c) % mod;
+	// }
+	// time2 = clock();
+	// Rprintf("Hash value: %llu\n", hashval);
+	// Rprintf("Results of writes:\n");
+	// report_time(time1, time2, "\t");
+	// fclose(f1);
+
+	FILE *f2 = fopen(inf2, "rb");
+	FILE *o1=fopen(outf1, "wb");
+	//FILE *o2=fopen(outf2, "wb");
+	time1 = clock();
+	remaining = 0;
+	curi = 0;
+	double max_weight;
+	l_uint nedges=0;
+
+	c = get_buffchar(read_cache, rc_size, &curi, &remaining, f2);
+	while(!feof(f2) || remaining){ // file isn't done OR buffer has data
+		// read in the two vertex names
+		for(int i=0; i<2; i++){
+			stringctr = 0;
+			while(c != sep && c != linesep){
+				vname[stringctr++] = c;
+				c = get_buffchar(read_cache, rc_size, &curi, &remaining, f2);
+			}
+			// short circuit to skip a length-0 name
+			if(stringctr == 0){
+				i--;
+				c = get_buffchar(read_cache, rc_size, &curi, &remaining, f2);
+				continue;
+			}
+			vname[stringctr] = 0;
+			//inds[i] = find_index_for_prefix(vname, trie);
+			inds[i] = 0;
+			for(int tmpctr=0; tmpctr<stringctr; tmpctr++){
+				inds[i] += (l_uint)(pow(p, tmpctr)*vname[tmpctr]) % mod;
+			}
+
+			// advance one past the separator if it isn't linesep
+			// it would equal linesep if we don't have weights included
+			if(c == sep)
+				c = get_buffchar(read_cache, rc_size, &curi, &remaining, f2);
+		}
+
+		// read in the weight
+		stringctr = 0;
+		memset(vname, 0, MAX_NODE_NAME_SIZE);
+		c = get_buffchar(read_cache, rc_size, &curi, &remaining, f2);
+		while(c != linesep){
+			vname[stringctr++] = c;
+			c = get_buffchar(read_cache, rc_size, &curi, &remaining, f2);
+		}
+		weight = atof(vname);
+
+		// add to cache
+		edges[cachectr].v = inds[0];
+		edges[cachectr].w = inds[1] + weight/2;
+		// node1[cachectr] = inds[0];
+		// node2[cachectr] = inds[1];
+		// weights[cachectr] = inds[1] + weight/2;
+		cachectr++;
+
+		// node1[cachectr] = inds[1];
+		// node2[cachectr] = inds[0];
+		// weights[cachectr] = inds[0] + weight/2;
+		edges[cachectr].v = inds[1];
+		edges[cachectr].w = inds[0] + weight/2;
+		cachectr++;
+
+		// advance one past the separator
+		c = get_buffchar(read_cache, rc_size, &curi, &remaining, f2);
+
+		if((cachectr+1) >= FILE_READ_CACHE_SIZE || (feof(f2) && cachectr)){
+			// get the order of the edges to write
+			qsort(edges, cachectr, sizeof(edge), edge_compar);
+			nedges += safe_fwrite(edges, sizeof(edge), cachectr, o1);
+			cachectr = 0;
+		}
+
+		print_counter++;
+		if(!(print_counter % PRINT_COUNTER_MOD)){
+			Rprintf("\t%" lu_fprint " edges read\r", print_counter);
+			R_CheckUserInterrupt();
+		}
+	}
+	Rprintf("\t%" lu_fprint " edges read\r", print_counter);
+	fclose(o1);
+
+	time2 = clock();
+	Rprintf("\nResults of writes:\n");
+	report_time(time1, time2, "\t");
+	//check_merged_file(outf1);
+	//printf("**********************\n");
+	printf("%llu total edges\n", nedges);
+	time1 = clock();
+	kway_mergesort_file(outf1, tempfile, nedges, sizeof(edge),
+											FILE_READ_CACHE_SIZE, FILE_READ_CACHE_SIZE,
+											8, FILE_READ_CACHE_SIZE*4, edge_compar, 1);
+	time2 = clock();
+
+	//check_merged_file(outf1);
+
+	Rprintf("Results of sorting:\n");
+	report_time(time1, time2, "\t");
+
+	fclose(f2);
+	//fclose(o2);
+	free(vname);
+	free(read_cache);
+	free(edges);
+
+
+ 	cleanup_ondisklp_global_values();
+
+	return R_NilValue;
+}
+
 SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, // files
 										SEXP OUTDIR, SEXP OUTFILE,	// more files
 										SEXP SEPS, SEXP CTR, SEXP ITER, SEXP VERBOSE, // control flow
@@ -1746,6 +2094,9 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, // files
 	GLOBAL_ftracker = safe_malloc(sizeof(FILE*) * 20);
 	GLOBAL_trie = initialize_trie();
 	GLOBAL_all_leaves = NULL;
+	GLOBAL_mergebuffers = NULL;
+	GLOBAL_nbuffers = 0;
+	GLOBAL_mergetree = NULL;
 
 	// main files
 	const char* dir = CHAR(STRING_ELT(OUTDIR, 0));
@@ -1822,7 +2173,6 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, // files
  																seps[0], seps[1], num_v, verbose,
  																is_undirected, add_self_loops, ignore_weights);
  	}
- 	reset_trie_clusters(num_v);
  	time2 = clock();
 	if(verbose) report_time(time1, time2, "\t");
 
@@ -1832,6 +2182,7 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, // files
  	if(verbose && should_normalize) Rprintf("Normalizing edge weights...\n");
 	if(should_normalize) normalize_csr_edgecounts_batch(tabfile, weightsfile, num_v, verbose);
 
+	reset_trie_clusters(num_v);
 	time1 = clock();
  	if(consensus_len){
  		consensus_cluster_oom(tabfile, weightsfile, neighborfile, dir, num_v, num_iter, verbose, inflation, consensus_w, consensus_len);
