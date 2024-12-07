@@ -66,6 +66,12 @@
  *	- further optimization: can we offload anything else to the trie?
  *			eg could store offsets during clustering step so we don't have
  *			to query the header file
+ *	- reduce RAM usage in clustering step. We know the number of edges, and
+ *			we also have them in decreasing weight order. Thus, we can always
+ *			determine the maximum amount of additional weight that the remaining
+ *			edges can contribute. If that amount is less than the difference between
+ *			the top two clusters (or less than the top cluster, if only one), then
+ *			we don't need to load any more edges.
  */
 
 #ifndef PATH_MAX
@@ -488,9 +494,13 @@ int leaf_index_compar(const void *a, const void *b){
 }
 
 int edge_compar(const void *a, const void *b){
+	// sort edges by INCREASING index, breaking ties by DECREASING weight
 	const edge aa = *(const edge *)a;
 	const edge bb = *(const edge *)b;
 	int cmp = aa.v - bb.v;
+	// break ties by decreasing weight
+	if(cmp == 0) cmp = (bb.w - floor(bb.w)) - (aa.w - floor(aa.w));
+	// break ties by increasing vertex 2 index
 	if(cmp == 0) cmp = aa.w - bb.w;
 	return cmp;
 }
