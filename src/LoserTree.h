@@ -46,7 +46,7 @@ typedef struct LoserTree {
 	void **bins;
 	void *output;
 	int *values;
-	long int nwritten;
+	long nwritten;
 	int (*compare)(const void *a, const void *b);
 } LoserTree;
 
