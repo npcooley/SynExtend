@@ -103,6 +103,10 @@ const char CONSENSUS_CSRCOPY1[] = "tmpcsr1";
 const char CONSENSUS_CSRCOPY2[] = "tmpcsr2";
 const char CONSENSUS_CLUSTER[] = "tmpclust";
 const int BITS_FOR_WEIGHT = 10;
+// note that mergesort bin space will be multiplied by sizeof(edge) (16b)
+const int MAX_BINS_FOR_MERGE = 64; // will round up to next highest power of 2
+const int MERGE_INPUT_SIZE = FILE_READ_CACHE_SIZE;
+const int MERGE_OUTPUT_SIZE = 16*FILE_READ_CACHE_SIZE;
 
 // set this to 1 if we should sample edges rather than use all of them
 // MAX_EDGES_EXACT is a soft cap -- if above this, we sample edges probabalistically
@@ -845,6 +849,12 @@ void kway_mergesort_file(const char* f1, const char* f2, l_uint nlines,
 	GLOBAL_mergetree = mergetree;
 	int cur_start, to_read, empty_bin;
 	l_uint nblocks, num_iter;
+	double prev_progress, cur_progress;
+
+	if(num_bins > (nlines / block_size)){
+		num_bins = nlines/block_size + !!(nlines % block_size);
+	}
+	if(verbose) Rprintf("\tSorting with %d-way merge...\n", num_bins);
 
 	l_uint nmax_iterations = 1, tmpniter=block_size;
 	while(tmpniter*num_bins < nlines){
@@ -869,10 +879,12 @@ void kway_mergesort_file(const char* f1, const char* f2, l_uint nlines,
 	while(block_size < nlines){
 		file1 = safe_fopen(cur_source, "rb");
 		file2 = safe_fopen(cur_target, "wb");
+		cur_progress = 0.0;
+		prev_progress = 0.0;
 
 		tmpniter++;
 		if(verbose) Rprintf("\tIteration %llu of %llu (%6.01f%% complete)       \r",
-				tmpniter, nmax_iterations, 0.0);
+				tmpniter, nmax_iterations, cur_progress);
 		R_CheckUserInterrupt();
 		// number of blocks
 		nblocks = nlines / block_size + !!(nlines % block_size);
@@ -918,10 +930,16 @@ void kway_mergesort_file(const char* f1, const char* f2, l_uint nlines,
 					offsets[empty_bin] += to_read;
 				}
 
-				if(verbose) Rprintf("\tIteration %llu of %llu (%6.01f%% complete)       \r",
-														tmpniter, nmax_iterations,
-														((double)mergetree->nwritten)/nlines*100.0);
-				R_CheckUserInterrupt();
+				cur_progress = ((double)mergetree->nwritten)/nlines*100.0;
+				if(cur_progress - prev_progress > 0.5){
+					prev_progress = cur_progress;
+					if(verbose){
+						Rprintf("\tIteration %llu of %llu (%6.01f%% complete)       \r",
+															tmpniter, nmax_iterations, cur_progress);
+
+					}
+					R_CheckUserInterrupt();
+				}
 				// note that the bin must be refilled even with no elements
 				// so the tree moves on to the next step prior to next pop
 				LT_refillBin(mergetree, empty_bin, to_read, buffers[empty_bin]);
@@ -929,9 +947,17 @@ void kway_mergesort_file(const char* f1, const char* f2, l_uint nlines,
 
 			// finally, call fdumpOutput to dump any remaining values
 			LT_fdumpOutput(mergetree, file2);
-			if(verbose) Rprintf("\tIteration %llu of %llu (%6.01f%% complete)       \r",
-														tmpniter, nmax_iterations,
-														((double)mergetree->nwritten)/nlines*100.0);
+			cur_progress = ((double)mergetree->nwritten)/nlines*100.0;
+
+			if(cur_progress - prev_progress > 0.5){
+					prev_progress = cur_progress;
+					if(verbose){
+						Rprintf("\tIteration %llu of %llu (%6.01f%% complete)       \r",
+															tmpniter, nmax_iterations, cur_progress);
+
+					}
+				R_CheckUserInterrupt();
+			}
 		}
 		mergetree->nwritten = 0;
 		block_size *= num_bins;
@@ -1545,8 +1571,11 @@ void csr_compress_edgelist_trie_batch(const char* edgefile, prefix *trie,
 	// sort the file and split it into neighbor and weight
 	if(FILE_READ_CACHE_SIZE < nedges){
 		kway_mergesort_file(fneighbor, fweight, nedges, sizeof(edge),
-												FILE_READ_CACHE_SIZE, FILE_READ_CACHE_SIZE,
-												8, FILE_READ_CACHE_SIZE*4, edge_compar, v);
+												FILE_READ_CACHE_SIZE,
+												MERGE_INPUT_SIZE,
+												MAX_BINS_FOR_MERGE, // bins to merge with
+												MERGE_OUTPUT_SIZE, // size of output buffer
+												edge_compar, v);
 	}
 	split_sorted_file(fneighbor, fweight, nedges);
 
