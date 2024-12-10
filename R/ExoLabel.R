@@ -54,6 +54,10 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
   if(ignore_weights && normalize_weights){
     warning("Cannot both ignore weights and normalize them")
   }
+  if(ignore_weights && (add_self_loops != 0 || add_self_loops != 1)){
+    warning("Weight specified for 'add_self_loops' will be ignored")
+    add_self_loops <- 1
+  }
   # verify that the first few lines of each file are correct
   if(!all(file.exists(edgelistfiles))) stop("edgelist file does not exist")
   edgelistfiles <- normalizePath(edgelistfiles, mustWork=TRUE)
@@ -86,7 +90,7 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
     for(f in list.files(tempfiledir, full.names=TRUE))
       file.remove(f)
   } else {
-    dir.create(tempfiledir)
+    dir.create(tempfiledir, recursive = TRUE)
   }
   mode <- match.arg(mode)
   is_undirected <- mode == "undirected"
@@ -96,15 +100,12 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
 
   seps <- paste(sep, "\n", sep='')
   ctr <- 0
-  # R_hashedgelist(tsv, csr, clusters, queues, hashdir, seps, 1, iter, verbose)
+
   .Call("R_LPOOM_cluster", edgelistfiles, length(edgelistfiles),
         tempfiledir, outfile, seps, ctr, iterations,
         verbose, is_undirected, add_self_loops, ignore_weights, normalize_weights,
         consensus_cluster, inflation)
 
-  # R_write_output_clusters(clusters, hashes, length(hashes), out_tsvpath, seps)
-  #.Call("R_LP_write_output", counter_cluster_binary, hashdir,
-  #      outfile, seps, verbose)
   for(f in list.files(tempfiledir, full.names=TRUE))
     if(file.exists(f)) file.remove(f)
   file.remove(tempfiledir)
@@ -126,15 +127,15 @@ EstimateExoLabel <- function(num_v, avg_degree=2,
     avg_degree <- num_edges / num_v
   }
   lv <- num_v*node_name_length
+
   # assuming file is v1 v2 %.3f, which is 2*node_name_len + 3 + 5
   exp_size_file <- (2*node_name_length+8)*num_edges
-  exp_size_internal <- 41*num_v+12*num_edges
+  exp_size_internal <- 32 * num_edges
+  exp_size_ram <- 16 * num_v * 2 + 104857600
   exp_size_final <- (2+node_name_length+log10(num_v))*num_v
-  exp_size_ram_lower <- (24 + 16)*num_v + 104857600 # 1e8 is roughly the cache size
-  exp_size_ram_upper <- (24*node_name_length + 16)*num_v + 104857600
   exp_ratio <- exp_size_internal / exp_size_file
-  v <- c(exp_size_ram_lower, exp_size_ram_upper, exp_size_file, exp_size_internal, exp_size_final, exp_ratio)
-  names(v) <- c("Minimum RAM Usage", "Maximum RAM Usage", "Expected Input File Size", "Expected Internal File Size",
+  v <- c(exp_size_ram, exp_size_file, exp_size_internal, exp_size_final, exp_ratio)
+  names(v) <- c("RAM Usage", "Expected Input File Size", "Expected Internal File Size",
     "Expected Final File Size", "Disk Usage Ratio")
 
   max_nchar <- max(nchar(names(v)[-length(v)]))
@@ -162,14 +163,3 @@ EstimateExoLabel <- function(num_v, avg_degree=2,
   }
   invisible(v)
 }
-
-# TestExo <- function(f){
-#   on.exit(.C("cleanup_ondisklp_global_values"))
-#   if(!file.exists(f)) stop("file doesn't exist")
-#   tmps <- replicate(4, tempfile())
-#
-#   file.copy(f, tmps[1])
-#   file.copy(f, tmps[2])
-#
-#   .Call("R_TestRW", tmps, tempdir())
-# }

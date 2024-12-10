@@ -120,23 +120,23 @@ Traag, V.A., Subelj, L. Large network community detection by fast label propagat
 Aidan Lakshman <AHL27@pitt.edu>
 }
 \section{Warning}{
-While this algorithm can scale to very large graphs, it does have some internal limitations. First, nodes must be comprised of no more than 254 characters. If this limitation is restrictive, please feel free to contact me. Alternatively, you can increase the size yourself by changing the definition of \code{MAX_NODE_NAME_SIZE} in \code{src/outmem_graph.c}. This limitation is provided to decrease memory overhead and improve runtime, but arbitrary values are possible.
+While this algorithm can scale to very large graphs, it does have some internal limitations. First, nodes must be comprised of no more than 254 characters. If this limitation is restrictive, please feel free to contact me. Alternatively, you can increase the size yourself by changing the definition of \code{MAX_NODE_NAME_SIZE} in \code{src/OnDiskLP.c}. This limitation is provided to decrease memory overhead and improve runtime, but arbitrary values are possible.
 
-Second, nodes are indexed using 64-bit unsigned integers, with 0 reserved for other values. This means that the maximum possible number of nodes available is 2^64-2, which is about 18.5 quintillion.
+Second, nodes are indexed using 54-bit unsigned integers. This means that the maximum possible number of nodes available is 2^54-1, which is about 1.8 quadrillion. As with character limitations, feel free to contact me if this is too restrictive. Alternatively, you can decrease the size of \code{BITS_FOR_WEIGHT} in \code{src/OnDiskLP.c}, but note that this value determines how many bits to use to represent weights internally, so lower values will lead to more error.
 
 Third, this algorithm uses disk space to store large objects. As such, please ensure you have sufficient disk space for the graph you intend to process. I've tried to put safeguards in the code itself, but funky stuff can happen when the OS runs out of space. See "Memory Consumption" for details on the total disk/memory consumption of ExoLabel.
 }
 
 \section{Memory Consumption}{
-  Let \eqn{v} be the number of unique nodes, \eqn{d} the average outdegree of nodes, and \eqn{l} the average length of node labels.
+  Let \eqn{v} be the number of unique nodes, \eqn{d} the average outdegree of nodes, and \eqn{l} the average length of node labels. Note that the number of edges \eqn{e} is equivalent to \eqn{dv}.
 
-  Specific calculations for memory/disk consumption are detailed below. In summary, the absolute worst case memory consumption is roughly \eqn{(24l+34)v} bytes, and the disk consumption during computation is \eqn{(8+12d)v} bytes. The final table returned consumes \eqn{(2+l+\log_{10}{v})v} bytes.
+  Specific calculations for memory/disk consumption are detailed below. In summary, the absolute worst case memory consumption is roughly \eqn{(24l+34)v} bytes, and the maximum disk consumption during computation is \eqn{32dv} bytes. The final table returned consumes \eqn{(2+l+\log_{10}{v})v} bytes.
 
   ExoLabel builds a trie to keep track of vertex names. Each internal node of the trie consumes 24 bytes, and each leaf node consumes 16 bytes. The lowest possible RAM consumption of the trie (if every label is length \eqn{l} and shares the same prefix of length \eqn{l-1}) is roughly \eqn{40v} bytes, and the maximum RAM consumption (if no two node labels have any prefix in common) is \eqn{(24l + 16)v} bytes. We can generalize this to estimate the total memory consumption as roughly \eqn{(24(l-p)+16)v}, where \eqn{p} is the average length of common prefix between any two node labels.
 
   ExoLabel also uses a number of internal caches to speed up read/writes from files. These caches take less than 100MB of RAM in total. It also uses an internal queue for processing nodes, which consumes roughly \eqn{10v} bytes. It also uses an internal index of size \eqn{8v} bytes.
 
-  As for disk space, ExoLabel transforms the graph into a CSR-compressed network, which is split across three files: a header, a neighbors list, and a weights list. The header file contains \eqn{v+1} entries of 8 bytes, and the other two files consume a total of 12 bytes  per outgoing edge. The number of edges to record is \eqn{vd}. Thus, the total disk consumption in bytes is \eqn{8(v+1) + 12vd \approx (8+12d)v}.
+  As for disk space, ExoLabel transforms the graph into a CSR-compressed network, which is split across three files: a header, a neighbors list, and a weights list. The header file contains \eqn{v+1} entries of 8 bytes, and the other two files consume a total of 12 bytes  per outgoing edge. The number of edges to record is \eqn{vd}. Thus, the total disk consumption in bytes is \eqn{8(v+1) + 12vd \approx (8+12d)v}. However, the initial reading of the edges requires 16 bytes per edge and an external sort, resulting in a maximum disk consumption of \eqn{32dv}.
 
   The final table returned is a tab-separated table containing vertex names and cluster numbers in human-readable format. Each line consumes at most \eqn{l + 2 + \log_{10}{v}} bytes. In the worst case, the number of clusters is equal to the number of vertices, which have \eqn{\log_{10}{v}} digits. The average number of digits is close to the number of digits of the largest number due to how number of digits scale with numbers. The extra two bytes are for the tab and newline characters. Thus, the total size of the file is at most \eqn{(2+l+\log_{10}{v})v} bytes.
 }
