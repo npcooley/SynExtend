@@ -7,6 +7,7 @@
 #include <limits.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <string.h>
 #include <R_ext/Random.h>
 #include <R.h>
 #include <Rdefines.h>
@@ -17,6 +18,12 @@ typedef unsigned int uint;
 void *safe_malloc(size_t size);
 void *safe_calloc(size_t nitems, size_t size);
 void *safe_realloc(void *ptr, size_t new_size);
+
+
+/*** Other Utility Functions ***/
+inline void *void_deref(void *v, int i, size_t size){
+  return i ? (void *)((char *)v + (i*size)) : v;
+}
 
 // SEED BEFORE CALLING ANY RANDOM FUNCTION
 
