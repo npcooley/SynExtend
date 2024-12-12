@@ -1,3 +1,13 @@
+# SynExtend 1.19.1
+* `ExoLabel` is even faster due to in-place external sort for faster file I/O
+* Other quality of life improvements to `ExoLabel`
+
+# SynExtend 1.19.0
+* First development version of Bioconductor 3.21
+
+# SynExtend 1.18.0
+* Official Bioconductor 3.20 release
+
 # SynExtend 1.17.7
 * `ExoLabel` is much much faster and does a better job cleaning up when aborted early
 * `ExoLabel` now has fewer arguments
