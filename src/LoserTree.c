@@ -188,6 +188,26 @@ int LT_runFileGame(LoserTree *tree, FILE *f){
 	return -1;
 }
 
+int LT_runInplaceFileGame(LoserTree *tree, size_t block_end,
+													FILE *f, long int *remaining, long int **offsets){
+	/*
+	 * Same as LT_runFileGame(), but does it in-place
+	 */
+	int retval = -1;
+	while(tree->full_bins){
+		LT_popOutput(tree);
+		if(tree->cur_output_i == tree->output_size)
+			LT_fdumpOutputInplace(tree, block_end, f, remaining, offsets);
+		if(tree->empty_bin != -1){
+			retval = tree->empty_bin;
+			tree->empty_bin = -1;
+			return retval;
+		}
+		LT_updateTree(tree);
+	}
+	return -1;
+}
+
 size_t LT_dumpOutput(LoserTree *tree, void *output_buffer){
 	size_t nbytes = tree->e_size * tree->cur_output_i;
 	memcpy(output_buffer, tree->output, nbytes);
@@ -198,15 +218,111 @@ size_t LT_dumpOutput(LoserTree *tree, void *output_buffer){
 size_t LT_fdumpOutput(LoserTree *tree, FILE *f){
 	// assume f is a valid file
 	//printf("\n\tWriting %d values\n", tree->cur_output_i);
-	size_t nbytes = tree->e_size * tree->cur_output_i;
-	if (!nbytes) return 0;
-	size_t nwrote = fwrite(tree->output, 1, nbytes, f);
-	if(nwrote != nbytes)
-		error("Failed to write to file! (tried to write %zu bytes, wrote %zu bytes)",
-			nbytes, nwrote);
+	size_t to_write = tree->cur_output_i;
+	if (!to_write) return 0;
+	size_t nwrote = fwrite(tree->output, tree->e_size, to_write, f);
+	if(nwrote != to_write)
+		error("Failed to write to file! (tried to write %zu elements, wrote %zu elements)",
+			to_write, nwrote);
 	tree->cur_output_i = 0;
-	tree->nwritten += nwrote / tree->e_size;
+	tree->nwritten += nwrote;
 	return nwrote;
+}
+
+void reorganize_blocks(LoserTree *tree, size_t block_end, FILE *f,
+ 												long int *remaining, long int **offsets){
+	size_t size = tree->e_size;
+	int output_size = tree->cur_output_i;
+	long int *offs = *offsets;
+	// use as much space as possible, minimize r/w calls
+	void *scratch_buf = malloc(size*tree->output_size);
+	int nbins = tree->nbins;
+	long int write_start, write_end, read_start, read_end, to_read;
+
+	int last_bin = nbins-1;
+	while(!remaining[last_bin]) last_bin--;
+	write_end = block_end;
+	for(int i=last_bin; i>=0; i--){
+		// last bin is always in the right place
+		// have to move all the rest of the bins down
+		if(remaining[i]){
+			read_start = offs[i];
+			read_end = offs[i] + remaining[i];
+			//printf("Moving bin %d from %ld-%ld to end at %ld\n", i, read_start, read_end, write_end);
+			while(read_end != offs[i]){
+				R_CheckUserInterrupt();
+				to_read = output_size;
+				if(read_end < offs[i] + to_read) to_read = read_end - offs[i];
+				read_start = read_end - to_read;
+				write_start = write_end - to_read;
+				fseek(f, read_start*size, SEEK_SET);
+				fread(scratch_buf, size, to_read, f);
+				fseek(f, write_start*size, SEEK_SET);
+				fwrite(scratch_buf, size, to_read, f);
+				read_end = read_start;
+				write_end = write_start;
+			}
+			offs[i] = write_start;
+		}
+	}
+
+	free(scratch_buf);
+	return;
+}
+
+
+size_t LT_fdumpOutputInplace(LoserTree *tree, size_t block_end,
+														FILE *f, long int *remaining, long int **offsets){
+	/*
+	 * Function to dump output in-place
+	 * Requires a bunch of extra values so we can keep track of stuff
+	 * Input Variables:
+	 *	-       tree: LoserTree structure
+	 *	-	 f_reading: file pointer for reading values
+	 *	-  f_writing: file pointer for writing values
+	 *	-      start: starting line for the set of all blocks in current iteration
+	 *	- remaining: pointer to int* containing # of elements remaining per block
+	 *	-   offsets: pointer to int* with start position of each block
+	 *
+	 * The goal is essentially to insert the sorted block at the top of the area.
+	 * We have k blocks, and we only pull values from the top of each block.
+	 * In other words, if the block is size n and has m remaining, we only need
+	 * to save the remaining n-m values.
+	 *
+	 * To do this, I'm going to allocate a second output buffer equal in size to
+	 * the first output buffer, which will hold S elements. We copy off any
+	 * remaining unseen elements to the second buffer from the first block of S
+	 * elements in the file. Then we write the output buffer over the first S
+	 * elements of the file. Now the second output buffer becomes our main output
+	 * buffer, and we repeat the process with the second S elements. Once the sum
+	 * of the sizes of the two output buffers is at most S, we write both to the
+	 * same block and return.
+	 *
+	 * The crucial part here is making sure we update the `offsets` value
+	 * appropriately. `remaining` is not going to change in one copy, since we
+	 * just move values around. We also have to copy the final block so it's
+	 * aligned with the very end of the block, so that we don't have issues with
+	 * gaps in the middle of a block (in case of a partial copy during move).
+	 */
+
+	size_t size = tree->e_size;
+	size_t start = tree->nwritten;
+	int output_size = tree->cur_output_i;
+	int nbins = tree->nbins;
+	long int *offs = *offsets;
+
+	if(!output_size) return start;
+	int first_bin = 0;
+	while(first_bin < nbins && !remaining[first_bin]) first_bin++;
+
+	if(first_bin < nbins && offs[first_bin] < (start+output_size))
+		reorganize_blocks(tree, block_end, f, remaining, offsets);
+
+	// reset the writing pointer
+	fseek(f, (tree->nwritten)*size, SEEK_SET);
+	LT_fdumpOutput(tree, f);
+
+	return 0;
 }
 
 void LT_free(LoserTree *tree){

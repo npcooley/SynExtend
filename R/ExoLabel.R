@@ -130,12 +130,12 @@ EstimateExoLabel <- function(num_v, avg_degree=2,
 
   # assuming file is v1 v2 %.3f, which is 2*node_name_len + 3 + 5
   exp_size_file <- (2*node_name_length+8)*num_edges
-  exp_size_internal <- 32 * num_edges
-  exp_size_ram <- 16 * num_v * 2 + 104857600
+  exp_size_internal <- 16 * num_edges
+  exp_size_ram <- 24*node_name_length + 16 * num_v * 2 + 2*104857600
   exp_size_final <- (2+node_name_length+log10(num_v))*num_v
   exp_ratio <- exp_size_internal / exp_size_file
   v <- c(exp_size_ram, exp_size_file, exp_size_internal, exp_size_final, exp_ratio)
-  names(v) <- c("RAM Usage", "Expected Input File Size", "Expected Internal File Size",
+  names(v) <- c("RAM Estimate", "Expected Input File Size", "Expected Internal File Size",
     "Expected Final File Size", "Disk Usage Ratio")
 
   max_nchar <- max(nchar(names(v)[-length(v)]))

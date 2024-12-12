@@ -103,7 +103,20 @@ const char CONSENSUS_CSRCOPY1[] = "tmpcsr1";
 const char CONSENSUS_CSRCOPY2[] = "tmpcsr2";
 const char CONSENSUS_CLUSTER[] = "tmpclust";
 const int BITS_FOR_WEIGHT = 10;
-// note that mergesort bin space will be multiplied by sizeof(edge) (16b)
+
+/*
+ * Some comments on external sorting performance:
+ * 	- FILE_READ_CACHE_SIZE determines the initial sort size and the buffer size
+ *	- More buffers means more RAM consumption, but fewer passes through the file
+ *	- Block interchanges happen when some not-yet-processed data will be
+ *		overwritten by an output dump. These are the slowest operation. Could maybe
+ *		be sped up by using a fixed size temporary file as a larger buffer...?
+ *		More intelligent block interchanges would also speed up a lot.
+ *	- Larger input buffers means more sequential access and fewer block
+ *		interchange operations
+ *	- More buffers means more block interchange operations
+ *	- Mergesort bin space is multiplied by sizeof(edge) (16 bytes)
+ */
 const int MAX_BINS_FOR_MERGE = 64; // will round up to next highest power of 2
 const int MERGE_INPUT_SIZE = FILE_READ_CACHE_SIZE;
 const int MERGE_OUTPUT_SIZE = 16*FILE_READ_CACHE_SIZE;
@@ -345,7 +358,10 @@ void decompressEdgeValue(l_uint compressed, l_uint *v2, w_float *w){
 	l_uint w_comp = compressed & (max_weight_bits - 1);
 
 	// two assignments because I'd like to minimize loss of precision
-	double w_temp = ((double)w_comp) * 2 * GLOBAL_max_weight / max_weight_bits;
+	double w_temp = ((double)w_comp) / max_weight_bits;
+	w_temp *= 2*GLOBAL_max_weight;
+
+	//double w_temp = (((double)w_comp) * 2 * GLOBAL_max_weight) / max_weight_bits;
 	*w = (w_float)w_temp;
 	*v2 = compressed >> BITS_FOR_WEIGHT;
 
@@ -822,7 +838,7 @@ void mergesort_clust_file(const char* f, const char* dir, size_t element_size,
 	return;
 }
 
-void kway_mergesort_file(const char* f1, const char* f2, l_uint nlines,
+void kway_mergesort_file(const char* f1, l_uint nlines,
 													size_t element_size,
 													l_uint block_size, int buf_size,
 													int num_bins, int output_size,
@@ -843,11 +859,12 @@ void kway_mergesort_file(const char* f1, const char* f2, l_uint nlines,
 	 */
 
 	// file should already be sorted into x blocks of size block_size*element_size
-	FILE *file1, *file2;
+	FILE *fileptr;
 
 	LoserTree *mergetree = LT_alloc(num_bins, output_size, element_size, compar);
 	GLOBAL_mergetree = mergetree;
-	int cur_start, to_read, empty_bin;
+	size_t cur_start, to_read;
+	int empty_bin;
 	l_uint nblocks, num_iter;
 	double prev_progress, cur_progress;
 
@@ -873,12 +890,10 @@ void kway_mergesort_file(const char* f1, const char* f2, l_uint nlines,
 	offsets = malloc(sizeof(long int)*num_bins);
 	remaining = malloc(sizeof(long int)*num_bins);
 
-	const char *cur_source = f1;
-	const char *cur_target = f2;
-	const char *tmp_swap_char;
+	fileptr = safe_fopen(f1, "rb+");
+
 	while(block_size < nlines){
-		file1 = safe_fopen(cur_source, "rb");
-		file2 = safe_fopen(cur_target, "wb");
+		//file2 = safe_fopen(cur_target, "wb");
 		cur_progress = 0.0;
 		prev_progress = 0.0;
 
@@ -886,6 +901,7 @@ void kway_mergesort_file(const char* f1, const char* f2, l_uint nlines,
 		if(verbose) Rprintf("\tIteration %llu of %llu (%6.01f%% complete)       \r",
 				tmpniter, nmax_iterations, cur_progress);
 		R_CheckUserInterrupt();
+
 		// number of blocks
 		nblocks = nlines / block_size + !!(nlines % block_size);
 		// number of iterations is nblocks / num bins
@@ -898,7 +914,7 @@ void kway_mergesort_file(const char* f1, const char* f2, l_uint nlines,
 			// first initialize offsets and number of remaining values
 			for(int i=0; i<num_bins; i++){
 				offsets[i] = cur_start;
-				if(cur_start != nlines-1)
+				if(cur_start != nlines)
 					cur_start += block_size;
 				cur_start = cur_start > (nlines) ? nlines : cur_start;
 				remaining[i] = cur_start - offsets[i];
@@ -907,9 +923,9 @@ void kway_mergesort_file(const char* f1, const char* f2, l_uint nlines,
 			// load data into the buffers and assign into tree
 			for(int i=0; i<num_bins; i++){
 				if(remaining[i]){
-					fseek(file1, offsets[i]*element_size, SEEK_SET);
+					fseek(fileptr, offsets[i]*element_size, SEEK_SET);
 					to_read = remaining[i] > buf_size ? buf_size : remaining[i];
-					safe_fread(buffers[i], to_read, element_size, file1);
+					safe_fread(buffers[i], element_size, to_read, fileptr);
 					LT_fillBin(mergetree, i, to_read, buffers[i]);
 					remaining[i] -= to_read;
 					offsets[i] += to_read;
@@ -919,13 +935,14 @@ void kway_mergesort_file(const char* f1, const char* f2, l_uint nlines,
 			// merge all the data
 			LT_initGame(mergetree);
 			while(mergetree->full_bins){
-				empty_bin = LT_runFileGame(mergetree, file2);
+				// note cur_start is the first line of the *next* block
+				empty_bin = LT_runInplaceFileGame(mergetree, cur_start, fileptr, remaining, &offsets);
 				// refill the bin
 				to_read = 0;
 				if(remaining[empty_bin]){
-					fseek(file1, offsets[empty_bin]*element_size, SEEK_SET);
+					fseek(fileptr, offsets[empty_bin]*element_size, SEEK_SET);
 					to_read = remaining[empty_bin] > buf_size ? buf_size : remaining[empty_bin];
-					safe_fread(buffers[empty_bin], to_read, element_size, file1);
+					safe_fread(buffers[empty_bin], element_size, to_read, fileptr);
 					remaining[empty_bin] -= to_read;
 					offsets[empty_bin] += to_read;
 				}
@@ -946,10 +963,13 @@ void kway_mergesort_file(const char* f1, const char* f2, l_uint nlines,
 			}
 
 			// finally, call fdumpOutput to dump any remaining values
-			LT_fdumpOutput(mergetree, file2);
+			// this doesn't need to call fdumpOutputInplace because there are no
+			// values left to be saved from this block
+			fseek(fileptr, (mergetree->nwritten)*element_size, SEEK_SET);
+			LT_fdumpOutput(mergetree, fileptr);
 			cur_progress = ((double)mergetree->nwritten)/nlines*100.0;
 
-			if(cur_progress - prev_progress > 0.5){
+			if(cur_progress - prev_progress > 0.5 || cur_progress == 100){
 					prev_progress = cur_progress;
 					if(verbose){
 						Rprintf("\tIteration %llu of %llu (%6.01f%% complete)       \r",
@@ -959,36 +979,27 @@ void kway_mergesort_file(const char* f1, const char* f2, l_uint nlines,
 				R_CheckUserInterrupt();
 			}
 		}
+
 		mergetree->nwritten = 0;
 		block_size *= num_bins;
-		fclose_tracked(2);
-		tmp_swap_char = cur_source;
-		cur_source = cur_target;
-		cur_target = tmp_swap_char;
+		rewind(fileptr);
 	}
 	// cur_source will always be the file we just WROTE to here
 
 	if(verbose) Rprintf("\n");
 	for(int i=0; i<num_bins; i++) free(buffers[i]);
 	free(buffers);
-
+	fclose_tracked(1);
 	GLOBAL_mergebuffers = NULL;
 	GLOBAL_nbuffers = 0;
 	LT_free(mergetree);
 	GLOBAL_mergetree = NULL;
 
-	remove(cur_target);
-	if(f1 != cur_source){
-		// if we used an odd number of iterations,
-		// the final file is the temp file
-		// so we have to "swap" them
-		rename(cur_source, f1);
-	}
-
 	return;
 }
 
-void split_sorted_file(const char* nfilename, const char* wfilename, l_uint nlines){
+void split_sorted_file(const char* nfilename, const char* wfilename,
+												l_uint nlines, int v){
 	/*
 	 * File to split the kway-sorted file into two other files
 	 *
@@ -1037,6 +1048,8 @@ void split_sorted_file(const char* nfilename, const char* wfilename, l_uint nlin
 	cur_line = 0;
 	nread = 0;
 
+	double cur_progress, prev_progress = 0;
+
 	while(cur_line != nlines){
 		// read lines into current buffer
 		nread = nlines - cur_line;
@@ -1051,7 +1064,14 @@ void split_sorted_file(const char* nfilename, const char* wfilename, l_uint nlin
 		safe_fwrite(indices, L_SIZE, nread, f_w);
 		safe_fwrite(weights, W_SIZE, nread, wf_w);
 		cur_line += nread;
+		cur_progress = 100*((double)cur_line) / nlines;
+		if(cur_progress - prev_progress > 0.5 || cur_progress == 100){
+			if(v) Rprintf("\tTidying up edges (%6.01f%% Complete)\r", cur_progress);
+			prev_progress = cur_progress;
+			R_CheckUserInterrupt();
+		}
 	}
+	if(v) Rprintf("\n");
 	fclose_tracked(3);
 
 	free(weights);
@@ -1464,6 +1484,7 @@ void csr_compress_edgelist_trie_batch(const char* edgefile, prefix *trie,
 	 * Changes from previous version:
 	 * 	use fread(...) to read into buffer rather than getc.
 	 */
+
 	int cachectr = 0;
 	char *read_cache;
 	char *restrict vname;
@@ -1570,14 +1591,15 @@ void csr_compress_edgelist_trie_batch(const char* edgefile, prefix *trie,
 
 	// sort the file and split it into neighbor and weight
 	if(FILE_READ_CACHE_SIZE < nedges){
-		kway_mergesort_file(fneighbor, fweight, nedges, sizeof(edge),
+		kway_mergesort_file(fneighbor, nedges, sizeof(edge),
 												FILE_READ_CACHE_SIZE,
 												MERGE_INPUT_SIZE,
 												MAX_BINS_FOR_MERGE, // bins to merge with
 												MERGE_OUTPUT_SIZE, // size of output buffer
 												edge_compar, v);
 	}
-	split_sorted_file(fneighbor, fweight, nedges);
+
+	split_sorted_file(fneighbor, fweight, nedges, v);
 
 	return;
 }
@@ -2210,6 +2232,10 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, // files
  	time2 = clock();
 	if(verbose) report_time(time1, time2, "\t");
 
+	// remove these files here so that we free up the space
+	remove(tabfile);
+	remove(weightsfile);
+	remove(neighborfile);
 
  	// have to allocate resources for writing out
  	FILE *results = safe_fopen(outfile, "wb");
