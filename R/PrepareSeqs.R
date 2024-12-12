@@ -47,13 +47,14 @@ PrepareSeqs <- function(SynExtendObject,
                     which = "GeneCalls")
   
   ###### -- subset gene calls based on the names of the links object ----------
-  if (is(SynExtendObject,
-         class2 = "LinkedPairs")) {
-    if (length(GeneCalls) != nrow(SynExtendObject)) {
-      GeneCalls <- GeneCalls[match(x = dimnames(SynExtendObject)[[1]],
-                                   table = names(GeneCalls))]
-    }
-  } # else GeneCalls from PairSummaries objects will be guaranteed to be correctly shaped?
+  # this isn't necessary and wasn't the correct form for this process anyway
+  # if (is(SynExtendObject,
+  #        class2 = "LinkedPairs")) {
+  #   if (length(GeneCalls) != nrow(SynExtendObject)) {
+  #     GeneCalls <- GeneCalls[match(x = dimnames(SynExtendObject)[[1]],
+  #                                  table = names(GeneCalls))]
+  #   }
+  # } # else GeneCalls from PairSummaries objects will be guaranteed to be correctly shaped?
   
   if (!is.null(Identifiers)) {
     if (is(object = Identifiers,
