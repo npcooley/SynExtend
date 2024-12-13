@@ -9,6 +9,7 @@ Estimate the total disk consumption for \code{\link{ExoLabel}}.
 }
 \usage{
 EstimateExoLabel(num_v, avg_degree=2,
+              is_undirected=TRUE,
               num_edges=num_v*avg_degree,
               node_name_length=10L)
 }
@@ -20,6 +21,10 @@ Approximate number of total unique nodes in the network.
 
 \item{avg_degree}{
 Average degree of each node in the network.
+}
+
+\item{is_undirected}{
+Logical indicating whether edges are directed or undirected. Undirected edges consume twice as much disk space internally because they need to be recorded twice.
 }
 
 \item{num_edges}{

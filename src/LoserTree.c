@@ -217,7 +217,6 @@ size_t LT_dumpOutput(LoserTree *tree, void *output_buffer){
 
 size_t LT_fdumpOutput(LoserTree *tree, FILE *f){
 	// assume f is a valid file
-	//printf("\n\tWriting %d values\n", tree->cur_output_i);
 	size_t to_write = tree->cur_output_i;
 	if (!to_write) return 0;
 	size_t nwrote = fwrite(tree->output, tree->e_size, to_write, f);
@@ -248,7 +247,6 @@ void reorganize_blocks(LoserTree *tree, size_t block_end, FILE *f,
 		if(remaining[i]){
 			read_start = offs[i];
 			read_end = offs[i] + remaining[i];
-			//printf("Moving bin %d from %ld-%ld to end at %ld\n", i, read_start, read_end, write_end);
 			while(read_end != offs[i]){
 				R_CheckUserInterrupt();
 				to_read = output_size;
@@ -273,37 +271,17 @@ void reorganize_blocks(LoserTree *tree, size_t block_end, FILE *f,
 
 size_t LT_fdumpOutputInplace(LoserTree *tree, size_t block_end,
 														FILE *f, long int *remaining, long int **offsets){
-	/*
-	 * Function to dump output in-place
-	 * Requires a bunch of extra values so we can keep track of stuff
-	 * Input Variables:
-	 *	-       tree: LoserTree structure
-	 *	-	 f_reading: file pointer for reading values
-	 *	-  f_writing: file pointer for writing values
-	 *	-      start: starting line for the set of all blocks in current iteration
-	 *	- remaining: pointer to int* containing # of elements remaining per block
-	 *	-   offsets: pointer to int* with start position of each block
-	 *
-	 * The goal is essentially to insert the sorted block at the top of the area.
-	 * We have k blocks, and we only pull values from the top of each block.
-	 * In other words, if the block is size n and has m remaining, we only need
-	 * to save the remaining n-m values.
-	 *
-	 * To do this, I'm going to allocate a second output buffer equal in size to
-	 * the first output buffer, which will hold S elements. We copy off any
-	 * remaining unseen elements to the second buffer from the first block of S
-	 * elements in the file. Then we write the output buffer over the first S
-	 * elements of the file. Now the second output buffer becomes our main output
-	 * buffer, and we repeat the process with the second S elements. Once the sum
-	 * of the sizes of the two output buffers is at most S, we write both to the
-	 * same block and return.
-	 *
-	 * The crucial part here is making sure we update the `offsets` value
-	 * appropriately. `remaining` is not going to change in one copy, since we
-	 * just move values around. We also have to copy the final block so it's
-	 * aligned with the very end of the block, so that we don't have issues with
-	 * gaps in the middle of a block (in case of a partial copy during move).
-	 */
+  /*
+   * Function to dump output in-place
+   * Requires a bunch of extra values so we can keep track of stuff
+   * Input Variables:
+   *  -      tree: LoserTree structure
+   *  -         f: file pointer for reading values
+   *  - f_writing: file pointer for writing values
+   *  -     start: starting line for the set of all blocks in current iteration
+   *  - remaining: pointer to int* containing # of elements remaining per block
+   *  -   offsets: pointer to int* with start position of each block
+   */
 
 	size_t size = tree->e_size;
 	size_t start = tree->nwritten;
