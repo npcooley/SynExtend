@@ -1,6 +1,5 @@
 /*
  * Out of memory clustering with fast label propagation
- * Tentative Name: ShoalFinder
  * Author: Aidan Lakshman
  *
  * This set of functions creates 5 files and a directory (using dummy names):
