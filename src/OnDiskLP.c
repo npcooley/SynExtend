@@ -47,6 +47,19 @@
 #include "LoserTree.h"
 #include <time.h>
 
+// includes for file truncation
+#ifdef HAVE_UNISTD_H
+  #include <unistd.h>
+#else
+  #ifdef WIN32
+    #include <io.h>
+  #endif
+#endif
+
+
+/***********/
+/* Defines */
+/***********/
 #define h_uint uint64_t
 #define uint uint_fast32_t
 #define strlen_uint uint_least16_t
@@ -70,11 +83,18 @@
 #define PAGE_SIZE 4096
 #endif
 
-#define MAX_NODE_NAME_SIZE 254 // max size of a vertex name (char array will have 2 extra spaces for terminator and flag)
-#define NODE_NAME_CACHE_SIZE 40960 // holds pointers char* of size MAX_NODE_NAME_SIZE, 4096 is 1MB
-#define FILE_READ_CACHE_SIZE 8192*4 // used for mergesorting files
+
+// max size of a vertex name (char array will have 2 extra spaces for terminator and flag)
+#define MAX_NODE_NAME_SIZE 254
+// holds pointers char* of size MAX_NODE_NAME_SIZE, 4096 is 1MB
+#define NODE_NAME_CACHE_SIZE 40960
 // number of entries, so total consumption often multiplied by 8
+#define FILE_READ_CACHE_SIZE 8192*4
 #define CLUSTER_MIN_WEIGHT 0.01
+
+/*************/
+/* Constants */
+/*************/
 
 // static is redundant if you use const
 const int L_SIZE = sizeof(l_uint);
@@ -110,19 +130,13 @@ const int MERGE_OUTPUT_SIZE = 16*FILE_READ_CACHE_SIZE;
 
 // set this to 1 if we should sample edges rather than use all of them
 // MAX_EDGES_EXACT is a soft cap -- if above this, we sample edges probabalistically
+// Erik says this isn't really useful
 const int use_limited_nodes = 0;
 const l_uint MAX_EDGES_EXACT = 50000;
+
+// Progress printing values (also controls R_checkUserInterrupt() checks)
 const int PRINT_COUNTER_MOD = 811*13;
 const int PROGRESS_COUNTER_MOD = 6043;
-
-// includes for file truncation
-#ifdef HAVE_UNISTD_H
-  #include <unistd.h>
-#else
-  #ifdef WIN32
-    #include <io.h>
-  #endif
-#endif
 
 /**********************/
 /* Struct Definitions */
