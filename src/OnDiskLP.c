@@ -772,6 +772,19 @@ void kway_mergesort_file(const char* f1, const char* f2, l_uint nlines,
   GLOBAL_mergetree = mergetree;
   int cur_start, to_read, empty_bin;
   l_uint nblocks, num_iter;
+  double prev_progress, cur_progress;
+
+  if(num_bins > (nlines / block_size)){
+    num_bins = nlines/block_size + !!(nlines % block_size);
+  }
+  if(verbose) Rprintf("\tSorting with %d-way merge...\n", num_bins);
+
+  l_uint nmax_iterations = 1, tmpniter=block_size;
+  while(tmpniter*num_bins < nlines){
+    tmpniter *= num_bins;
+    nmax_iterations++;
+  }
+  tmpniter = 0;
 
   // allocate space for the buffers
   void **buffers = malloc(sizeof(void*)*num_bins);
@@ -787,6 +800,14 @@ void kway_mergesort_file(const char* f1, const char* f2, l_uint nlines,
   const char *cur_target = f2;
   const char *tmp_swap_char;
   while(block_size < nlines){
+    cur_progress = 0.0;
+    prev_progress = 0.0;
+
+    tmpniter++;
+    if(verbose) Rprintf("\tIteration %llu of %llu (%6.01f%% complete)       \r",
+        tmpniter, nmax_iterations, cur_progress);
+    R_CheckUserInterrupt();
+
     file1 = safe_fopen(cur_source, "rb");
     file2 = safe_fopen(cur_target, "wb");
 
@@ -797,9 +818,6 @@ void kway_mergesort_file(const char* f1, const char* f2, l_uint nlines,
 
     cur_start = 0;
     for(l_uint iter=0; iter<num_iter; iter++){
-      if(verbose) Rprintf("\tIteration %llu of %llu (%6.01f%% complete)       \r",
-        iter+1, num_iter, 100*(double)block_size/(double)nlines);
-      R_CheckUserInterrupt();
       // run one k-way merge operation
 
       // first initialize offsets and number of remaining values
@@ -836,27 +854,45 @@ void kway_mergesort_file(const char* f1, const char* f2, l_uint nlines,
           remaining[empty_bin] -= to_read;
           offsets[empty_bin] += to_read;
         }
+        cur_progress = ((double)mergetree->nwritten)/nlines*100.0;
+        if(cur_progress - prev_progress > 0.5){
+          prev_progress = cur_progress;
+          if(verbose){
+            Rprintf("\tIteration %llu of %llu (%6.01f%% complete)       \r",
+                              tmpniter, nmax_iterations, cur_progress);
 
+          }
+          R_CheckUserInterrupt();
+        }
         // note that the bin must be refilled even with no elements
         // so the tree moves on to the next step prior to next pop
         LT_refillBin(mergetree, empty_bin, to_read, buffers[empty_bin]);
+      }
+      cur_progress = ((double)mergetree->nwritten)/nlines*100.0;
+      if(cur_progress - prev_progress > 0.5 || cur_progress == 100){
+        prev_progress = cur_progress;
+        if(verbose){
+          Rprintf("\tIteration %llu of %llu (%6.01f%% complete)       \r",
+                            tmpniter, nmax_iterations, cur_progress);
+
+        }
+        R_CheckUserInterrupt();
       }
 
       // finally, call fdumpOutput to dump any remaining values
       LT_fdumpOutput(mergetree, file2);
     }
-    printf("\nWrote %ld values\n", mergetree->nwritten);
     mergetree->nwritten = 0;
     block_size *= num_bins;
     fclose_tracked(2);
     tmp_swap_char = cur_source;
     cur_source = cur_target;
     cur_target = tmp_swap_char;
-    if(verbose) printf("\n");
   }
   // cur_source will always be the file we just WROTE to here
 
-  if(verbose) Rprintf("\t100.00%% complete                                 \n");
+  if(verbose) Rprintf("\tIteration %llu of %llu (%6.01f%% complete)       \n",
+                      tmpniter, nmax_iterations, 100);
   for(int i=0; i<num_bins; i++) free(buffers[i]);
   free(buffers);
 
@@ -1344,7 +1380,7 @@ void normalize_csr_edgecounts_batch(const char* ftable, const char* fweights, l_
   return;
 }
 
-void csr_compress_edgelist_trie_batch(const char* edgefile, prefix *trie,
+l_uint csr_compress_edgelist_trie_batch(const char* edgefile, prefix *trie,
                                   const char* ftable, const char* fweight, const char* fneighbor,
                                   const char sep, const char linesep, l_uint num_v, int v,
                                   const int is_undirected, int has_self_loops,
@@ -1395,7 +1431,7 @@ void csr_compress_edgelist_trie_batch(const char* edgefile, prefix *trie,
   edgelist = safe_fopen(edgefile, "rb");
 
   // open neighbors table
-  neighbortable = safe_fopen(fneighbor, "wb");
+  neighbortable = safe_fopen(fneighbor, "ab");
 
   // note: weights/neighbors don't need to be initialized
   // see https://stackoverflow.com/questions/31642389/fseek-a-newly-created-file
@@ -1468,28 +1504,7 @@ void csr_compress_edgelist_trie_batch(const char* edgefile, prefix *trie,
   free(vname);
   free(read_cache);
 
-  // sort the file and split it into neighbor and weight
-  if(FILE_READ_CACHE_SIZE < nedges){
-    if(sort_inplace){
-      kway_mergesort_file_inplace(fneighbor, nedges, sizeof(edge),
-                                  FILE_READ_CACHE_SIZE,
-                                  MERGE_INPUT_SIZE,
-                                  MAX_BINS_FOR_MERGE, // bins to merge with
-                                  MERGE_OUTPUT_SIZE, // size of output buffer
-                                  edge_compar, v);
-    } else {
-      kway_mergesort_file(fneighbor, fweight, nedges, sizeof(edge),
-                                  FILE_READ_CACHE_SIZE,
-                                  MERGE_INPUT_SIZE,
-                                  MAX_BINS_FOR_MERGE, // bins to merge with
-                                  MERGE_OUTPUT_SIZE, // size of output buffer
-                                  edge_compar, v);
-    }
-  }
-
-  split_sorted_file(fneighbor, fweight, nedges, v);
-
-  return;
+  return nedges;
 }
 
 void add_remaining_to_queue(l_uint new_clust, leaf **neighbors, float *weights, l_uint nedge, ArrayQueue *queue){
@@ -2005,7 +2020,7 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, // files
    *
    * Rough runtimes on my machine:
    *  - reading nodes: ~1,000,000 lines / sec.
-   *  - reading edges:    ~25,000 lines / sec.
+   *  - reading edges: ~2,000,000 lines / sec.
    */
 
   // initialize global variables
@@ -2089,14 +2104,36 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, // files
   // then, we'll create the CSR compression of all our edges
   time1 = clock();
   if(verbose) Rprintf("Reading in edges...\n");
+  l_uint num_edges = 0;
   for(int i=0; i<num_edgefiles; i++){
     edgefile = CHAR(STRING_ELT(FILENAME, i));
-    csr_compress_edgelist_trie_batch(edgefile, GLOBAL_trie,
+    num_edges += csr_compress_edgelist_trie_batch(edgefile, GLOBAL_trie,
                                 tabfile, weightsfile, neighborfile,
                                 seps[0], seps[1], num_v, verbose,
                                 is_undirected, add_self_loops,
                                 ignore_weights, use_inplace_sort);
   }
+  // sort the file and split it into neighbor and weight
+  if(FILE_READ_CACHE_SIZE < num_edges){
+    if(use_inplace_sort){
+      kway_mergesort_file_inplace(neighborfile,
+                                  num_edges, sizeof(edge),
+                                  FILE_READ_CACHE_SIZE,
+                                  MERGE_INPUT_SIZE,
+                                  MAX_BINS_FOR_MERGE, // bins to merge with
+                                  MERGE_OUTPUT_SIZE, // size of output buffer
+                                  edge_compar, verbose);
+    } else {
+      kway_mergesort_file(neighborfile, weightsfile,
+                                  num_edges, sizeof(edge),
+                                  FILE_READ_CACHE_SIZE,
+                                  MERGE_INPUT_SIZE,
+                                  MAX_BINS_FOR_MERGE, // bins to merge with
+                                  MERGE_OUTPUT_SIZE, // size of output buffer
+                                  edge_compar, verbose);
+    }
+  }
+  split_sorted_file(neighborfile, weightsfile, num_edges, verbose);
   time2 = clock();
   //check_mergedsplit_file(neighborfile, weightsfile);
 
