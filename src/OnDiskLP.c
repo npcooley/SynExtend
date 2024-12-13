@@ -344,17 +344,16 @@ edge compressEdgeValues(l_uint v1, l_uint v2, double weight){
 	weight = weight / GLOBAL_max_weight;
 
 	// quantize to number of allowable bits
-	l_uint max_weight_bits = 1 << BITS_FOR_WEIGHT;
+	l_uint max_weight_bits = (1 << BITS_FOR_WEIGHT) - 1;
 	l_uint w_comp = (l_uint) floor(weight * max_weight_bits);
-	if(w_comp == max_weight_bits) w_comp--;
 
 	e.w = v2_comp | w_comp;
 	return e;
 }
 
 void decompressEdgeValue(l_uint compressed, l_uint *v2, w_float *w){
-	l_uint max_weight_bits = 1 << BITS_FOR_WEIGHT;
-	l_uint w_comp = compressed & (max_weight_bits - 1);
+	l_uint max_weight_bits = (1 << BITS_FOR_WEIGHT) - 1;
+	l_uint w_comp = compressed & max_weight_bits;
 
 	// two assignments because I'd like to minimize loss of precision
 	double w_temp = ((double)w_comp) / max_weight_bits;
