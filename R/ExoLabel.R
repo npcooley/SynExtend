@@ -133,10 +133,17 @@ EstimateExoLabel <- function(num_v, avg_degree=2,
   lv <- num_v*node_name_length
 
   # assuming file is v1 v2 %.3f, which is 2*node_name_len + 3 + 5
+  FRCS <- 8192*4
   exp_size_file <- (2*node_name_length+8)*num_edges
   exp_size_internal_inplace <- 16*num_edges
   exp_size_internal <- 32 * num_edges
-  exp_size_ram <- 24*node_name_length + 16 * num_v * 2 + 2*104857600
+  # rough guess at trie size + edge reading buffer
+  exp_size_ram <- 24*node_name_length + 16 * num_v * 2 + FRCS*16 + 40960
+  if(num_edges < FRCS){
+    # internal buffers for mergesorting, subtracting 1 because it's already
+    # added in the above
+    exp_size_ram <- exp_size_ram + FRCS*(64+16-1)*16
+  }
   exp_size_final <- (2+node_name_length+log10(num_v))*num_v
   exp_ratio <- exp_size_internal_inplace / exp_size_file
   v <- c(exp_size_ram, exp_size_file, exp_size_internal_inplace, exp_size_internal, exp_size_final, exp_ratio)
