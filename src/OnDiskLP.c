@@ -585,260 +585,7 @@ int edge_compar(const void *a, const void *b){
 /* File Mergesort Helpers */
 /**************************/
 
-void precopy_dlu1(const char* f1, const char* f2){
-	// write and add index
-	double_lu dlu = {1,0};
-	FILE *orig = safe_fopen(f1, "rb");
-	FILE *copy = safe_fopen(f2, "wb");
-	while(fread(&dlu.ctr2, L_SIZE, 1, orig)){
-		safe_fwrite(&dlu, sizeof(double_lu), 1, copy);
-		dlu.ctr1++;
-	}
-	fclose_tracked(2);
-	return;
-}
-
-void precopy_dlu2(const char* f1, const char* f2){
-	// write flipped version (index, clust => clust, index)
-	double_lu dlu = {0,0};
-	l_uint prev_ind=0;
-	FILE *orig = safe_fopen(f1, "rb");
-	FILE *copy = safe_fopen(f2, "wb");
-	while(fread(&dlu, sizeof(double_lu), 1, orig)){
-			prev_ind = dlu.ctr1;
-			dlu.ctr1 = dlu.ctr2;
-			dlu.ctr2 = prev_ind;
-			safe_fwrite(&dlu, sizeof(double_lu), 1, copy);
-	}
-	fclose_tracked(2);
-	return;
-}
-
-void postcopy_dlu1(const char* f1, const char* f2){
-	double_lu dlu = {0,0};
-	l_uint prev_ind=0, ctr=0;
-	FILE *orig = safe_fopen(f1, "rb");
-	FILE *copy = safe_fopen(f2, "wb");
-	while(fread(&dlu, sizeof(double_lu), 1, orig)){
-			if(prev_ind != dlu.ctr2){
-				prev_ind = dlu.ctr2;
-				dlu.ctr2 = ++ctr;
-			} else {
-				dlu.ctr2 = ctr;
-			}
-			safe_fwrite(&dlu, sizeof(double_lu), 1, copy);
-	}
-	fclose_tracked(2);
-	return;
-}
-
-void postcopy_dlu2(const char* f1, const char* f2){
-	// write only the cluster into file
-	// also can reindex such that the first cluster listed is cluster 1
-	// (this can be removed)
-	double_lu dlu = {0,0};
-	FILE *orig = safe_fopen(f1, "rb");
-	FILE *copy = safe_fopen(f2, "wb");
-
-	// uncomment these lines to make the first vertex have cluster 1
-	/*
-	l_uint max_found = 0, offset;
-	while(fread(&dlu, sizeof(double_lu), 1, orig))
-			if(dlu.ctr1 > max_found) max_found = dlu.ctr1;
-	rewind(orig);
-	fread(&dlu, sizeof(double_lu), 1, orig);
-	offset = max_found - dlu.ctr1;
-	rewind(orig);
-	*/
-
-	while(fread(&dlu, sizeof(double_lu), 1, orig)){
-			// dlu.ctr1 = ((dlu.ctr1 + offset) % max_found) + 1;
-			safe_fwrite(&dlu.ctr1, L_SIZE, 1, copy);
-	}
-	fclose_tracked(2);
-	return;
-}
-
-void mergesort_clust_file(const char* f, const char* dir, size_t element_size,
-															int (*compar)(const void *, const void *),
-															void (*precopy)(const char*, const char*),
-															void (*postcopy)(const char*, const char*),
-															const int verbose){
-	/*
-	 * general file mergesort function
-	 * arguments:
-	 *	-            f: file to sort
-	 *	-          dir: directory to store junk files
-	 *  - element_size: size of each element to read/write
-	 *  -      *compar: function pointer used in qsort / mergesort. ensure proper casting.
-	 *  -     *precopy: function to copy f into the first junk file
-	 *  -    *postcopy: function to write final values back into f
-	 *  notes:
-	 *  - *precopy should open the file (assume it does not exist)
-	 *  - *compar will provide void** values, make sure to float dereference
-	 */
-
-	// two read pointers, one write pointer
-	FILE *f1_r1, *f1_r2, *f2_w;
-	char *file1 = safe_malloc(PATH_MAX);
-	char *file2 = safe_malloc(PATH_MAX);
-	char *finalfile;
-
-	//size_t dlu_size = sizeof(double_lu);
-
-	// create the junk files we'll use
-	safe_filepath_cat(dir, "tmp_ms1", file1, PATH_MAX);
-	safe_filepath_cat(dir, "tmp_ms2", file2, PATH_MAX);
-
-	// first, we'll use the cache to read in preprocessed sorted blocks of size `element_size`
-	l_uint block_size = FILE_READ_CACHE_SIZE;
-	l_uint total_lines = 0;
-
-	// allocate space for data in a void*
-	//void *read_cache[FILE_READ_CACHE_SIZE];
-	void **read_cache = safe_malloc(sizeof(void*) * FILE_READ_CACHE_SIZE);
-	for(int i=0; i<FILE_READ_CACHE_SIZE; i++) read_cache[i] = safe_malloc(element_size);
-
-	// copy the original file into file 1
-	if(verbose) Rprintf("\t\tCopying source file...");
-	precopy(f, file1);
-	if(verbose) Rprintf("done.\n");
-
-	// open file, read in chunks, sort locally, write to file
-	uint cachectr = 0;
-	f1_r1 = safe_fopen(file1, "rb");
-	if(!f1_r1) error("%s", "Error opening file obtained from mergesort precopy");
-	f2_w = safe_fopen(file2, "wb");
-	if(!f2_w) error("%s", "Error opening temporary mergesort file for writing");
-	while(fread(read_cache[cachectr], element_size, 1, f1_r1)){
-		cachectr++;
-		total_lines++;
-		if(cachectr == block_size){
-			qsort(read_cache, cachectr, sizeof(void*), compar);
-			for(int i=0; i<cachectr; i++)
-				safe_fwrite(read_cache[i], element_size, 1, f2_w);
-			cachectr=0;
-		}
-		if(verbose && total_lines % PROGRESS_COUNTER_MOD == 0)
-			Rprintf("\r\t\tLocal sort: %" lu_fprint " lines processed", total_lines);
-	}
-	if(cachectr){
-		qsort(read_cache, cachectr, sizeof(void*), compar);
-		for(int i=0; i<cachectr; i++)
-			safe_fwrite(read_cache[i], element_size, 1, f2_w);
-	}
-	if(verbose) Rprintf("\r\t\tLocal sort: %" lu_fprint " lines processed\n", total_lines);
-
-	fclose_tracked(2);
-	finalfile = file2;
-
-	l_uint cur_lines = 0;
-	int iter1, iter2, previt1, previt2;
-	int flip = 0, cmp;
-	void *tmp1 = safe_malloc(element_size);
-	void *tmp2 = safe_malloc(element_size);
-	char *f1, *f2;
-	l_uint num_iter = 1, total_iter=0;
-	if(verbose){
-		l_uint tmp_bs = block_size;
-		while(tmp_bs < total_lines){
-			num_iter++;
-			tmp_bs <<= 1;
-		}
-		total_iter = num_iter-1;
-	}
-	num_iter = 1;
-
-	while(block_size < total_lines){
-		// need an interrupt here or we can brick on larger graphs
-		if(verbose){
-			Rprintf("\r\t\tIteration %" lu_fprint "/%" lu_fprint ": 0.00%% complete   ", num_iter, total_iter);
-		} else {
-			R_CheckUserInterrupt();
-		}
-
-		// f1 is always the reading file, f2 the writing file
-		f1 = flip ? file1 : file2;
-		f2 = flip ? file2 : file1;
-		flip = !flip;
-
-		f1_r1 = safe_fopen(f1, "rb");
-		f1_r2 = safe_fopen(f1, "rb");
-		f2_w = safe_fopen(f2, "wb");
-		if(!(f1_r1 && f1_r2 && f2_w))
-			error("%s", "Error opening temporary files in mergesort");
-		// move second pointer forward to second block
-		fseek(f1_r2, element_size*block_size, SEEK_CUR);
-
-		// sort file 1 into file 2
-		while(cur_lines < total_lines){
-			// sort one block from file 1 into file 2 -- iter stores lines remaining
-			iter1=total_lines - cur_lines;
-			if(iter1 > block_size) iter1 = block_size;
-			cur_lines += iter1;
-
-			iter2=total_lines - cur_lines;
-			if(iter2 > block_size) iter2 = block_size;
-			cur_lines += iter2;
-
-			previt1=iter1+1;
-			previt2=iter2+1;
-			while(iter1 || iter2){
-				if(iter1 && iter1 != previt1){
-					safe_fread(tmp1, element_size, 1, f1_r1);
-					previt1 = iter1;
-				}
-				if(iter2 && iter2 != previt2){
-					safe_fread(tmp2, element_size, 1, f1_r2);
-					previt2 = iter2;
-				}
-
-				cmp = compar(&tmp1, &tmp2);
-				if(iter1 && (!iter2 || cmp <= 0 )){
-					safe_fwrite(tmp1, element_size, 1, f2_w);
-					iter1--;
-				} else {
-					safe_fwrite(tmp2, element_size, 1, f2_w);
-					iter2--;
-				}
-			}
-			// advance pointers one block past where we just read:
-			// if we move too far it doesn't really matter, we'll catch it on the next part
-			fseek(f1_r1, element_size*block_size, SEEK_CUR);
-			fseek(f1_r2, element_size*block_size, SEEK_CUR);
-			if(verbose){
-				Rprintf("\r\t\tIteration %" lu_fprint "/%" lu_fprint ": %04.2f%% complete  ",
-					num_iter, total_iter, 100*(double)cur_lines / total_lines);
-			} else {
-				R_CheckUserInterrupt();
-			}
-		}
-
-		fclose_tracked(3);
-		cur_lines = 0;
-		block_size *= 2;
-		finalfile = f2;
-		num_iter++;
-	}
-	if(verbose && total_iter) Rprintf("\r\t\tIteration %" lu_fprint "/%" lu_fprint ": 100.00%% complete  \n",
-					total_iter, total_iter);
-	if(verbose) Rprintf("\t\tCopying sorted results...\n");
-	// copy result back into f
-	postcopy(finalfile, f);
-
-	// free memory allocations
-	free(tmp1);
-	free(tmp2);
-	for(int i=0; i<FILE_READ_CACHE_SIZE; i++) free(read_cache[i]);
-	free(read_cache);
-	remove(file1);
-	remove(file2);
-	free(file1);
-	free(file2);
-	return;
-}
-
-void kway_mergesort_file(const char* f1, l_uint nlines,
+void kway_mergesort_file_inplace(const char* f1, l_uint nlines,
 													size_t element_size,
 													l_uint block_size, int buf_size,
 													int num_bins, int output_size,
@@ -994,6 +741,138 @@ void kway_mergesort_file(const char* f1, l_uint nlines,
 	GLOBAL_nbuffers = 0;
 	LT_free(mergetree);
 	GLOBAL_mergetree = NULL;
+
+	return;
+}
+
+void kway_mergesort_file(const char* f1, const char* f2, l_uint nlines,
+													size_t element_size,
+													l_uint block_size, int buf_size,
+													int num_bins, int output_size,
+													int (*compar)(const void *, const void *),
+													const int verbose){
+	/*
+	 * Input variables:
+	 *	-				f1, f2: file names (f1: source, f2: temp)
+	 *  -				nlines: number of lines to sort in file
+	 *	- element_size: size (in bytes) of a single element
+	 *	-  	block_size: number of elements in each pre-sorted block
+	 *	- 		buf_size: number of elements to store in each buffer
+	 *	-     num_bins: "k" in k-way merge. Set to power of 2 for best performance.
+	 *	-  output_size: number of elements to store in output buffer.
+	 *	- 			compar: comparison function for comparing elements
+	 *	-			 verbose: print status?
+	 *
+	 */
+
+	// file should already be sorted into x blocks of size block_size*element_size
+
+	FILE *file1, *file2;
+
+	LoserTree *mergetree = LT_alloc(num_bins, output_size, element_size, compar);
+	GLOBAL_mergetree = mergetree;
+	int cur_start, to_read, empty_bin;
+	l_uint nblocks, num_iter;
+
+	// allocate space for the buffers
+	void **buffers = malloc(sizeof(void*)*num_bins);
+	for(int i=0; i<num_bins; i++) buffers[i] = malloc(buf_size*element_size);
+	GLOBAL_mergebuffers = buffers;
+	GLOBAL_nbuffers = num_bins;
+
+	long int *offsets, *remaining;
+	offsets = malloc(sizeof(long int)*num_bins);
+	remaining = malloc(sizeof(long int)*num_bins);
+
+	const char *cur_source = f1;
+	const char *cur_target = f2;
+	const char *tmp_swap_char;
+	while(block_size < nlines){
+		file1 = safe_fopen(cur_source, "rb");
+		file2 = safe_fopen(cur_target, "wb");
+
+		// number of blocks
+		nblocks = nlines / block_size + !!(nlines % block_size);
+		// number of iterations is nblocks / num bins
+		num_iter = nblocks / num_bins + !!(nblocks % num_bins);
+
+		cur_start = 0;
+		for(l_uint iter=0; iter<num_iter; iter++){
+			if(verbose) Rprintf("\tIteration %llu of %llu (%6.01f%% complete)       \r",
+				iter+1, num_iter, 100*(double)block_size/(double)nlines);
+			R_CheckUserInterrupt();
+			// run one k-way merge operation
+
+			// first initialize offsets and number of remaining values
+			for(int i=0; i<num_bins; i++){
+				offsets[i] = cur_start;
+				if(cur_start != nlines-1)
+					cur_start += block_size;
+				cur_start = cur_start > (nlines) ? nlines : cur_start;
+				remaining[i] = cur_start - offsets[i];
+			}
+
+			// load data into the buffers and assign into tree
+			for(int i=0; i<num_bins; i++){
+				if(remaining[i]){
+					fseek(file1, offsets[i]*element_size, SEEK_SET);
+					to_read = remaining[i] > buf_size ? buf_size : remaining[i];
+					safe_fread(buffers[i], to_read, element_size, file1);
+					LT_fillBin(mergetree, i, to_read, buffers[i]);
+					remaining[i] -= to_read;
+					offsets[i] += to_read;
+				}
+			}
+
+			// merge all the data
+			LT_initGame(mergetree);
+			while(mergetree->full_bins){
+				empty_bin = LT_runFileGame(mergetree, file2);
+				// refill the bin
+				to_read = 0;
+				if(remaining[empty_bin]){
+					fseek(file1, offsets[empty_bin]*element_size, SEEK_SET);
+					to_read = remaining[empty_bin] > buf_size ? buf_size : remaining[empty_bin];
+					safe_fread(buffers[empty_bin], to_read, element_size, file1);
+					remaining[empty_bin] -= to_read;
+					offsets[empty_bin] += to_read;
+				}
+
+				// note that the bin must be refilled even with no elements
+				// so the tree moves on to the next step prior to next pop
+				LT_refillBin(mergetree, empty_bin, to_read, buffers[empty_bin]);
+			}
+
+			// finally, call fdumpOutput to dump any remaining values
+			LT_fdumpOutput(mergetree, file2);
+		}
+		printf("\nWrote %ld values\n", mergetree->nwritten);
+		mergetree->nwritten = 0;
+		block_size *= num_bins;
+		fclose_tracked(2);
+		tmp_swap_char = cur_source;
+		cur_source = cur_target;
+		cur_target = tmp_swap_char;
+		if(verbose) printf("\n");
+	}
+	// cur_source will always be the file we just WROTE to here
+
+	if(verbose) Rprintf("\t100.00%% complete                                 \n");
+	for(int i=0; i<num_bins; i++) free(buffers[i]);
+	free(buffers);
+
+	GLOBAL_mergebuffers = NULL;
+	GLOBAL_nbuffers = 0;
+	LT_free(mergetree);
+	GLOBAL_mergetree = NULL;
+
+	remove(cur_target);
+	if(f1 != cur_source){
+		// if we used an odd number of iterations,
+		// the final file is the temp file
+		// so we have to "swap" them
+		rename(cur_source, f1);
+	}
 
 	return;
 }
@@ -1469,7 +1348,8 @@ void normalize_csr_edgecounts_batch(const char* ftable, const char* fweights, l_
 void csr_compress_edgelist_trie_batch(const char* edgefile, prefix *trie,
 																	const char* ftable, const char* fweight, const char* fneighbor,
 																	const char sep, const char linesep, l_uint num_v, int v,
-																	const int is_undirected, int has_self_loops, const int ignore_weights){
+																	const int is_undirected, int has_self_loops,
+																	const int ignore_weights, const int sort_inplace){
 	/*
 	 * This should be called after we've already read in all our files
 	 * critically, ensure we're rewritten our ftable file such that it is cumulative counts and not vertex counts
@@ -1591,12 +1471,21 @@ void csr_compress_edgelist_trie_batch(const char* edgefile, prefix *trie,
 
 	// sort the file and split it into neighbor and weight
 	if(FILE_READ_CACHE_SIZE < nedges){
-		kway_mergesort_file(fneighbor, nedges, sizeof(edge),
-												FILE_READ_CACHE_SIZE,
-												MERGE_INPUT_SIZE,
-												MAX_BINS_FOR_MERGE, // bins to merge with
-												MERGE_OUTPUT_SIZE, // size of output buffer
-												edge_compar, v);
+		if(sort_inplace){
+			kway_mergesort_file_inplace(fneighbor, nedges, sizeof(edge),
+																	FILE_READ_CACHE_SIZE,
+																	MERGE_INPUT_SIZE,
+																	MAX_BINS_FOR_MERGE, // bins to merge with
+																	MERGE_OUTPUT_SIZE, // size of output buffer
+																	edge_compar, v);
+		} else {
+			kway_mergesort_file(fneighbor, fweight, nedges, sizeof(edge),
+																	FILE_READ_CACHE_SIZE,
+																	MERGE_INPUT_SIZE,
+																	MAX_BINS_FOR_MERGE, // bins to merge with
+																	MERGE_OUTPUT_SIZE, // size of output buffer
+																	edge_compar, v);
+		}
 	}
 
 	split_sorted_file(fneighbor, fweight, nedges, v);
@@ -2100,7 +1989,8 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, // files
 										SEXP SEPS, SEXP CTR, SEXP ITER, SEXP VERBOSE, // control flow
 										SEXP IS_UNDIRECTED, SEXP ADD_SELF_LOOPS, // optional adjustments
 										SEXP IGNORE_WEIGHTS, SEXP NORMALIZE_WEIGHTS,
-										SEXP CONSENSUS_WEIGHTS, SEXP INFLATION_POW){
+										SEXP CONSENSUS_WEIGHTS, SEXP INFLATION_POW,
+										SEXP SORT_INPLACE){
 	/*
 	 * I always forget how to handle R strings so I'm going to record it here
 	 * R character vectors are STRSXPs, which is the same as a list (VECSXP)
@@ -2153,6 +2043,7 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, // files
 	const int add_self_loops = self_loop_weight > 0;
 	const int should_normalize = LOGICAL(NORMALIZE_WEIGHTS)[0];
 	const int ignore_weights = LOGICAL(IGNORE_WEIGHTS)[0];
+	const int use_inplace_sort = LOGICAL(SORT_INPLACE)[0];
 
 	// consensus stuff
 	const int consensus_len = length(CONSENSUS_WEIGHTS);
@@ -2204,7 +2095,8 @@ SEXP R_LPOOM_cluster(SEXP FILENAME, SEXP NUM_EFILES, // files
  		csr_compress_edgelist_trie_batch(edgefile, GLOBAL_trie,
  																tabfile, weightsfile, neighborfile,
  																seps[0], seps[1], num_v, verbose,
- 																is_undirected, add_self_loops, ignore_weights);
+ 																is_undirected, add_self_loops,
+ 																ignore_weights, use_inplace_sort);
  	}
  	time2 = clock();
  	//check_mergedsplit_file(neighborfile, weightsfile);

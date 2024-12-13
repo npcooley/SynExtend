@@ -36,7 +36,7 @@ This function provides a rough estimate of the total disk space required to run 
 \code{node_name_length} specifies the average length of the node names--since the names themselves must be stored on disk, this contributes to the overall size. For relatively short node names (1-16 characters) this has a negligible impact on overall disk consumption, though it may impact the worst-case RAM consumption. Expected RAM consumption is determined by the average prefix length a random pair of vertex labels have in common, and should be closer to the minimum usage in most scenarios (see \code{\link{ExoLabel}} for more details on this).
 }
 \value{
-Invisibly returns a vector of length five, showing the estimated RAM consumption, estimated total edgelist file size, estimated disk consumption, estimated final file size, and ratio of the input file size to total ExoLabel disk usage. All values denote bytes.
+Invisibly returns a vector of length six, showing the estimated RAM consumption, estimated input edgelist file size, estimated disk consumption using in-place sort (\code{use_fast_sort=FALSE}), estimated disk consumption using fast sort (\code{use_fast_sort=TRUE}), estimated final file size, and ratio of the input file size to total ExoLabel disk usage. All values denote bytes.
 }
 
 \author{

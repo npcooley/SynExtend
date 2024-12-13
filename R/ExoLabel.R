@@ -6,6 +6,7 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
                           iterations=0L, inflation=1.05,
                           return_table=FALSE,
                           consensus_cluster=FALSE,
+                          use_fast_sort=FALSE,
                           verbose=interactive(),
                           sep='\t',
                           tempfiledir=tempdir()){
@@ -58,6 +59,9 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
     warning("Weight specified for 'add_self_loops' will be ignored")
     add_self_loops <- 1
   }
+  if(!is.logical(use_fast_sort)){
+    stop("invalid value for 'use_fast_sort' (should be TRUE or FALSE)")
+  }
   # verify that the first few lines of each file are correct
   if(!all(file.exists(edgelistfiles))) stop("edgelist file does not exist")
   edgelistfiles <- normalizePath(edgelistfiles, mustWork=TRUE)
@@ -104,7 +108,7 @@ ExoLabel <- function(edgelistfiles, outfile=tempfile(),
   .Call("R_LPOOM_cluster", edgelistfiles, length(edgelistfiles),
         tempfiledir, outfile, seps, ctr, iterations,
         verbose, is_undirected, add_self_loops, ignore_weights, normalize_weights,
-        consensus_cluster, inflation)
+        consensus_cluster, inflation, !use_fast_sort)
 
   for(f in list.files(tempfiledir, full.names=TRUE))
     if(file.exists(f)) file.remove(f)
@@ -130,13 +134,14 @@ EstimateExoLabel <- function(num_v, avg_degree=2,
 
   # assuming file is v1 v2 %.3f, which is 2*node_name_len + 3 + 5
   exp_size_file <- (2*node_name_length+8)*num_edges
-  exp_size_internal <- 16 * num_edges
+  exp_size_internal_inplace <- 16*num_edges
+  exp_size_internal <- 32 * num_edges
   exp_size_ram <- 24*node_name_length + 16 * num_v * 2 + 2*104857600
   exp_size_final <- (2+node_name_length+log10(num_v))*num_v
-  exp_ratio <- exp_size_internal / exp_size_file
-  v <- c(exp_size_ram, exp_size_file, exp_size_internal, exp_size_final, exp_ratio)
-  names(v) <- c("RAM Estimate", "Expected Input File Size", "Expected Internal File Size",
-    "Expected Final File Size", "Disk Usage Ratio")
+  exp_ratio <- exp_size_internal_inplace / exp_size_file
+  v <- c(exp_size_ram, exp_size_file, exp_size_internal_inplace, exp_size_internal, exp_size_final, exp_ratio)
+  names(v) <- c("RAM Estimate", "Expected Input File Size", "Expected Internal File Size (SlowSort)",
+                "Expected Internal File Size (FastSort)", "Expected Final File Size", "Disk Usage Ratio")
 
   max_nchar <- max(nchar(names(v)[-length(v)]))
   unitsizes <- c("B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB")
