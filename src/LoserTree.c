@@ -7,8 +7,6 @@
 
 LoserTree* LT_alloc(int nbins, int output_size, size_t element_size,
                     int (*compare)(const void *a, const void *b)){
-  // going to fill bins later, for now just leave them
-
   LoserTree *tree = safe_malloc(sizeof(LoserTree));
 
   // we need an even power of two for the number of bins
@@ -24,10 +22,11 @@ LoserTree* LT_alloc(int nbins, int output_size, size_t element_size,
   int *binsize = safe_malloc(sizeof(int) * actual_bins);
   void **bins = safe_malloc(sizeof(void *) * actual_bins);
 
+  // going to fill bins later, for now just initialize with a dummy value
   for(int i=0; i<actual_bins; i++){
     binsize[i] = 0;
     bins[i] = NULL;
-    values[i] = -1;
+    values[i] = -1; // fill first half of array with filler number
     values[i+actual_bins] = i; // fill second half of array with indices
   }
   tree->binsize = binsize;
@@ -209,6 +208,7 @@ int LT_runInplaceFileGame(LoserTree *tree, size_t block_end,
 }
 
 size_t LT_dumpOutput(LoserTree *tree, void *output_buffer){
+  // dumps loser tree output buffer to a void* buffer
   size_t nbytes = tree->e_size * tree->cur_output_i;
   memcpy(output_buffer, tree->output, nbytes);
   tree->cur_output_i = 0;
@@ -216,6 +216,7 @@ size_t LT_dumpOutput(LoserTree *tree, void *output_buffer){
 }
 
 size_t LT_fdumpOutput(LoserTree *tree, FILE *f){
+  // dumps loser tree output buffer to a file
   // assume f is a valid file
   size_t to_write = tree->cur_output_i;
   if (!to_write) return 0;
@@ -228,8 +229,12 @@ size_t LT_fdumpOutput(LoserTree *tree, FILE *f){
   return nwrote;
 }
 
-void reorganize_blocks(LoserTree *tree, size_t block_end, FILE *f,
+static void reorganize_blocks(LoserTree *tree, size_t block_end, FILE *f,
                         long int *remaining, long int **offsets){
+  /*
+   * Move all unprocessed blocks to the end of the current region
+   * so we can do mergesort in-place
+   */
   size_t size = tree->e_size;
   int output_size = tree->cur_output_i;
   long int *offs = *offsets;
@@ -310,29 +315,4 @@ void LT_free(LoserTree *tree){
   free(tree->values);
   free(tree);
   return;
-}
-
-// helper functions
-void LT_print(LoserTree *tree){
-  int nbins = tree->nbins;
-  int nnodes = nbins*2;
-
-  printf("%2d ", tree->values[0]);
-  for(int i=1; i<nbins*2; i++){
-      printf("%2d ", tree->values[i]);
-  }
-  printf("\n\n");
-
-  int width = 1;
-  int i=1;
-  printf("%2d ", tree->values[0]);
-  while(i < nnodes-1){
-    for(int j=0; j<width; j++){
-      printf(" %2d ", tree->values[i+j]);
-    }
-    i += width;
-    width *= 2;
-    printf("\n");
-  }
-  printf("Output: %d\n", tree->values[0]);
 }
