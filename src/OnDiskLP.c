@@ -892,7 +892,7 @@ void kway_mergesort_file(const char* f1, const char* f2, l_uint nlines,
   // cur_source will always be the file we just WROTE to here
 
   if(verbose) Rprintf("\tIteration %llu of %llu (%6.01f%% complete)       \n",
-                      tmpniter, nmax_iterations, 100);
+                      tmpniter, nmax_iterations, 100.0);
   for(int i=0; i<num_bins; i++) free(buffers[i]);
   free(buffers);
 
