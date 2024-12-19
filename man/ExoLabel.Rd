@@ -18,6 +18,7 @@ ExoLabel(edgelistfiles,
               inflation=1.05,
               return_table=FALSE,
               consensus_cluster=FALSE,
+              use_fast_sort=TRUE,
               verbose=interactive(),
               sep='\t',
               tempfiledir=tempdir())
