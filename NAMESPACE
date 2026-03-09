@@ -57,6 +57,7 @@ export(RejectionBy)
 export(WithinSetCompetition)
 export(FrameDownward)
 export(SquaregffBy)
+export(FeaturesFromDF)
 
 S3method(subset, 'dendrogram')
 

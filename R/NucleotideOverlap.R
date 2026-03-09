@@ -433,6 +433,7 @@ NucleotideOverlap <- function(SyntenyObject,
         ph1 <- findOverlaps(query = doc1_ranges[[d3]],
                             subject = curr_d1_ranges)
         if (length(ph1) < 1) {
+          # next in the d3 loop, not the m2 or m1
           next
         }
         ph2 <- overlapsRanges(query = doc1_ranges[[d3]],
@@ -450,6 +451,16 @@ NucleotideOverlap <- function(SyntenyObject,
                                "r" = end(doc1_ranges[[d3]][curr_from]) - end(ph2),
                                "hit_idx" = as.integer(rownames(curr_hit_tbl)[curr_from]),
                                "feature" = as.integer(rownames(curr_d1_genecalls)[curr_to]))
+        # return(list(d1_genecalls_source,
+        #             d1_genecalls,
+        #             d1_ranges,
+        #             curr_d1_ranges,
+        #             ph1,
+        #             curr_hit_tbl,
+        #             adj_vals))
+        # the row name of the current gene calls != the feature key
+        # they're being left here because we need the index, but later that
+        # index needs to be converted for both the d1 and d2 genecalls
         adj_tbl <- data.frame("idx1" = curr_hit_tbl$idx1[curr_from],
                               "idx2" = curr_hit_tbl$idx2[curr_from],
                               "inv" = curr_hit_tbl$inv[curr_from],
@@ -566,6 +577,7 @@ NucleotideOverlap <- function(SyntenyObject,
           ph1 <- findOverlaps(query = curr_focal_ranges,
                               subject = curr_d2_ranges)
           if (length(ph1) < 1) {
+            # next in the d3 loop, not the m2 or m1
             next
           }
           ph2 <- overlapsRanges(query = curr_focal_ranges,
@@ -595,6 +607,11 @@ NucleotideOverlap <- function(SyntenyObject,
                                 "source_hit" = adj_vals$hit_idx,
                                 "d1_hit" = adj_vals$d1_feature,
                                 "d2_hit" = as.integer(rownames(curr_d2_genecalls)[curr_to]))
+          # return(list(adj_tbl,
+          #             d1_genecalls_source,
+          #             d2_genecalls_source))
+          # adj_tbl$d1_hit <- d1_genecalls_source$Key[adj_tbl$d1_hit]
+          # adj_tbl$d2_hit <- d2_genecalls_source$Key[adj_tbl$d2_hit]
           inv_log1 <- adj_tbl$inv == 0
           inv_log2 <- adj_tbl$inv != 0
           adj_tbl$doc1_l[inv_log1] <- curr_subject$doc1_l[curr_from][inv_log1] + adj_vals$l[inv_log1]
@@ -646,10 +663,15 @@ NucleotideOverlap <- function(SyntenyObject,
         
         # return(final_hit_table)
         if (nrow(final_hit_table) > 0) {
-          final_hit_table$d1_hit <- d1_genecalls_source$Key[final_hit_table$d1_hit]
+          # return(list(final_hit_table,
+          #             d1_genecalls_source,
+          #             d2_genecalls_source))
+          # assign the subkey first because the hit vals are still the row indices
+          # then assign the key value
           final_hit_table$d1_subkey <- d1_genecalls_source$SubKey[final_hit_table$d1_hit]
-          final_hit_table$d2_hit <- d2_genecalls_source$Key[final_hit_table$d2_hit]
+          final_hit_table$d1_hit <- d1_genecalls_source$Key[final_hit_table$d1_hit]
           final_hit_table$d2_subkey <- d2_genecalls_source$SubKey[final_hit_table$d2_hit]
+          final_hit_table$d2_hit <- d2_genecalls_source$Key[final_hit_table$d2_hit]
           o_final <- order(final_hit_table$d1_hit,
                            final_hit_table$d2_hit,
                            final_hit_table$d1_subkey,
@@ -723,6 +745,11 @@ NucleotideOverlap <- function(SyntenyObject,
           pairwise_table <- do.call(rbind,
                                     pairwise_table)
           rownames(pairwise_table) <- NULL
+          o_pair <- order(pairwise_table[, 1],
+                          pairwise_table[, 2],
+                          pairwise_table[, 10],
+                          pairwise_table[, 11])
+          pairwise_table <- pairwise_table[o_pair, ]
         } else {
           # create dummy pairs table
           pairwise_table <- matrix(data = integer(),
