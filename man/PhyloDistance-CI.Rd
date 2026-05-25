@@ -13,11 +13,11 @@ information of branch partitions.
 \details{
 This function is called as part of \code{\link{PhyloDistance}} and calculates tree distance using the clustering information
 approach first described in Smith (2020). This function iteratively pairs
-internal tree branches of a phylogeny based on their similarity, then scores 
+internal tree branches of a phylogeny based on their similarity, then scores
 overall similarity as the sum of these measures. The similarity score is then
 converted to a distance by normalizing by the average entropy of the two trees.
-This metric has been demonstrated to outperform numerous other metrics in capabilities; 
-see the original publication cited in References for more information. 
+This metric has been demonstrated to outperform numerous other metrics in capabilities;
+see the original publication cited in References for more information.
 
 Users may wish to use the actual similarity values rather than a distance metric;
 the option to specify \code{RawScore=TRUE} is provided for this case. Distance
@@ -27,14 +27,14 @@ a distance metric. Setting \code{RawScore=TRUE} will instead return a vector wit
 \eqn{(S, H_1, H_2, p)}, where \eqn{p} is an approximation for the two sided p-value of the result based on random simulations from Smith (2020).
 }
 \value{
-Returns a normalized distance, with 0 indicating identical trees and 1 indicating 
+Returns a normalized distance, with 0 indicating identical trees and 1 indicating
 maximal difference. Note that branch lengths are not considered, so two trees
 with different branch lengths may return a distance of 0.
 
 If \code{RawScore=TRUE}, returns a named length 4 vector with the first entry the similarity
 score, subsequent entries the entropy values for each tree, and the last entry the approximate p-value for the result based on simulations.
 
-If the trees have no leaves in common, the function will return \code{1} if 
+If the trees have no leaves in common, the function will return \code{1} if
 \code{RawScore=FALSE}, and \code{c(0, NA, NA, NA)} if \code{TRUE}.
 }
 \references{
@@ -45,9 +45,17 @@ Aidan Lakshman \email{ahl27@pitt.edu}
 }
 \note{
 Note that this function requires the input dendrograms to be labeled alike (ex.
-leaf labeled \code{abc} in \code{dend1} represents the same species as 
-leaf labeled \code{abc} in \code{dend2}). 
-Labels can easily be modified using \code{\link{dendrapply}}. 
+leaf labeled \code{abc} in \code{dend1} represents the same species as
+leaf labeled \code{abc} in \code{dend2}).
+Labels can easily be modified using \code{\link{dendrapply}}.
+}
+
+\warning{
+This function is not the same as the implementation in \code{ape}. In this
+package, we use a rooted representation of the tree when calculating clades,
+so there is an additional partition compared to a purely unrooted bipartition
+view. Additionally, we use normalized similarity, whereas \code{ape} uses
+variation of information.
 }
 
 \examples{
@@ -59,7 +67,7 @@ dm2 <- as.dist(matrix(runif(64, 0.5, 5), ncol=8))
 tree1 <- as.dendrogram(hclust(dm1))
 tree2 <- as.dendrogram(hclust(dm2))
 
-# get RF distance
+# get CI distance
 PhyloDistance(tree1, tree2, Method="CI")
 
 # get similarity score with individual entropies

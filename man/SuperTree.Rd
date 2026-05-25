@@ -33,7 +33,7 @@ Further arguments passed to \code{\link{Treeline}}
 }
 }
 \details{
-This implementation follows the ASTRID algorithm for estimating a species tree from a set of unrooted gene trees. Input gene trees are not required to have identical species sets, as the algorithm can handle missing entries in gene trees. The algorithm essentially works by averaging the Cophenetic distance matrices of all gene trees, then constructing a neighbor-joining tree from the resulting distance matrix. See the original paper linked in the references section for more information.
+This implementation follows the Weighted ASTRID algorithm for estimating a species tree from a set of unrooted gene trees. Input gene trees are not required to have identical species sets, as the algorithm can handle missing entries in gene trees. The algorithm essentially works by averaging the Cophenetic distance matrices of all gene trees, then constructing a neighbor-joining tree from the resulting distance matrix. See the original paper linked in the references section for more information.
 
 If two species never appear together in a gene tree, their distance cannot be estimated in the algorithm and will thus be missing. \code{SuperTree} handles this by imputing the value using the distances available with data-interpolating empirical orthogonal functions (DINEOF). This approach has relatively high accuracy even up to high levels of missingness. Eigenvector calculation speed is improved using a Lanczos algorithm for matrix compression.
 
@@ -50,7 +50,7 @@ A \code{\link{dendrogram}} object corresponding to the species tree constructed
 from input gene trees.
 }
 \references{
-Vachaspati, P., Warnow, T. \emph{ASTRID: Accurate Species TRees from Internode Distances}. BMC Genomics, 2015. \bold{16} (Suppl 10): S3.
+Liu B., Warnow T. \emph{Weighted ASTRID: fast and accurate species trees from weighted internode distances}. Algorithms Mol Biol, 2023 Jul 19; \bold{18}(1):6.
 
 Taylor, M.H., Losch, M., Wenzel, M. and Schröter, J. \emph{On the sensitivity of field reconstruction and prediction using empirical orthogonal functions derived from gappy data}. Journal of Climate, 2013. \bold{26}(22): 9194-9205.
 
