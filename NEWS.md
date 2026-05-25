@@ -1,3 +1,6 @@
+# SynExtend 1.25.1
+* Large rewrite of gff import, `SummarizePairs` and other functions, added `EvaluatePairs` function and some other ancillary functions.
+
 # SynExtend 1.23.1
 * Large rewrite of `NucleotideOverlap` to support accurate kmer hit tabulation for features with introns
 
