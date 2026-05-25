@@ -6,7 +6,8 @@
 ###### -- FUNCTION ------------------------------------------------------------
 
 FeaturesFromDF <- function(Genome,
-                           GeneCalls) {
+                           GeneCalls,
+                           Index = "1") {
   if (!is(object = Genome,
           class2 = "DNAStringSet")) {
     stop ("Genome must be a DNAStringSet")
@@ -25,7 +26,7 @@ FeaturesFromDF <- function(Genome,
           paste(check_cols,
                 collapse = ", "))
   }
-  # not yet implemented
+  # not implemented
   # NameBy <- match.arg(NameBy)
   u_indices <- unique(GeneCalls$Index)
   res <- vector(mode = "list",
@@ -69,7 +70,11 @@ FeaturesFromDF <- function(Genome,
   } else {
     res <- curr_feats
   }
-  
+  names(res) <- paste(rep(Index,
+                          nrow(GeneCalls)),
+                      GeneCalls$Index,
+                      seq(nrow(GeneCalls)),
+                      sep = "_")
   return(res)
   
 }

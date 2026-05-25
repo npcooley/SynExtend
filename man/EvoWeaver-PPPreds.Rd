@@ -116,3 +116,40 @@ Weigt, M., et al., \emph{Identification of direct residue contacts in protein-pr
 
 \link[=EvoWeaver-SLPreds]{EvoWeaver Sequence Level Predictors}
 }
+\examples{
+exData <- get(data("ExampleStreptomycesData"))
+ew <- EvoWeaver(exData$Genes[seq_len(10L)],
+                MySpeciesTree = exData$Tree,
+                NoWarn = TRUE)
+
+## ExtantJaccard: Jaccard similarity of presence/absence profiles at extant leaves
+ej <- predict(ew,
+              Method = "ExtantJaccard",
+              Verbose = FALSE)
+head(ej)
+
+## GLMI: mutual information of gain/loss vectors
+gl <- predict(ew,
+              Method = "GLMI",
+              Verbose = FALSE)
+head(gl)
+
+## PAJaccard: centered Jaccard index with conserved clades collapsed
+pj <- predict(ew,
+              Method = "PAJaccard",
+              Verbose = FALSE)
+head(pj)
+
+## PAOverlap: proportion of shared ancestry based on Fitch parsimony
+po <- predict(ew,
+              Method = "PAOverlap",
+              Verbose = FALSE)
+head(po)
+
+## GLDistance: distance between inferred ancestral gain/loss events
+## (requires a species tree)
+gld <- predict(ew,
+               Method = "GLDistance",
+               Verbose = FALSE)
+head(gld)
+}

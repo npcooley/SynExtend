@@ -48,10 +48,8 @@ Note that this function requires the input dendrograms to be labeled alike (ex.
 leaf labeled \code{abc} in \code{dend1} represents the same species as
 leaf labeled \code{abc} in \code{dend2}).
 Labels can easily be modified using \code{\link{dendrapply}}.
-}
 
-\warning{
-This function is not the same as the implementation in \code{ape}. In this
+WARNING: This function is not the same as the implementation in \code{ape}. In this
 package, we use a rooted representation of the tree when calculating clades,
 so there is an additional partition compared to a purely unrooted bipartition
 view. Additionally, we use normalized similarity, whereas \code{ape} uses

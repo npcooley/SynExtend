@@ -427,9 +427,28 @@ NucleotideOverlap <- function(SyntenyObject,
         # using names here should be fine, because it should be forced to link
         # correctly to the contig names
         # ctg_w <- which(d1_genecalls$Index == as.integer(names(doc1_ranges)[d3]))
-        curr_d1_genecalls <- d1_genecalls[[names(d1_genecalls) == names(doc1_ranges)[d3]]]
-        curr_d1_ranges <- d1_ranges[[names(d1_ranges) == names(doc1_ranges)[d3]]]
-        curr_hit_tbl <- index_splits[[names(index_splits) == names(doc1_ranges)[d3]]]
+        # print(d3)
+        # return(list(d1_genecalls,
+        #             doc1_ranges,
+        #             d3))
+        w3 <- which(names(d1_genecalls) == names(doc1_ranges)[d3])
+        if (length(w3) < 1) {
+          warning("internal name alignment appears to be failing")
+          next
+        }
+        w4 <- which(names(d1_ranges) == names(doc1_ranges)[d3])
+        if (length(w4) < 1) {
+          warning("internal name alignment appears to be failing")
+          next
+        }
+        w5 <- which(names(index_splits) == names(doc1_ranges)[d3])
+        if (length(w5) < 1) {
+          warning("internal name alignment appears to be failing")
+          next
+        }
+        curr_d1_genecalls <- d1_genecalls[[w3]]
+        curr_d1_ranges <- d1_ranges[[w4]]
+        curr_hit_tbl <- index_splits[[w5]]
         ph1 <- findOverlaps(query = doc1_ranges[[d3]],
                             subject = curr_d1_ranges)
         if (length(ph1) < 1) {
@@ -737,7 +756,7 @@ NucleotideOverlap <- function(SyntenyObject,
                                                 max(x$doc1_r),
                                                 min(x$doc2_l[1]),
                                                 max(x$doc2_r),
-                                                sum(x$width),
+                                                max(x$width),
                                                 nrow(x))
                                      }
                                      return(res)

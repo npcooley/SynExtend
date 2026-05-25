@@ -34,7 +34,7 @@
 \examples{
 library(rtracklayer)
 grange_obj <- import(con = system.file("extdata",
-                                       "GCF_023585825.1_ASM2358582v1_genomic.gff.gz",
+                                       "GCF_023585725.1_ASM2358572v1_genomic.gff.gz",
                                        package = "SynExtend"),
                      format = "gff")
 ImportedGFF <- SquaregffBy(gff_object = grange_obj,

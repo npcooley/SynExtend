@@ -1,27 +1,31 @@
 ###### -- External data for SynExtend  ----------------------------------------
 # Author: Nicholas Cooley
-# email: npc19@pitt.edu
-# this pseudocode relies on the ncbi command line utilities, they can be found
+# email: nicholas.cooley@ul.ie
+# this script relies on the ncbi command line utilities, they can be found
 # here: https://www.ncbi.nlm.nih.gov/books/NBK179288/
 # they must be installed, and R must have access to the executables
-# this data was generated on 2022 04 21
-# Self note:
-# UPDATE DATALIST MANUALLY
-# data was regenerated on 2022 09 22
-
-# data was regenerated again on 2024 04 25 for a set of new functions and
-# the deprecation of some old ones.
-# data was regenerated again on 2025 03 10 for some function adjustments
-# source(file = "~/Packages/SynExtend/R/SummarizePairs.R", echo = FALSE)
-# source(file = "~/Packages/SynExtend/R/ClusterByK.R", echo = FALSE)
-# source(file = "~/Packages/SynExtend/R/ExpandDiagonal.R", echo = FALSE)
 
 suppressMessages(library(SynExtend))
-suppressMessages(library(RSQLite))
-
-# data was regenerated again on 2025 02 08 for a new function
-source(file = "~/Packages/SynExtend/R/PrepareSeqs.R", echo = FALSE)
-source(file = "~/Packages/SynExtend/R/SummarizePairs.R", echo = FALSE)
+suppressMessages(library(DBI))
+# functions that have been changed or added will need to be sourced explicitly
+source(file = "~/Repos/SynExtend/R/FrameDownward.R",
+       echo = FALSE)
+source(file = "~/Repos/SynExtend/R/SquaregffBy.R",
+       echo = FALSE)
+source(file = "~/Repos/SynExtend/R/FeaturesFromDF.R",
+       echo = FALSE)
+source(file = "~/Repos/SynExtend/R/CreateDecoys.R",
+       echo = FALSE)
+source(file = "~/Repos/SynExtend/R/SummarizePairs.R",
+       echo = FALSE)
+source(file = "~/Repos/SynExtend/R/EvaluatePairs.R",
+       echo = FALSE)
+# functions to remove:
+# gffToDataFrame
+# ClusterByWhatever
+# ExpandDiagonal
+# a whole bunch of others, basically anything from my set that relies on an
+# old version of example data
 
 TODAYSDATE <- paste0(unlist(strsplit(x = as.character(Sys.time()),
                                      split = "-| ")[[1]][1:3]),
@@ -55,6 +59,13 @@ if (length(FtPPaths) > 4L) {
                      replace = FALSE)
 }
 
+# sometimes the ftp paths don't play nicely, replace with https if necessary:
+# this might be a result of being in the EU, or it could be something else
+# ¯\_(ツ)_/¯
+FtPPaths <- sub(pattern = "^ftp",
+                replacement = "https",
+                x = FtPPaths)
+
 adds <- mapply(SIMPLIFY = TRUE,
                USE.NAMES = FALSE,
                FUN = function(x, y) {
@@ -78,9 +89,9 @@ amns <- adds[3, , drop = TRUE]
 # save off gffs as external non-R data
 # save off `GeneCalls` as an object for examples
 
-# save off one GFF for `gffToDataFrame's example`
+# save off one GFF for `SquaregffBy's example`
 CURLCOMMAND <- paste0("curl --output ",
-                      paste0("~/Packages/SynExtend/inst/extdata/",
+                      paste0("~/Repos/SynExtend/inst/extdata/",
                              unlist(regmatches(x = gffs[1],
                                                m = gregexpr(pattern = "[^/]+\\.gff\\.gz",
                                                             text = gffs[1])))),
@@ -90,96 +101,130 @@ CURLCOMMAND <- paste0("curl --output ",
 system(command = CURLCOMMAND,
        intern = FALSE)
 
-Endosymbionts_GeneCalls <- vector(mode = "list",
-                                    length = length(gffs))
+genecalls <- vector(mode = "list",
+                    length = length(gffs))
 
-VignetteDB01 <- "~/Packages/SynExtend/inst/extdata/Endosymbionts_v05a.sqlite"
+VignetteDB01 <- "~/Repos/SynExtend/inst/extdata/example_db.sqlite"
 VignetteDB02 <- tempfile()
 
 for (m1 in seq_along(gffs)) {
-  Endosymbionts_GeneCalls[[m1]] <- gffToDataFrame(GFF = gffs[m1],
-                                                    Verbose = TRUE)
-  Seqs2DB(seqs = fnas[m1],
-          type = "FASTA",
+  x <- readDNAStringSet(filepath = fnas[m1])
+  if (sum(width(x)) > 1e6) {
+    next
+  }
+  
+  tmp_obj <- rtracklayer::import(con = gffs[m1])
+  genecalls[[m1]] <- SquaregffBy(gff_object = tmp_obj,
+                                               verbose = TRUE)
+  Seqs2DB(seqs = x,
+          type = "DNAStringSet",
           dbFile = VignetteDB01,
           identifier = as.character(m1),
           verbose = TRUE)
 }
+names(genecalls) <- seq(length(genecalls))
+x <- vapply(X = genecalls,
+            FUN = function(x) {
+              !is.null(x)
+            },
+            FUN.VALUE = vector(mode = "logical",
+                               length = 1L),
+            USE.NAMES = FALSE)
+genecalls <- genecalls[x]
 
-names(Endosymbionts_GeneCalls) <- seq(length(Endosymbionts_GeneCalls))
+syn <- FindSynteny(dbFile = VignetteDB01,
+                   verbose = TRUE)
 
-Endosymbionts_Synteny <- FindSynteny(dbFile = VignetteDB01,
-                                       verbose = TRUE)
-
-save(Endosymbionts_Synteny,
-     file = "~/Packages/SynExtend/data/Endosymbionts_Synteny.RData",
+save(syn,
+     file = "~/Repos/SynExtend/data/syn.RData",
      compress = "xz")
 
-save(Endosymbionts_GeneCalls,
-     file = "~/Packages/SynExtend/data/Endosymbionts_GeneCalls.RData",
+save(genecalls,
+     file = "~/Repos/SynExtend/data/genecalls.RData",
      compress = "xz")
 
 ###### -- NucleotideOverlap ---------------------------------------------------
 
-Endosymbionts_LinkedFeatures <- NucleotideOverlap(SyntenyObject = Endosymbionts_Synteny,
-                                                  GeneCalls = Endosymbionts_GeneCalls,
-                                                  Verbose = TRUE)
+linked_features <- NucleotideOverlap(SyntenyObject = syn,
+                                     GeneCalls = genecalls,
+                                     Verbose = TRUE)
 
-save(Endosymbionts_LinkedFeatures,
-     file = "~/Packages/SynExtend/data/Endosymbionts_LinkedFeatures.RData",
+save(linked_features,
+     file = "~/Repos/SynExtend/data/linked_features.RData",
      compress = "xz")
 
 ###### -- PrepareSeqs ---------------------------------------------------------
+# we're not using this function anymore, but we're creating a tmp db for the 
+# rest of the example data because we want to ship the db without AAs appended
+# for space considerations
 
 system(command = paste("cp",
                        VignetteDB01,
                        VignetteDB02))
 
-PrepareSeqs(SynExtendObject = Endosymbionts_LinkedFeatures,
-            DataBase = VignetteDB02,
-            Verbose = TRUE)
+# PrepareSeqs(SynExtendObject = linked_features,
+#             DataBase = VignetteDB02,
+#             Verbose = TRUE)
 
 ###### -- PairSummaries -------------------------------------------------------
 
-CONN01 <- dbConnect(SQLite(), VignetteDB02)
+drv <- dbDriver("SQLite")
+conn01 <- dbConnect(drv = drv,
+                    VignetteDB02)
 
-Endosymbionts_Pairs01 <- SummarizePairs(SynExtendObject = Endosymbionts_LinkedFeatures,
-                                        DataBase = CONN01,
-                                        Verbose = TRUE)
+init_pairs <- SummarizePairs(SynExtendObject = linked_features,
+                             DataBase = conn01,
+                             Verbose = TRUE)
 
-save(Endosymbionts_Pairs01,
-     file = "~/Packages/SynExtend/data/Endosymbionts_Pairs01.RData",
+save(init_pairs,
+     file = "~/Repos/SynExtend/data/init_pairs.RData",
      compress = "xz")
+
+###### -- Evaluation ----------------------------------------------------------
+# ensure this works, but no reason to save off the result in the example data
+
+eval_pairs <- EvaluatePairs(InputPairs = init_pairs,
+                            DataBase01 = conn01,
+                            EvaluationMethod = "none",
+                            FDRCriteria = c("Delta_Background" = 0.001))
 
 ###### -- Clustering ----------------------------------------------------------
+# ensure this works, but no reason to save off the result in the example data
 
-Endosymbionts_Pairs02 <- ClusterByK(SynExtendObject = Endosymbionts_Pairs01,
-                                    ClusterScalar = 5,
-                                    ShowPlot = TRUE,
-                                    Verbose = TRUE)
+init_sets <- DisjointSet(Pairs = eval_pairs,
+                         Verbose = TRUE)
 
-save(Endosymbionts_Pairs02,
-     file = "~/Packages/SynExtend/data/Endosymbionts_Pairs02.RData",
-     compress = "xz")
+# save(init_sets,
+#      file = "~/Repos/SynExtend/data/init_sets.RData",
+#      compress = "xz")
+
+# Endosymbionts_Pairs02 <- ClusterByK(SynExtendObject = Endosymbionts_Pairs01,
+#                                     ClusterScalar = 5,
+#                                     ShowPlot = TRUE,
+#                                     Verbose = TRUE)
+# 
+# save(Endosymbionts_Pairs02,
+#      file = "~/Repos/SynExtend/data/Endosymbionts_Pairs02.RData",
+#      compress = "xz")
 
 ###### -- BlockReconciliation -------------------------------------------------
 
-Endosymbionts_Pairs03 <- ExpandDiagonal(SynExtendObject = Endosymbionts_Pairs02[Endosymbionts_Pairs02$ClusterID %in% as.integer(names(which(attr(x = Endosymbionts_Pairs02,
-                                                                                                                                                 which = "Retain")))), ],
-                                        DataBase = CONN01,
-                                        Verbose = TRUE)
-save(Endosymbionts_Pairs03,
-     file = "~/Packages/SynExtend/data/Endosymbionts_Pairs03.RData",
-     compress = "xz")
+# Endosymbionts_Pairs03 <- ExpandDiagonal(SynExtendObject = Endosymbionts_Pairs02[Endosymbionts_Pairs02$ClusterID %in% as.integer(names(which(attr(x = Endosymbionts_Pairs02,
+#                                                                                                                                                  which = "Retain")))), ],
+#                                         DataBase = CONN01,
+#                                         Verbose = TRUE)
+# save(Endosymbionts_Pairs03,
+#      file = "~/Repos/SynExtend/data/Endosymbionts_Pairs03.RData",
+#      compress = "xz")
 
 ###### -- DisjointSet ---------------------------------------------------------
 
-Endosymbionts_Sets <- DisjointSet(Pairs = Endosymbionts_Pairs03,
-                                  Verbose = TRUE)
-
-save(Endosymbionts_Sets,
-     file = "~/Packages/SynExtend/data/Endosymbionts_Sets.RData",
-     compress = "xz")
+# Endosymbionts_Sets <- DisjointSet(Pairs = Endosymbionts_Pairs03,
+#                                   Verbose = TRUE)
+# 
+# save(Endosymbionts_Sets,
+#      file = "~/Repos/SynExtend/data/Endosymbionts_Sets.RData",
+#      compress = "xz")
 
 ###### -- ExtractBy ----------------------------------------------------------- 
 # no functions in the pipeline beyond this function

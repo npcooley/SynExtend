@@ -40,8 +40,8 @@ Nicholas Cooley \email{npc19@pitt.edu}
 \code{\link{NucleotideOverlap}}, \code{\link{SummarizePairs}}, \code{\link{FindSynteny}}
 }
 \examples{
-data("Endosymbionts_Pairs01", package = "SynExtend")
-x <- paste(Endosymbionts_Pairs01$p1, Endosymbionts_Pairs01$p2, sep = "_")
+data("init_pairs", package = "SynExtend")
+x <- paste(init_pairs$p1, init_pairs$p2, sep = "_")
 x <- do.call(rbind, strsplit(x = x, split = "_", fixed = TRUE))
 x <- matrix(data = as.integer(x), nrow = nrow(x))
 y <- BlockByRank(index1 = x[, 2],

@@ -64,5 +64,5 @@ Nicholas Cooley \email{npc19@pitt.edu}
 \code{\link{NucleotideOverlap}}, \code{\link{SummarizePairs}}, \code{\link{FindSynteny}}
 }
 \examples{
-#
+# no current example...
 }

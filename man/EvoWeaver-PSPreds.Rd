@@ -96,3 +96,49 @@ Sato, T., et al., \emph{Partial correlation coefficient between distance matrice
 
 \code{\link{PhyloDistance}}
 }
+\examples{
+set.seed(1986)
+
+# Build a contrived example of toy gene trees with shared leaf labels.
+nGenomes  <- 8L
+nGenes    <- 6L
+genomeIDs <- paste0("g",
+                    seq_len(nGenomes))
+
+geneList <- vector("list", nGenes)
+names(geneList) <- paste0("gene",
+                          seq_len(nGenes))
+for (i in seq_len(nGenes)) {
+  dm <- as.dist(matrix(runif(nGenomes^2L,
+                             0.1,
+                             1.0),
+                       nrow = nGenomes,
+                       ncol = nGenomes))
+  tr <- as.dendrogram(hclust(dm))
+  ## Assign genome IDs as leaf labels
+  tr <- dendrapply(tr, function(node) {
+    if (is.leaf(node)) {
+      idx <- as.integer(attr(node, "label"))
+      attr(node, "label") <- genomeIDs[idx]
+    }
+    node
+  })
+  geneList[[i]] <- tr
+}
+
+ew <- EvoWeaver(geneList,
+                NoWarn = TRUE)
+
+# RPMirrorTree: MirrorTree with random-projection dimensionality reduction
+rp <- predict(ew,
+              Method = "RPMirrorTree",
+              Verbose = FALSE)
+head(rp)
+
+# TreeDistance: pairwise Robinson-Foulds distance between gene trees
+td <- predict(ew,
+              Method = "TreeDistance",
+              Verbose = FALSE)
+head(td)
+
+}

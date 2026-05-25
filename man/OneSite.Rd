@@ -33,7 +33,7 @@ Nicholas Cooley \email{npc19@pitt.edu}
 }
 
 \seealso{
-\code{\link{NucleotideOverlap}}, \code{\link{SummarizePairs}}, \code{\link{WithinSetCompetition}}, \code{\link{RejectionBy}}
+\code{\link{NucleotideOverlap}}, \code{\link{SummarizePairs}}
 }
 \examples{
 x <- OneSite(X = 3,

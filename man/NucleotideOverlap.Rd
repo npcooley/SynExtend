@@ -46,11 +46,11 @@ Logical indicating whether or not to display a progress bar and print the time d
   }
 }
 \examples{
-data("Endosymbionts_GeneCalls", package = "SynExtend")
-data("Endosymbionts_Synteny", package = "SynExtend")
+data("genecalls", package = "SynExtend")
+data("syn", package = "SynExtend")
 
-Links <- NucleotideOverlap(SyntenyObject = Endosymbionts_Synteny,
-                           GeneCalls = Endosymbionts_GeneCalls,
-                           LimitIndex = FALSE,
-                           Verbose = TRUE)
+x <- NucleotideOverlap(SyntenyObject = syn,
+                       GeneCalls = genecalls,
+                       LimitIndex = FALSE,
+                       Verbose = TRUE)
 }

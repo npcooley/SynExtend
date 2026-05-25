@@ -67,3 +67,55 @@ Zhao, N., et al., \emph{Protein-protein interaction and non-interaction predicti
 
 \link[=EvoWeaver-GOPreds]{EvoWeaver Gene Organization Predictors}
 }
+\examples{
+set.seed(1986)
+nGenomes  <- 8L
+nGenes    <- 4L
+seqLen    <- 30L      # make this a little simple
+genomeIDs <- paste0("g", seq_len(nGenomes))
+
+# generate a random amino-acid string of fixed length
+randAA <- function(n) {
+  aas <- strsplit("ARNDCQEGHILKMFPSTWYV", "")[[1L]]
+  aas <- paste(sample(aas, n, replace = TRUE), collapse = "")
+  return(aas)
+}
+
+geneList <- vector("list", nGenes)
+names(geneList) <- paste0("gene", seq_len(nGenes))
+
+for (i in seq_len(nGenes)) {
+  dm <- as.dist(matrix(runif(nGenomes^2L,
+                             0.1,
+                             1.0),
+                       nrow = nGenomes,
+                       ncol = nGenomes))
+  tr <- as.dendrogram(hclust(dm))
+  
+  ## Attach genome IDs as leaf labels and toy sequences as 'state'
+  tr <- dendrapply(tr, function(node) {
+    if (is.leaf(node)) {
+      idx <- as.integer(attr(node, "label"))
+      attr(node, "label") <- genomeIDs[idx]
+      attr(node, "state") <- randAA(seqLen)
+    }
+    node
+  })
+  geneList[[i]] <- tr
+}
+
+ew <- EvoWeaver(geneList,
+                NoWarn = TRUE)
+
+# SequenceInfo: mutual information between sites in a multiple sequence alignment
+si <- predict(ew,
+              Method = "SequenceInfo",
+              Verbose = FALSE)
+head(si)
+
+# GeneVector: Pearson correlation of natural-vector encodings
+gv <- predict(ew,
+              Method = "GeneVector",
+              Verbose = FALSE)
+head(gv)
+}

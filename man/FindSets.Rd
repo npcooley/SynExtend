@@ -33,7 +33,7 @@ Nicholas Cooley \email{npc19@pitt.edu}
 }
 
 \seealso{
-\code{\link{PairSummaries}}
+\code{\link{SummarizePairs}}
 }
 \examples{
 set.seed(1986)

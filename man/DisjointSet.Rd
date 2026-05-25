@@ -29,11 +29,11 @@ Nicholas Cooley \email{npc19@pitt.edu}
 }
 
 \seealso{
-\code{\link{FindSynteny}}, \code{\link{Synteny-class}}, \code{\link{PairSummaries}}, \code{\link{FindSets}}
+\code{\link{FindSynteny}}, \code{\link{Synteny-class}}, \code{\link{SummarizePairs}}, \code{\link{FindSets}}
 }
 \examples{
-data("Endosymbionts_Pairs03", package = "SynExtend")
+data("init_pairs", package = "SynExtend")
 
-Sets <- DisjointSet(Pairs = Endosymbionts_Pairs03,
-                    Verbose = TRUE)
+x <- DisjointSet(Pairs = init_pairs,
+                 Verbose = TRUE)
 }

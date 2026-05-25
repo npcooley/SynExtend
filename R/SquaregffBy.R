@@ -399,6 +399,23 @@ SquaregffBy <- function(gff_object,
     }
   } # end a1 loop
   
+  # check phases now:
+  # offset vals
+  # 0 == in phase with reading frame started by the first subfeature
+  # i.e. starting at codon position 1
+  # 1 == subfeature is starting at codon position 2
+  # 2 == subfeature is starting at codon position 3
+  tmpvec <- lapply(X = res$Range,
+                   FUN = function(x) {
+                     if (length(x) == 1) {
+                       0
+                     } else {
+                       c(0, cumsum(width(x[-length(x)])) %% 3)
+                     }
+                   })
+  tmpvec <- IntegerList(tmpvec)
+  res$Phase <- tmpvec
+  
   if (verbose) {
     close(pBar)
     tend <- Sys.time()

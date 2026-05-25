@@ -25,7 +25,8 @@ FrameDownward <- function(genecalls) {
                                  "Right" = end(TempSubFeatures),
                                  "Key" = rep(x = seq_along(TempFeatureBlocks),
                                              times = TempFeatureBlocks),
-                                 "SubKey" = SubKey)
+                                 "SubKey" = SubKey,
+                                 "Phase" = unlist(genecalls$Phase))
   SubFeatureBlocks <- SubFeatureBlocks[order(SubFeatureBlocks$Index,
                                              SubFeatureBlocks$Left), ]
   rownames(SubFeatureBlocks) <- NULL

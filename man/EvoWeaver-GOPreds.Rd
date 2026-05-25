@@ -71,3 +71,28 @@ Moran, P. A. P., \emph{Notes on Continuous Stochastic Phenomena}. Biometrika, 19
 
 \link[=EvoWeaver-SLPreds]{EvoWeaver Sequence Level Predictors}
 }
+\examples{
+exData <- get(data("ExampleStreptomycesData"))
+ew <- EvoWeaver(exData$Genes[seq_len(10L)],
+                MySpeciesTree = exData$Tree,
+                NoWarn = TRUE)
+                
+## GeneDistance: co-localization based on relative gene index
+gd <- predict(ew, 
+              Method = "GeneDistance",
+              Verbose = FALSE)
+head(gd)
+
+## MoransI: phylogenetically-corrected co-localization
+## (requires a species tree, which is stored in the EvoWeaver object)
+mi <- predict(ew,
+              Method = "MoransI",
+              Verbose = FALSE)
+head(mi)
+
+## OrientationMI: mutual information of relative strand orientation
+oi <- predict(ew,
+              Method = "OrientationMI",
+              Verbose = FALSE)
+head(oi)
+}

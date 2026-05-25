@@ -37,26 +37,18 @@ Nicholas Cooley \email{npc19@pitt.edu}
 }
 
 \seealso{
-\code{\link{FindSynteny}}, \code{\link{Synteny-class}}, \code{\link{PairSummaries}}, \code{\link{DisjointSet}}
+\code{\link{FindSynteny}}, \code{\link{Synteny-class}}, \code{\link{SummarizePairs}}, \code{\link{DisjointSet}}
 }
 \examples{
-DBPATH <- system.file("extdata",
-                      "Endosymbionts_v05a.sqlite",
+data("init_pairs", package = "SynExtend")
+tmp01 <- system.file("extdata",
+                      "example_db.sqlite",
                       package = "SynExtend")
-data("Endosymbionts_Pairs03", package = "SynExtend")
-data("Endosymbionts_Sets", package = "SynExtend")
 
-# extract the first 10 disjoint sets
-Sets <- ExtractBy(x = Endosymbionts_Pairs03,
-                  y = DBPATH,
-                  z = Endosymbionts_Sets[1:10],
+
+# extract the pairs - DBI based connections currently not supported...
+Sets <- ExtractBy(x = init_pairs,
+                  y = tmp01,
                   Verbose = TRUE)
                   
-
-\donttest{
-# extract just the pairs
-Sets <- ExtractBy(x = Endosymbionts_Pairs03,
-                  y = DBPATH,
-                  Verbose = TRUE)
-}
 }

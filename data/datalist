@@ -1,11 +1,8 @@
 Generic
-Endosymbionts_GeneCalls
-Endosymbionts_LinkedFeatures
-Endosymbionts_Pairs01
-Endosymbionts_Pairs02
-Endosymbionts_Pairs03
-Endosymbionts_Sets
-Endosymbionts_Synteny
+syn
+linked_features
+genecalls
+init_pairs
 BuiltInEnsembles
 ExampleStreptomycesData
 SuperTreeEx

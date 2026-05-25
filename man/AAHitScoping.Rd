@@ -49,8 +49,34 @@ Nicholas Cooley \email{npc19@pitt.edu}
 }
 
 \seealso{
-\code{\link{NucleotideOverlap}}, \code{\link{SummarizePairs}}, \code{\link{WithinSetCompetition}}, \code{\link{RejectionBy}}
+\code{\link{NucleotideOverlap}}, \code{\link{SummarizePairs}}
 }
 \examples{
-#
+# a contrived example
+x <- list(matrix(c(1L, 3L, 1L, 3L,
+                   5L, 7L, 5L, 7L),
+                 nrow = 4L,
+                 ncol = 2L),
+          matrix(c(2L, 4L, 2L, 4L),
+                 nrow = 4L,
+                 ncol = 1L))
+
+# Feature 1 (query): forward strand, genome positions 100–199
+# Feature 2 (query): reverse strand, genome positions 300–449
+vals01 <- c(0L, 1L)   # 0 = forward, 1 = reverse
+vals02 <- c(100L, 300L)
+vals03 <- c(199L, 449L)
+
+## Subject features mirror the same layout
+vals04 <- c(0L, 1L)
+vals05 <- c(500L, 700L)
+vals06 <- c(599L, 849L)
+
+result <- AAHitScoping(hitlist  = x,
+                       fstrand1 = vals01,
+                       fstart1 = vals02,
+                       fstop1 = vals03,
+                       fstrand2 = vals04,
+                       fstart2 = vals05,
+                       fstop2 = vals06)
 }

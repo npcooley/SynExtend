@@ -39,3 +39,17 @@ The object serves only as a simple package for input data to the \code{PairSumma
 \author{
 Nicholas Cooley \email{npc19@pitt.edu}
 }
+\examples{
+data("linked_features", package = "SynExtend")
+
+# Inspect the object class and dimensions
+class(linked_features)
+dim(linked_features)
+
+# Print the object (upper triangle contains hit-linking data)
+print(linked_features)
+
+# Subsetting: extract the block linking sequences 1 and 2
+block_1_2 <- linked_features[1, 2]
+str(block_1_2)
+}
