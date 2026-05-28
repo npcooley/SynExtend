@@ -69,7 +69,7 @@ EvaluatePairs <- function(InputPairs,
                                             "Approx_Global_PID",
                                             "Delta_Background"),
                           MaxK = 15,
-                          SelectScalar = 3,
+                          SelectScalar = 4,
                           NormCols = FALSE) {
     Candidates <- Candidates[, SelectColumns]
     
