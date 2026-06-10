@@ -10,12 +10,19 @@
 # the only other option is to just nuke features that span contig bounds
 # current paradigm will sometimes be a problem, but only in cases where folks
 # are being loosy-goosy with their feature assignments
+# 
+# all 'extra' columns included by 'additional_columns' will be included as
+# CharacterLists with NAs dropped
+# 
+# eventually, splice variants and different transcripts need to be captured
+# and represented somehow ...
 
 SquaregffBy <- function(gff_object,
                         collect_by = c("gene",
                                        "pseudogene",
                                        "ncRNA_gene",
                                        "tRNA_gene"),
+                        additional_columns = NULL,
                         verbose = FALSE) {
   # overhead checks
   if (!is(object = gff_object,
@@ -27,6 +34,27 @@ SquaregffBy <- function(gff_object,
   }
   if (verbose) {
     tstart <- Sys.time()
+  }
+  
+  # validate additional_columns if provided
+  if (!is.null(additional_columns)) {
+    if (!is.character(additional_columns)) {
+      stop("'additional_columns' must be a character vector potential of GFF attribute names")
+    }
+    # check which requested columns actually exist in the GRanges object
+    available_cols <- colnames(mcols(gff_object))
+    missing_cols <- setdiff(additional_columns, available_cols)
+    if (length(missing_cols) > 0L) {
+      warning("the following columns were not found in the GRanges object and will be skipped: ",
+              paste(missing_cols,
+                    collapse = ", "))
+      additional_columns <- intersect(additional_columns, available_cols)
+      if (length(additional_columns) == 0) {
+        warning("no supplied columns appear to be available!")
+        additional_columns <- NULL
+      }
+    }
+    # don't need to check against statically collected columns as they get renamed...
   }
   
   # data preparation
@@ -78,7 +106,7 @@ SquaregffBy <- function(gff_object,
   w1 <- gff_object$type %in% collect_by
   w2 <- gff_object$ID[w1]
   if (length(w2) < 1L) {
-    stop("no features appear to match those enumerated by 'select_from' argument")
+    stop("no features appear to match those enumerated by 'collect_by' argument")
   }
   w3 <- rep(x = seq(length(UClusts)),
             times = lengths(UClusts))
@@ -149,6 +177,25 @@ SquaregffBy <- function(gff_object,
   cdg <- slct <- vector(mode = "logical",
                         length = l1)
   
+  # only when additional columns are not NULL
+  if (!is.null(additional_columns)) {
+    # extract any additional requested columns as a named list
+    # each element is the full column vector from the GRanges object
+    extra_col_data <- vector(mode = "list", length = length(additional_columns))
+    names(extra_col_data) <- additional_columns
+    
+    for (col_name in additional_columns) {
+      extra_col_data[[col_name]] <- mcols(gff_object)[[col_name]]
+    }
+    # pre-allocate one list per extra column, same length as other outputs
+    extra_col_results <- vector(mode = "list", length = length(additional_columns))
+    names(extra_col_results) <- additional_columns
+    for (col_name in additional_columns) {
+      extra_col_results[[col_name]] <- vector(mode = "list", length = l1)
+    }
+  }
+  
+  
   if (verbose) {
     pBar <- txtProgressBar(style = 1)
     PBAR <- l1
@@ -158,7 +205,7 @@ SquaregffBy <- function(gff_object,
   for (a1 in seq_along(u1)) {
     # print(a1)
     curr_rows <- which(m2 == u1[a1])
-    # block 1 is just the subset of the gff object that matches the feature id heirarchy
+    # block 1 is the subset of the gff that matches the feature id heirarchy
     # b1 <- gff_object[curr_rows]
     curr_type <- obj_type[curr_rows]
     curr_transl <- obj_transl[curr_rows]
@@ -240,6 +287,15 @@ SquaregffBy <- function(gff_object,
     ph <- unique(unlist(ph))
     notes[[a1]] <- ph
     
+    # if additional cols are present
+    if (!is.null(additional_columns)) {
+      for (a2 in seq_along(additional_columns)) {
+        ph <- extra_col_data[[additional_columns[a2]]][curr_rows]
+        ph <- ph[!is.na(ph)]
+        extra_col_results[[additional_columns[a2]]][[a1]] <- unique(ph)
+      }
+    }
+    
     if (verbose) {
       setTxtProgressBar(pb = pBar,
                         value = a1 / PBAR)
@@ -274,6 +330,19 @@ SquaregffBy <- function(gff_object,
                    "Contig" = contig[slct],
                    "Dbxref" = CharacterList(dbxref[slct]),
                    "Notes" = CharacterList(notes[slct]))
+  
+  if (!is.null(additional_columns)) {
+    extra_col_results <- lapply(X = extra_col_results,
+                                FUN = function(x) {
+                                  CharacterList(x)[slct]
+                                })
+    # return(list(res,
+    #             extra_col_results))
+    add_res <- do.call(DataFrame,
+                       extra_col_results)
+    res <- cbind(res,
+                 add_res)
+  }
   
   if (verbose) {
     pBar <- txtProgressBar(style = 1)

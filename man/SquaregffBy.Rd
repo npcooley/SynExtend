@@ -12,6 +12,7 @@
                              "pseudogene",
                              "ncRNA_gene",
                              "tRNA_gene"),
+              additional_columns = NULL,
               verbose = FALSE)
 }
 \arguments{
@@ -21,15 +22,20 @@
   \item{collect_by}{
     A character vector containing feature types to collect from the gff object.
   }
+  \item{additional_columns}{
+    An optional character vector of attribute fields to pull from the \code{GRanges} object and capture as a \code{CharacterList}. \code{NULL} by default.
+  }
   \item{verbose}{
     A logical indicating whether to print out messages and a progress bar.
   }
 }
 \details{
-  Given a DataFrame with a \code{Range} column containing an \code{IRangesList}, return a data.frame the length of the unlisted \code{IRangesList}. Each row represents the coordinates of a subfeature as described by the contents of the \code{IRangesList}. Key and SubKey columns can be used to trace child features back to their parents. 
+  Given a \code{GRanges} object return a DataFrame where child features have been condensed so that the sequential scroll through the rows is working through only parent features in the original objects. In the case of coding features with multiple splice variants, only the first is represented.
+  
+  Only feature types enumerated in the \code{collect_by} argument will be allowed to be parent features. Attributes designated by the \code{additional_columns} argument will be be captured as \code{CharacterList}s.
 }
 \value{
-  A DataFrame containing excerpts from the attributes fields of a gff file, organized by the parent feature.
+  A DataFrame containing excerpts from the attributes fields of a gff file, organized by the parent feature. Feature locations are included as an \code{IRangesList}.
 }
 \author{
   Nicholas Cooley \email{Nicholas.Cooley@ul.ie}
