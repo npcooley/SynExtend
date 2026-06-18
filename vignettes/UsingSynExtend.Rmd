@@ -42,14 +42,25 @@ BiocManager::install("SynExtend")
 Using the `FindSynteny` function in `DECIPHER` builds an object of class `Synteny`. In this tutorial, a prebuilt `DECIPHER` database is used. For database construction see `?Seqs2DB` in `DECIPHER`. This example starts with a database containing three endosymbiont genomes that were chosen to keep package data to a minimum.
 
 ```{r, build_synteny_object}
-library(SynExtend)
-library(DBI)
+suppressMessages(library(SynExtend))
+suppressMessages(library(DBI))
 
 file01 <- system.file("extdata",
                       "example_db.sqlite",
                       package = "SynExtend")
 
-syn <- FindSynteny(dbFile = file01)
+# later on there are some auto-adds to the DB, we create a tmp db here so that
+# the db that's passed around for examples remains as small as possible...
+tmp_db <- tempfile()
+system(command = paste("cp",
+                       file01,
+                       tmp_db))
+
+drv <- dbDriver("SQLite")
+conn01 <- dbConnect(drv = drv,
+                    tmp_db)
+
+syn <- FindSynteny(dbFile = conn01)
 ```
 
 Synteny maps represent where genomes share order. Simply printing a synteny object to the console displays a gross level view of the data inside. Objects of class `Synteny` can also be plotted to provide clear visual representations of the data inside. The genomes used in this example are distantly related and fairly dissimilar.
@@ -99,16 +110,6 @@ head(genecalls[[1]])
 `SynExtend`'s primary functions provide a way to identify where pairs of genes are explicitly linked by syntenic hits, and then summarize those links. The first step is just identifying those links. We're appending some funny business before generating the links because the example database that was loaded above is shipped *without* amino acid sequences to be conscious about package size.
 
 ```{r, generate_initial_links}
-tmp_db <- tempfile()
-
-system(command = paste("cp",
-                       file01,
-                       tmp_db))
-
-drv <- dbDriver("SQLite")
-conn01 <- dbConnect(drv = drv,
-                    tmp_db)
-
 l01 <- NucleotideOverlap(SyntenyObject = syn,
                          GeneCalls = genecalls,
                          Verbose = TRUE)
@@ -127,6 +128,11 @@ This raw data can be processed to provide a straightforward summary of candidate
 p01 <- SummarizePairs(SynExtendObject = l01,
                       DataBase01 = conn01,
                       Verbose = TRUE)
+
+hist(p01$Approx_Global_PID,
+     breaks = seq(from = 0,
+                  to = 1,
+                  by = 0.01))
 ```
 
 The object `p01` is a data.frame where each row is populated by information about a candidate orthologous pair. `SummarizePairs` is just summarizing the pairs identified by `NucleotideOverlap`, and offers no direct assignment of accuracy or truthiness. We can pass the object created by it to `EvaluatePairs` to get a sense of which candidates are acceptable to keep. `EvaluatePairs` has an un-intuitive mix of functionalities, but in its most basic form, it will generate a decoy data set is `FALSE` pairs, and drop initial candidates that appear below a False Discovery Rate threshold 
@@ -136,6 +142,11 @@ p02 <- EvaluatePairs(InputPairs = p01,
                             DataBase01 = conn01,
                             EvaluationMethod = "none",
                             FDRCriteria = c("Delta_Background" = 0.001)) # this is the default behavior
+
+hist(p02$Approx_Global_PID,
+     breaks = seq(from = 0,
+                  to = 1,
+                  by = 0.01))
 ```
 
 SynExtend also has a variety of other helper functions and a suite of other tools. This is the most basic usage of the tools present here.

@@ -159,8 +159,12 @@ Aidan Lakshman (\email{ahl27@pitt.edu})
 \code{\link[=Synteny-class]{Synteny}}
 }
 \examples{
+library(DBI)
 db <- system.file("extdata", "Influenza.sqlite", package="DECIPHER")
-synteny <- FindSynteny(db)
+drv <- dbDriver("SQLite")
+conn01 <- dbConnect(drv = drv,
+                    db)
+synteny <- FindSynteny(conn01)
 synteny
 
 rearrs <- EstimRearrScen(synteny)
