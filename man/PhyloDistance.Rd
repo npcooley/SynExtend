@@ -10,9 +10,8 @@ Calculates distance between two unrooted phylogenies using a variety of metrics.
 \usage{
 PhyloDistance(dend1, dend2,
               Method=c("CI", "RF", "KF", "JRF"),
-              RawScore=FALSE, JRFExp=2)
+              RawScore=FALSE, JRFExp=2, Exact=TRUE)
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{dend1}{
   An object of class \code{dendrogram}, representing an unrooted bifurcating phylogenetic
@@ -31,6 +30,9 @@ PhyloDistance(dend1, dend2,
 \item{JRFExp}{
 \code{k}-value used in calculation of JRF Distance. Unused if \code{Method} is not \code{"JRF"}.
 }
+\item{Exact}{
+Logical; Determines if exact optimal bipartite matching via the Hungarian algorithm should be used for \code{Method="CI"}. Has no effect for other \code{Method} arguments. Defaults to \code{TRUE}; setting \code{FALSE} will use a greedy algorithm for higher speed at the cost of accuracy. See \link[=CIDist]{Clustering Information Distance}} for more information.
+}
 }
 \details{
 This function implements a variety of tree distances, specified by the value of \code{Method}. The following values are supported, along with links to documentation pages for each function:
@@ -46,9 +48,10 @@ Information on each of these algorithms, how scores are calculated, and referenc
 }
 \value{
 Returns a normalized distance, with 0 indicating identical trees and 1 indicating
-maximal difference. If the trees have no leaves in common, the function will return \code{1} if \code{RawScore=FALSE}, or \code{c(0,NA,NA)} if \code{RawScore=TRUE}.
+maximal difference. If the trees have no leaves in common, the function issues a warning and returns \code{NA} if \code{RawScore=FALSE}, or a named vector of \code{NA} component values if \code{RawScore=TRUE}.
+If the trees have incomplete leaf overlap, both trees are pruned to the shared leaf set with a warning.
 
-If \code{RawScore=TRUE}, returns a vector of the components used to calculate the distance. This is typically a length 3 vector, but specific details can be found on the description for each algorithm linked above.
+If \code{RawScore=TRUE}, returns a named vector of the components used to calculate the distance. Specific details can be found on the description for each algorithm linked above.
 }
 
 \author{
@@ -82,8 +85,11 @@ tree2 <- as.dendrogram(hclust(dm2))
 # Robinson-Foulds Distance
 PhyloDistance(tree1, tree2, Method="RF")
 
-# Clustering Information Distance
-PhyloDistance(tree1, tree2, Method="CI")
+# Clustering Information Distance (fast greedy pairing)
+PhyloDistance(tree1, tree2, Method="CI", Exact=FALSE)
+
+# Clustering Information Distance (exact Hungarian matching)
+PhyloDistance(tree1, tree2, Method="CI", Exact=TRUE)
 
 # Kuhner-Felsenstein Distance
 PhyloDistance(tree1, tree2, Method="KF")

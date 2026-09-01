@@ -77,9 +77,10 @@ JRFDist <- function(val, RawScore=FALSE){
   return(retval)
 }
 
-PhyloDistance <- function(dend1, dend2, Method=c("CI", "RF", "KF", "JRF"), RawScore=FALSE, JRFExp=2){
+PhyloDistance <- function(dend1, dend2, Method=c("CI", "RF", "KF", "JRF"), RawScore=FALSE, JRFExp=2, Exact=TRUE){
   Method <- match.arg(Method)
   stopifnot("inputs must both be dendrograms!"=is(dend1, 'dendrogram') && is(dend2, 'dendrogram'))
+  stopifnot("Exact must be logical"=is.logical(Exact) && length(Exact) == 1)
   if (is.integer(JRFExp)) JRFExp <- as.numeric(JRFExp)
   stopifnot("ExpVal must be numeric or integer"=is.numeric(JRFExp))
 
@@ -99,11 +100,28 @@ PhyloDistance <- function(dend1, dend2, Method=c("CI", "RF", "KF", "JRF"), RawSc
   }
   incommonLabs <- intersect(labels(dend1), labels(dend2))
   if (length(incommonLabs) == 0){
-    if(RawScore)
-      val <- c(0, NA, NA)
-    else
-      val <- 1
+    warning("Input dendrograms have no shared tip labels.")
+    if(RawScore){
+      if (Method == 'CI') {
+        val <- c("Similarity"=0, "dend1.Entropy"=NA_real_, "dend2.Entropy"=NA_real_, "p.value"=NA_real_)
+      } else if (Method == 'RF') {
+        val <- c("UniqueSplits"=0, "dend1.Splits"=NA_real_, "dend2.Splits"=NA_real_)
+      } else if (Method == 'JRF') {
+        val <- c("Distance"=0, "dend1.NumSplits"=NA_real_, "dend2.NumSplits"=NA_real_)
+      } else {
+        val <- c("Similarity"=0, "dend1"=NA_real_, "dend2"=NA_real_)
+      }
+    } else {
+      val <- NA_real_
+    }
   } else {
+    if (length(incommonLabs) < length(labels(dend1)) || length(incommonLabs) < length(labels(dend2))){
+      warning("Input dendrograms have incomplete label overlap. Pruning to ",
+              length(incommonLabs), " shared tip labels.")
+    }
+    if (length(incommonLabs) < 4){
+      warning("Fewer than 4 shared tip labels between dendrograms. Unrooted trees with < 4 leaves have no non-trivial internal splits.")
+    }
     tree1ptr <- .Call("initCDend", dend1, PACKAGE="SynExtend")
     on.exit(rm(tree1ptr))
     tree2ptr <- .Call("initCDend", dend2, PACKAGE="SynExtend")
@@ -111,11 +129,11 @@ PhyloDistance <- function(dend1, dend2, Method=c("CI", "RF", "KF", "JRF"), RawSc
 
     if (Method == 'CI'){
       val <- .Call("GRFInfo", tree1ptr, tree2ptr,
-                   incommonLabs, FALSE, 0, PACKAGE="SynExtend")
+                   incommonLabs, FALSE, 0, Exact, PACKAGE="SynExtend")
       return(CIDist(val, incommonLabs, RawScore))
     } else if (Method == 'JRF'){
       val <- .Call("GRFInfo", tree1ptr, tree2ptr,
-                   incommonLabs, TRUE, JRFExp, PACKAGE="SynExtend")
+                   incommonLabs, TRUE, JRFExp, Exact, PACKAGE="SynExtend")
       return(JRFDist(val, RawScore))
     } else if (Method == 'RF'){
       val <- .Call("RFDist", tree1ptr, tree2ptr,

@@ -25,7 +25,7 @@ SEXP calcScoreHamming(SEXP ov1, SEXP ov2, SEXP NN, SEXP norm);
 SEXP cladeCollapsePA(SEXP tnPtr, SEXP ANCESTRAL_STATES);
 
 // Tree distance
-SEXP GRFInfo(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels, SEXP shouldUseJRF, SEXP JRFExp);
+SEXP GRFInfo(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels, SEXP shouldUseJRF, SEXP JRFExp, SEXP exactMatch);
 SEXP RFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels);
 SEXP KFDist(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels);
 

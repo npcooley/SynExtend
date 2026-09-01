@@ -242,7 +242,7 @@ TreeDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
         # GRF/CI
         if (bitmask[1]){
           # GRF/CI
-          s <- .Call("GRFInfo", p1, p2, interlabs, FALSE, 0, PACKAGE="SynExtend")
+          s <- .Call("GRFInfo", p1, p2, interlabs, FALSE, 0, FALSE, PACKAGE="SynExtend")
           normval <- 0.5*(s[2] + s[3])
 
           if (is.na(normval) || normval == 0){
@@ -290,7 +290,7 @@ TreeDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
         }
         # JRF
         if (bitmask[3]){
-          s <- .Call("GRFInfo", p1, p2, interlabs, TRUE, JRFk, PACKAGE="SynExtend")
+          s <- .Call("GRFInfo", p1, p2, interlabs, TRUE, JRFk, FALSE, PACKAGE="SynExtend")
           normval <- (s[2] + s[3])
           if (is.na(normval) || normval == 0)
             pairscoresList$JRF[ctr+1] <- 0
@@ -300,7 +300,7 @@ TreeDistance.EvoWeaver <- function(ew, Subset=NULL, Verbose=TRUE,
         }
         # Nye
         if (bitmask[4]){
-          s <- .Call("GRFInfo", p1, p2, interlabs, TRUE, 1, PACKAGE="SynExtend")
+          s <- .Call("GRFInfo", p1, p2, interlabs, TRUE, 1, FALSE, PACKAGE="SynExtend")
           normval <- (s[2] + s[3])
           if (is.na(normval) || normval == 0)
             pairscoresList$Nye[ctr+1] <- 0
