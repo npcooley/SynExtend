@@ -99,11 +99,28 @@ PhyloDistance <- function(dend1, dend2, Method=c("CI", "RF", "KF", "JRF"), RawSc
   }
   incommonLabs <- intersect(labels(dend1), labels(dend2))
   if (length(incommonLabs) == 0){
-    if(RawScore)
-      val <- c(0, NA, NA)
-    else
-      val <- 1
+    warning("Input dendrograms have no shared tip labels.")
+    if(RawScore){
+      if (Method == 'CI') {
+        val <- c("Similarity"=0, "dend1.Entropy"=NA_real_, "dend2.Entropy"=NA_real_, "p.value"=NA_real_)
+      } else if (Method == 'RF') {
+        val <- c("UniqueSplits"=0, "dend1.Splits"=NA_real_, "dend2.Splits"=NA_real_)
+      } else if (Method == 'JRF') {
+        val <- c("Distance"=0, "dend1.NumSplits"=NA_real_, "dend2.NumSplits"=NA_real_)
+      } else {
+        val <- c("Similarity"=0, "dend1"=NA_real_, "dend2"=NA_real_)
+      }
+    } else {
+      val <- NA_real_
+    }
   } else {
+    if (length(incommonLabs) < length(labels(dend1)) || length(incommonLabs) < length(labels(dend2))){
+      warning("Input dendrograms have incomplete label overlap. Pruning to ",
+              length(incommonLabs), " shared tip labels.")
+    }
+    if (length(incommonLabs) < 4){
+      warning("Fewer than 4 shared tip labels between dendrograms. Unrooted trees with < 4 leaves have no non-trivial internal splits.")
+    }
     tree1ptr <- .Call("initCDend", dend1, PACKAGE="SynExtend")
     on.exit(rm(tree1ptr))
     tree2ptr <- .Call("initCDend", dend2, PACKAGE="SynExtend")

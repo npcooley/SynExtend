@@ -34,8 +34,8 @@ with different branch lengths may return a distance of 0.
 If \code{RawScore=TRUE}, returns a named length 4 vector with the first entry the similarity
 score, subsequent entries the entropy values for each tree, and the last entry the approximate p-value for the result based on simulations.
 
-If the trees have no leaves in common, the function will return \code{1} if
-\code{RawScore=FALSE}, and \code{c(0, NA, NA, NA)} if \code{TRUE}.
+If the trees have no leaves in common, the function will issue a warning and return \code{1} if
+\code{RawScore=FALSE}, and a named length 4 vector \code{c(Similarity=0, dend1.Entropy=NA, dend2.Entropy=NA, p.value=NA)} if \code{TRUE}.
 }
 \references{
 Smith, Martin R. \emph{Information theoretic generalized Robinson–Foulds metrics for comparing phylogenetic trees.} Bioinformatics, 2020. \bold{36}(20):5007-5013.

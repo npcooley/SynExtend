@@ -21,7 +21,7 @@ void *safe_calloc(size_t nitems, size_t size);
 void *safe_realloc(void *ptr, size_t new_size);
 
 /*** Other Utility Functions ***/
-inline void *void_deref(void *v, int i, size_t size){
+static inline void *void_deref(void *v, int i, size_t size){
   return i ? (void *)((char *)v + (i*size)) : v;
 }
 
@@ -31,13 +31,13 @@ inline void *void_deref(void *v, int i, size_t size){
 /*** Random numbers ***/
 
 // random float number in range [0, 1]
-double inline frand(){ return unif_rand(); }
+static inline double frand(){ return unif_rand(); }
 
 // random integer
-int inline irand(){ return (int) floor(frand() * INT_MAX);}
+static inline int irand(){ return (int) floor(frand() * INT_MAX);}
 
 // random number from normal distribution with mean mu and standard deviation sd
-double inline rnorm(double mu, double sd){ return sd * (norm_rand()) + mu; }
+static inline double rnorm(double mu, double sd){ return sd * (norm_rand()) + mu; }
 
 
 /*** Random permutations using Fisher-Yates shuffling ***/
@@ -84,7 +84,7 @@ void seedRNGState32(struct RNGstate32 *r, uint64_t seed);
 uint32_t xorshift32b(struct RNGstate32 *r);
 
 /*** Random math functions ***/
-long inline doubleFactorial(int n){
+static inline long doubleFactorial(int n){
   long retval = 1;
   while (n > 0) retval *= n--;
   return retval;
