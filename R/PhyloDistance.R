@@ -77,9 +77,10 @@ JRFDist <- function(val, RawScore=FALSE){
   return(retval)
 }
 
-PhyloDistance <- function(dend1, dend2, Method=c("CI", "RF", "KF", "JRF"), RawScore=FALSE, JRFExp=2){
+PhyloDistance <- function(dend1, dend2, Method=c("CI", "RF", "KF", "JRF"), RawScore=FALSE, JRFExp=2, Exact=TRUE){
   Method <- match.arg(Method)
   stopifnot("inputs must both be dendrograms!"=is(dend1, 'dendrogram') && is(dend2, 'dendrogram'))
+  stopifnot("Exact must be logical"=is.logical(Exact) && length(Exact) == 1)
   if (is.integer(JRFExp)) JRFExp <- as.numeric(JRFExp)
   stopifnot("ExpVal must be numeric or integer"=is.numeric(JRFExp))
 
@@ -128,11 +129,11 @@ PhyloDistance <- function(dend1, dend2, Method=c("CI", "RF", "KF", "JRF"), RawSc
 
     if (Method == 'CI'){
       val <- .Call("GRFInfo", tree1ptr, tree2ptr,
-                   incommonLabs, FALSE, 0, PACKAGE="SynExtend")
+                   incommonLabs, FALSE, 0, Exact, PACKAGE="SynExtend")
       return(CIDist(val, incommonLabs, RawScore))
     } else if (Method == 'JRF'){
       val <- .Call("GRFInfo", tree1ptr, tree2ptr,
-                   incommonLabs, TRUE, JRFExp, PACKAGE="SynExtend")
+                   incommonLabs, TRUE, JRFExp, Exact, PACKAGE="SynExtend")
       return(JRFDist(val, RawScore))
     } else if (Method == 'RF'){
       val <- .Call("RFDist", tree1ptr, tree2ptr,

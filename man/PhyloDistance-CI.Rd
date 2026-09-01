@@ -12,10 +12,7 @@ information of branch partitions.
 
 \details{
 This function is called as part of \code{\link{PhyloDistance}} and calculates tree distance using the clustering information
-approach first described in Smith (2020). This function iteratively pairs
-internal tree branches of a phylogeny based on their similarity, then scores
-overall similarity as the sum of these measures. The similarity score is then
-converted to a distance by normalizing by the average entropy of the two trees.
+approach first described in Smith (2020). By default (\code{Exact=TRUE}), internal tree branches are paired via the Hungarian algorithm. Setting \code{Exact=FALSE} uses greedy matching to increase speed at the cost of precision. The total similarity score is converted to a distance by normalizing by the average entropy of the two trees.
 This metric has been demonstrated to outperform numerous other metrics in capabilities;
 see the original publication cited in References for more information.
 
@@ -67,6 +64,9 @@ tree2 <- as.dendrogram(hclust(dm2))
 
 # get CI distance
 PhyloDistance(tree1, tree2, Method="CI")
+
+# get CI distance with fast greedy pairing
+PhyloDistance(tree1, tree2, Method="CI", Exact=FALSE)
 
 # get similarity score with individual entropies
 PhyloDistance(tree1, tree2, Method="CI", RawScore=TRUE)

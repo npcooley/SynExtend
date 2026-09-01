@@ -1,5 +1,11 @@
 #include "HungarianAlgo.h"
 
+static bool has_alloced_mem = false, has_alloced_vec = false, has_alloced_assign = false;
+static uint8_t *sa = NULL;
+static bool *cc = NULL, *cr = NULL;
+static int *av = NULL;
+static double *vec = NULL;
+
 SEXP HungarianAssignment(SEXP MATVEC, SEXP DIM){
   /*
    * Arguments:
