@@ -13,6 +13,7 @@
 
 #include "SynExtend.h"
 #include "SEutils.h"
+#include "HungarianAlgo.h"
 
 typedef unsigned long ulong;
 
@@ -45,7 +46,7 @@ void findMapping(treeNode *node, int *mapping, unsigned int *hashvals, int lenHa
 /* Tree Distance */
 void internalPartitionMap(treeNode *node, bool **pSets, unsigned int *hvs, int lh, int rootv);
 int reallocPartitionMap(bool **pSets, int lh, int plen);
-double scorePMs(bool **pm1, bool **pm2, int pm1l, int pm2l, int lh);
+double scorePMs(bool **pm1, bool **pm2, int pm1l, int pm2l, int lh, bool exactMatch);
 double calcEntropy(bool **pm, int lh, int pml);
 ulong RFHashMap(treeNode *node, ulong *htable, ulong *keys, unsigned int *hvs, int lh, int rootv);
 ulong KFHashMap(treeNode *node, ulong *htable, double *dists, ulong *keys, unsigned int *hvs, int lh, int rootv);

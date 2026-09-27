@@ -1,3 +1,12 @@
+# SynExtend 1.25.2
+* `PhyloDistance` now throws a warning if two trees with no labels in common are
+compared.
+* `PhyloDistance` now uses the Hungarian algorithm for `Method="CI"` so that
+comparing a tree to itself correctly returns 0 distance.
+* `PhyloDistance` now has a `Exact` argument, defaulting to `TRUE` to use the
+Hungarian algorithm for `Method="CI"`. `Exact=FALSE` will use the previous
+greedy matching algorithm for backwards compatibility.
+
 # SynExtend 1.25.1
 * Large rewrite of gff import, `SummarizePairs` and other functions, added `EvaluatePairs` function and some other ancillary functions.
 

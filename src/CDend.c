@@ -174,10 +174,11 @@ SEXP calcScoreHamming(SEXP ov1, SEXP ov2, SEXP NN, SEXP norm){
 
 /**** Tree Distances ****/
 // RF Distance with information-theoretic scoring (clustering info)
-SEXP GRFInfo(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels, SEXP shouldUseJRF, SEXP JRFExp){
+SEXP GRFInfo(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels, SEXP shouldUseJRF, SEXP JRFExp, SEXP exactMatch){
   treeNode *tree1 = checkPtrExists(tnPtr1);
   treeNode *tree2 = checkPtrExists(tnPtr2);
   bool useJRF = LOGICAL(shouldUseJRF)[0];
+  bool exactVal = LOGICAL(exactMatch)[0];
   double jaccardExp = 0;
   if (useJRF)
     jaccardExp = REAL(JRFExp)[0];
@@ -223,7 +224,7 @@ SEXP GRFInfo(SEXP tnPtr1, SEXP tnPtr2, SEXP allLabels, SEXP shouldUseJRF, SEXP J
     entropy1 = (double) t1pln;
     entropy2 = (double) t2pln;
   } else {
-    RFscore = scorePMs(part1, part2, t1pln, t2pln, numLabels);
+    RFscore = scorePMs(part1, part2, t1pln, t2pln, numLabels, exactVal);
     entropy1 = calcEntropy(part1, numLabels, t1pln);
     entropy2 = calcEntropy(part2, numLabels, t2pln);
   }
@@ -815,7 +816,72 @@ int reallocPartitionMap(bool **pSets, int lh, int plen){
   return ctr;
 }
 
-double scorePMs(bool **pm1, bool **pm2, int pm1l, int pm2l, int lh){
+static double scorePMsHungarian(bool **pm1, bool **pm2, int pm1l, int pm2l, int lh){
+  int nrow = pm1l;
+  int ncol = pm2l;
+  double *simMat = malloc(sizeof(double) * nrow * ncol);
+  double maxSim = 0.0;
+
+  int counts[8];
+  bool *curS, *curL, v1, v2;
+
+  for (int i=0; i<nrow; i++){
+    curS = pm1[i];
+    for (int j=0; j<ncol; j++){
+      curL = pm2[j];
+      memset(counts, 0, sizeof(counts));
+      for (int k=0; k<lh; k++){
+        v1 = curS[k];
+        v2 = curL[k];
+        counts[0] += v1;
+        counts[1] += v2;
+        counts[2] += !v1;
+        counts[3] += !v2;
+        counts[4] += v1 && v2;
+        counts[5] += v1 && !v2;
+        counts[6] += !v1 && v2;
+        counts[7] += !v1 && !v2;
+      }
+      double cursum = 0.0;
+      cursum += PclDist(counts[0], counts[1], counts[4], lh); // A1 A2
+      cursum += PclDist(counts[0], counts[3], counts[5], lh); // A1 B2
+      cursum += PclDist(counts[2], counts[1], counts[6], lh); // B1 A2
+      cursum += PclDist(counts[2], counts[3], counts[7], lh); // B1 B2
+      simMat[i * ncol + j] = cursum;
+      if (cursum > maxSim) maxSim = cursum;
+    }
+  }
+
+  int maxdim = nrow > ncol ? nrow : ncol;
+  double *costMat = malloc(sizeof(double) * maxdim * maxdim);
+  for (int i=0; i<maxdim; i++){
+    for (int j=0; j<maxdim; j++){
+      if (i < nrow && j < ncol){
+        costMat[i * maxdim + j] = maxSim - simMat[i * ncol + j];
+      } else {
+        costMat[i * maxdim + j] = maxSim;
+      }
+    }
+  }
+
+  int *assignment = hungarian(costMat, maxdim);
+
+  double retval = 0.0;
+  for (int i=0; i<nrow; i++){
+    int assigned_col = assignment[i];
+    if (assigned_col >= 0 && assigned_col < ncol){
+      retval += simMat[i * ncol + assigned_col];
+    }
+  }
+
+  free(simMat);
+  free(costMat);
+  free(assignment);
+
+  return retval;
+}
+
+static double scorePMsGreedy(bool **pm1, bool **pm2, int pm1l, int pm2l, int lh){
   bool firstlonger = pm1l > pm2l;
   bool **longPm = firstlonger ? pm1 : pm2;
   bool **shortPm = firstlonger ? pm2 : pm1;
@@ -872,6 +938,15 @@ double scorePMs(bool **pm1, bool **pm2, int pm1l, int pm2l, int lh){
   return retval;
 }
 
+double scorePMs(bool **pm1, bool **pm2, int pm1l, int pm2l, int lh, bool exactMatch){
+  if (pm1l == 0 || pm2l == 0) return 0.0;
+  if (exactMatch){
+    return scorePMsHungarian(pm1, pm2, pm1l, pm2l, lh);
+  } else {
+    return scorePMsGreedy(pm1, pm2, pm1l, pm2l, lh);
+  }
+}
+
 double calcEntropy(bool **pm, int lh, int pml){
   double res = 0.0;
   double p1, p2;
@@ -882,10 +957,8 @@ double calcEntropy(bool **pm, int lh, int pml){
       p1 += pm[i][j];
       p2 += !pm[i][j];
     }
-    p1 /= lh;
-    p2 /= lh;
-    res += p1 == 0 ? 0 : (-1 * p1 * log2(p1));
-    res += p2 == 0 ? 0 : (-1 * p2 * log2(p2));
+    res += PclDist(p1, p1, p1, lh);
+    res += PclDist(p2, p2, p2, lh);
   }
 
   return(res);

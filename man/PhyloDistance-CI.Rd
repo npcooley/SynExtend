@@ -12,10 +12,7 @@ information of branch partitions.
 
 \details{
 This function is called as part of \code{\link{PhyloDistance}} and calculates tree distance using the clustering information
-approach first described in Smith (2020). This function iteratively pairs
-internal tree branches of a phylogeny based on their similarity, then scores
-overall similarity as the sum of these measures. The similarity score is then
-converted to a distance by normalizing by the average entropy of the two trees.
+approach first described in Smith (2020). By default (\code{Exact=TRUE}), internal tree branches are paired via the Hungarian algorithm. Setting \code{Exact=FALSE} uses greedy matching to increase speed at the cost of precision. The total similarity score is converted to a distance by normalizing by the average entropy of the two trees.
 This metric has been demonstrated to outperform numerous other metrics in capabilities;
 see the original publication cited in References for more information.
 
@@ -34,8 +31,8 @@ with different branch lengths may return a distance of 0.
 If \code{RawScore=TRUE}, returns a named length 4 vector with the first entry the similarity
 score, subsequent entries the entropy values for each tree, and the last entry the approximate p-value for the result based on simulations.
 
-If the trees have no leaves in common, the function will return \code{1} if
-\code{RawScore=FALSE}, and \code{c(0, NA, NA, NA)} if \code{TRUE}.
+If the trees have no leaves in common, the function will issue a warning and return \code{1} if
+\code{RawScore=FALSE}, and a named length 4 vector \code{c(Similarity=0, dend1.Entropy=NA, dend2.Entropy=NA, p.value=NA)} if \code{TRUE}.
 }
 \references{
 Smith, Martin R. \emph{Information theoretic generalized Robinson–Foulds metrics for comparing phylogenetic trees.} Bioinformatics, 2020. \bold{36}(20):5007-5013.
@@ -67,6 +64,9 @@ tree2 <- as.dendrogram(hclust(dm2))
 
 # get CI distance
 PhyloDistance(tree1, tree2, Method="CI")
+
+# get CI distance with fast greedy pairing
+PhyloDistance(tree1, tree2, Method="CI", Exact=FALSE)
 
 # get similarity score with individual entropies
 PhyloDistance(tree1, tree2, Method="CI", RawScore=TRUE)

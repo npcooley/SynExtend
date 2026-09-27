@@ -14,12 +14,7 @@
 
 #include "SynExtend.h"
 
-// Global variables for freeing
-bool has_alloced_mem, has_alloced_vec, has_alloced_assign;
-uint8_t *sa;
-bool *cc, *cr;
-int *av;
-double *vec;
+
 
 // Steps
 int* hungarian(double *costMatrix, int n);
