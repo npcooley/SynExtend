@@ -33,7 +33,6 @@ PhyloDistance(dend1, dend2,
 \item{Exact}{
 Logical; Determines if exact optimal bipartite matching via the Hungarian algorithm should be used for \code{Method="CI"}. Has no effect for other \code{Method} arguments. Defaults to \code{TRUE}; setting \code{FALSE} will use a greedy algorithm for higher speed at the cost of accuracy. See \link[=CIDist]{Clustering Information Distance}} for more information.
 }
-}
 \details{
 This function implements a variety of tree distances, specified by the value of \code{Method}. The following values are supported, along with links to documentation pages for each function:
 
