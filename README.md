@@ -1,20 +1,25 @@
-# SynExtend
+SynExtend 1.25.4
+================
+Nicholas Cooley
+2026-10-02
 
-**Table of contents:**
 - [Introduction](#introduction)
 - [Installation](#installation)
 - [Usage](#usage)
-- [Reporting Bugs and Errors](#Reporting-Bugs-and-Errors)
 
-## Introduction
+# Introduction
 
-SynExtend is a package of tools for working with synteny objects generated from the Bioconductor Package DECIPHER.
+SynExtend was initially a envisioned as a package of tools for working
+with Synteny objects produced by the R package `DECIPHER`. It has
+expanded past that to include clustering with `Exolabel` and a few other
+miscellanious functionalities.
 
-## Installation
+# Installation
 
-SynExtend is present in the package repository Bioconductor and the current `release` version can be installed via:
+SynExtend is homed in Bioconductor and the `release` version can be
+installed with the standard Bioconductor boiler plate:
 
-```r
+``` r
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 BiocManager::install()
@@ -23,173 +28,381 @@ BiocManager::install("SynExtend")
 library("SynExtend")
 ```
 
-The `devel` version in Bioconductor can be installed via:
+The Bioconductor `devel` version can be installed via:
 
-```r
+``` r
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install()
+
 BiocManager::install("SynExtend", version = "devel")
 library("SynExtend")
 ```
 
-The version in this repository (which should always be up to date with `devel` and frequently ahead of `release`) can be installed with devtools via:
+and the version present in this repository (which should be in line with
+Bioc Devel) can be installed via:
 
-```r
-devtools::install_github(repo = "npcooley/synextend")
-library("SynExtend")
+``` r
+if (requireNamespace("pak", quietly = TRUE)) {
+  pak::pkg_install("npcooley/SynExtend")
+}
 ```
 
-Additionally, SynExtend is maintained in a Docker container on [Dockerhub](https://hub.docker.com/repository/docker/npcooley/synextend) that is [here](https://github.com/npcooley/SynContainer).
+# Usage
 
-## Usage
+The primary workflow present in SynExtend is for identifying orthologous
+pairs from synteny maps between genomic sequences. The `DECIPHER`
+function `FindSynteny` produces high quality synteny maps from sequence
+data alone, and SynExtend provides the tools to reconcile that shared
+ordered information with feature bounds and infer candidate orthologous
+pairs. The workflow is relatively straightforward, and the examples
+present here rely on just SynExtend itself, `DECIPHER`, `DBI`, and the
+[NCBI edirect utilities](https://www.ncbi.nlm.nih.gov/books/NBK179288/)
+for data collection.
 
-### Prediction of Orthologous Gene Pairs
-
-SynExtend facilitates the prediction of orthologous gene pairs from synteny maps. The functions herein rely on synteny maps built by the `FindSynteny()` function in the package `DECIPHER`. The process is relatively straightforward and only requires assemblies and genecalls, which can be conveniently pulled from the NCBI using [Entrez Direct](https://www.ncbi.nlm.nih.gov/books/NBK179288/). However, as long as given assemblies have associated gene calls, or can have gene calls generated, they will work just fine. `DECIPHER` now contains the function `FindGenes()` that produces high quality de novo gene calls.
-
-Using Entrez Direct, this process would start like this:
-```r
+``` r
+# load our packages, check for esearch
 library(SynExtend)
+```
 
+    ## Loading required package: DECIPHER
+
+    ## Loading required package: Biostrings
+
+    ## Loading required package: BiocGenerics
+
+    ## Loading required package: generics
+
+    ## 
+    ## Attaching package: 'generics'
+
+    ## The following objects are masked from 'package:base':
+    ## 
+    ##     as.difftime, as.factor, as.ordered, intersect, is.element, setdiff,
+    ##     setequal, union
+
+    ## 
+    ## Attaching package: 'BiocGenerics'
+
+    ## The following objects are masked from 'package:stats':
+    ## 
+    ##     IQR, mad, sd, var, xtabs
+
+    ## The following objects are masked from 'package:base':
+    ## 
+    ##     anyDuplicated, aperm, append, as.data.frame, basename, cbind,
+    ##     colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find,
+    ##     get, grep, grepl, is.unsorted, lapply, Map, mapply, match, mget,
+    ##     order, paste, pmax, pmax.int, pmin, pmin.int, Position, rank,
+    ##     rbind, Reduce, rownames, sapply, saveRDS, table, tapply, unique,
+    ##     unsplit, which.max, which.min
+
+    ## Loading required package: S4Vectors
+
+    ## Loading required package: stats4
+
+    ## 
+    ## Attaching package: 'S4Vectors'
+
+    ## The following object is masked from 'package:utils':
+    ## 
+    ##     findMatches
+
+    ## The following objects are masked from 'package:base':
+    ## 
+    ##     expand.grid, I, unname
+
+    ## Loading required package: IRanges
+
+    ## Loading required package: XVector
+
+    ## Loading required package: Seqinfo
+
+    ## 
+    ## Attaching package: 'Biostrings'
+
+    ## The following object is masked from 'package:base':
+    ## 
+    ##     strsplit
+
+    ## 
+    ## Attaching package: 'SynExtend'
+
+    ## The following object is masked from 'package:stats':
+    ## 
+    ##     dendrapply
+
+``` r
+library(DBI)
+
+if (nzchar(Sys.which("esearch"))) {
+  print(paste("esearch found in the path at:",
+              unname(Sys.which("esearch"))))
+}
+```
+
+    ## [1] "esearch found in the path at: /Users/nicholascooley/edirect/esearch"
+
+Data collection can happen however a user wishes, but requires paired
+genomes as fnas and gene calls in gff form. They’re easy to collect from
+the NCBI:
+
+``` r
+# via esearch
+# import into R with a combination of
+# interacting tools from:
+# DECIPHER
+# rtracklayer
+# and
+# SynExtend
+
+# construct a query
 EntrezQuery <- paste("esearch -db assembly ",
                      "-query '",
-                     "kitasatospora[organism] ",
+                     "nitrososphaeria[organism] ",
                      'AND "complete genome"[filter] ', # only complete genomes
                      'AND "refseq has annotation"[properties] ', # only genomes with annotations
                      'AND "latest refseq"[filter] ', # only latest
-                     "NOT anomalous[filter]' ",
+                     'AND "reference genome"[filter] ', # only reference genomes
+                     "NOT anomalous[filter]' ", # no weirdos
                      '| ',
                      'esummary ',
                      '| ',
                      'xtract -pattern DocumentSummary -element FtpPath_RefSeq',
                      sep = "")
 
+# execute the query
 FtPPaths <- system(command = EntrezQuery,
                    intern = TRUE,
                    timeout = 300L) # timeout argument is required for RStudio only
 
-FNAs <- unname(sapply(FtPPaths,
-                      function(x) paste(x,
-                                        "/",
-                                        strsplit(x,
-                                                 split = "/",
-                                                 fixed = TRUE)[[1]][10],
-                                        "_genomic.fna.gz",
-                                        sep = "")))
+# manage the contents of the FTP directory
+# we can expect that these files will exist for refseq reference genomes,
+# though they may not for genbank records, or non-reference genomes
+adds <- mapply(SIMPLIFY = TRUE,
+               USE.NAMES = FALSE,
+               FUN = function(x, y) {
+                 paste0(x,
+                        "/",
+                        y[10],
+                        c("_genomic.fna.gz",
+                          "_genomic.gff.gz",
+                          "_protein.faa.gz"))
+               },
+               x = FtPPaths,
+               y = strsplit(x = FtPPaths,
+                            split = "/",
+                            fixed = TRUE))
+fnas <- adds[1, , drop = TRUE]
+gffs <- adds[2, , drop = TRUE]
+amns <- adds[3, , drop = TRUE]
 
-GFFs <- unname(sapply(FtPPaths,
-                      function(x) paste(x,
-                                        "/",
-                                        strsplit(x,
-                                                 split = "/",
-                                                 fixed = TRUE)[[1]][10],
-                                        "_genomic.gff.gz",
-                                        sep = "")))
-```
+tmp01 <- tempfile()
+drv <- dbDriver("SQLite")
+conn01 <- dbConnect(drv = drv,
+                    tmp01)
 
-With these matched character vectors describing files on the NCBI FTP site, we can pull given assemblies, and their associated `GFF` files.
-
-Assemblies are pulled using functions within the package `Biostrings` and placed in a sqlite database using the package `DECIPHER`. Note, `DBPATH` can be a specific local file location, though a tempfile works fine for this example. The tempfile in this example will be destroyed upon closure of the active R session, so specific file paths are preferable for most user activity. The code chunk below provides an example of pulling down assemblies from the NCBI and using `DECIPHER`'s built in gene finder to generate gene calls.
-
-```r
-DBPATH <- tempfile()
-
-GC01 <- vector(mode = "list",
-               length = length(FNAs))
-
-for (m1 in seq_along(FNAs)) {
-  X <- readDNAStringSet(FNAs[m1])
-  Seqs2DB(seqs = X,
-          type = "XStringSet",
-          dbFile = DBPATH,
+# DECIPHER uses databases to manage sequence data
+# we drop the sequences into a database, but store our genecalls in a named list
+# SquaregffBy does what it says on the label, taking a GRanges object and
+# squaring it into a representation that is easier for us to scroll through later
+genecalls <- vector(mode = "list",
+                    length = length(fnas))
+tmp_con <- file(nullfile(), open = "wt")
+pBar <- txtProgressBar(style = 1)
+PBAR <- length(fnas)
+for (m1 in seq_along(gffs)) {
+  Seqs2DB(seqs = fnas[m1],
+          dbFile = conn01,
+          type = "FASTA",
           identifier = as.character(m1),
-          verbose = TRUE)
+          verbose = FALSE)
+  # import sends things directly to stderr that are difficult to suppress
+  # we can sink those messages and discard them ...
+  sink(file = tmp_con,
+       type = "message")
+  tmp_obj <- rtracklayer::import(con = gffs[m1])
+  sink(type = "message")
+  genecalls[[m1]] <- SquaregffBy(gff_object = tmp_obj,
+                                 verbose = FALSE)
   
-  GC01[[m1]] <- FindGenes(myDNAStringSet = X)
+  setTxtProgressBar(pb = pBar,
+                    value = m1 / PBAR)
 }
-
-names(GC01) <- seq(length(FNAs))
 ```
 
-A current quirk to this process is that genecalls must be present in a named list, where the names can be matched to integer identifiers in the `DECIPHER` database used to construct a synteny object. Users have the option of using the function `FindGenes` in `DECIPHER`, using the `rtracklayer` function `import` to import a valid `GFF` file, or importing a `GFF` with the `SynExtend` function `gffToDataFrame` which performs some data munging to convert the `GFF` into a `DataFrame` for user convenience.
+    ## ================================================================================
 
-```r
-GC02 <- vector(mode = "list",
-               length = length(GFFs))
-
-for (m1 in seq_along(GFFs)) {
-  GC02[[m1]] <- gffToDataFrame(GFF = GFFs[m1],
-                               Verbose = TRUE)
-  
-}
-
-names(GC02) <- seq(length(GC02))
+``` r
+# close our temp connections
+close(tmp_con)
+close(pBar)
 ```
 
-With assemblies and genecalls now in a user's workspace, users can build a synteny map with `FindSynteny`. See `?FindSynteny` in R for further reading. Finding and tabulating where genes are connected by syntenic k-mers is then performed with `NucleotideOverlap`, and that raw data is converted into a convenient `data.frame` with the function `PairSummariers`.
+``` r
+# genecalls needs names that match the names we gave to our sequences when
+# we imported them into the database
+names(genecalls) <- seq(length(genecalls))
+```
 
-```r
-Syn <- FindSynteny(dbFile = DBPATH)
+`FindSynteny` can be called directly on a database to create synteny
+maps for the all-vs-all comparison for all of the identifiers added to
+it. It also accepts an `identifier` argument that can be used to subset
+the database contents if desired. Synteny objects are a matrix of
+`list`s with the upper and lower triangles filled with related but
+slightly different pieces of information.
 
-Links <- NucleotideOverlap(SyntenyObject = Syn,
-                           GeneCalls = GC01,
-                           Verbose = TRUE)
-                           
-Pairs01 <- PairSummaries(SyntenyLinks = Links,
-                         PIDs = TRUE,
+``` r
+syn <- FindSynteny(dbFile = conn01,
+                   verbose = TRUE)
+
+# we can plot our maps
+pairs(syn[1:3, 1:3])
+```
+
+![](README_files/figure-gfm/synteny_object-1.png)<!-- -->
+
+``` r
+# print them
+syn[1:3, 1:3]
+
+# and look at the contents
+head(syn[[1, 2]])
+head(syn[[2, 1]])
+```
+
+    ## ================================================================================
+    ## 
+    ## Time difference of 203.64 secs
+    ## 
+    ##            1          2        3
+    ## 1      1 seq   72% hits 66% hits
+    ## 2 278 blocks      1 seq 58% hits
+    ## 3 235 blocks 264 blocks    1 seq
+    ##      index1 index2 strand width start1  start2 frame1 frame2
+    ## [1,]      1      1      0     3 568112 1516263      2      3
+    ## [2,]      1      1      0   114 568115 1516266      0      0
+    ## [3,]      1      1      0   179 568398 1516549      3      1
+    ## [4,]      1      1      0    12 568583 1516734      0      0
+    ## [5,]      1      1      0    74 568625 1516776      2      3
+    ## [6,]      1      1      0    16 568699 1516850      3      1
+    ##      index1 index2 strand score start1  start2   end1    end2 first_hit
+    ## [1,]      1      1      0  9366 568112 1516263 579186 1527347         1
+    ## [2,]      1      1      0  3835 386745  403384 391759  408398        43
+    ## [3,]      1      1      0  2976 365439  687102 369189  690868        47
+    ## [4,]      1      1      0  2949 620126 1204224 626302 1210451        57
+    ## [5,]      1      1      0  2410 549514  492722 553393  496633        75
+    ## [6,]      1      1      0  2400 649894 1234601 654898 1239567       103
+    ##      last_hit
+    ## [1,]       42
+    ## [2,]       46
+    ## [3,]       56
+    ## [4,]       74
+    ## [5,]      102
+    ## [6,]      119
+
+`NucleotideOverlap` ingests the Synteny object and the genecalls
+associated with the captured genomes, and identifiers where syntenic
+hits between two genomes link features. `SummarizePairs` tries to turn
+that information into a useful table of attributes candidate orthologous
+pairs. `EvaluatePairs` attempts to reject candidate pairs that appear
+unlikely to be true orthologous pairs. It’s also good practice to close
+our database connection.
+
+``` r
+l01 <- NucleotideOverlap(SyntenyObject = syn,
+                         GeneCalls = genecalls,
                          Verbose = TRUE)
-                             
-Clusters01 <- DisjointSet(Pairs = Pairs01,
-                          Verbose = TRUE)
 ```
 
-Pairs where predictions create conflicts can be removed by a simple subsetting function.
+    ## 
+    ## Reconciling genecalls.
+    ## ================================================================================
+    ## Finding connected features.
+    ## ================================================================================
+    ## Time difference of 7.260489 secs
 
-```r
-Pairs02 <- SubSetPairs(CurrentPairs = Pairs01,
-                       Verbose = TRUE)
-
-Clusters02 <- DisjointSet(Pairs = Pairs02,
-                          Verbose = TRUE)
+``` r
+p01 <- SummarizePairs(SynExtendObject = l01,
+                      DataBase01 = conn01,
+                      Verbose = TRUE,
+                      Processors = NULL)
 ```
 
+    ## Collecting pairs.
+    ## ================================================================================
+    ## Time difference of 59.91855 secs
 
-A more self-contained example is maintained in this package's Bioconductor vignette, and can be found [here](https://www.bioconductor.org/packages/release/bioc/html/SynExtend.html)
-
-### Creating Functional Association Networks
-
-SynExtend also allows for prediction of functional association networks from evidence of correlated selective pressures between of pairs of clusters of orthologous genes (COGs). Given a list of gene trees or presence/absence data, the `EvoWeaver` class in SynExtend uses multiple algorithms to compute likelihood of pairwise functional association. This list can be generated with `DisjointSet(...)`, or can be created by the user. 
-
-An example of using `EvoWeaver` can be done using the built-in example *Streptomyces* dataset. This will predict functional association of 200 genes from 301 genomes. 
-
-```r
-exData <- get(data("ExampleStreptomycesData"))
-ew <- EvoWeaver(exData$Genes)
-
-# For faster runtime, set subset as follows:
-# predictions <- predict(ew, mySpeciesTree=exData$Tree, subset=1:20)
-predictions <- predict(ew, mySpeciesTree=exData$Tree)
-
-# View number of genes and number of predictions:
-
-# Print out the adjacency matrix:
-predictions
-
-# Print out pairwise associations:
-as.data.frame(predictions)
-
-# Plot genes using force-directed embedding:
-plot(predictions)
+``` r
+p02 <- EvaluatePairs(InputPairs = p01,
+                     DataBase01 = conn01,
+                     Verbose = TRUE)
 ```
 
-Current algorithms used for prediction are Jaccard distance, Hamming distance, Mutual Information, Direct Coupling Analysis, Phylogenetic Gain/Loss events, Co-localization, MirrorTree, and ContextTree. See `?EvoWeaver` for more details.
+    ## 
+    ## Generating decoy alignments.
+    ## 
+    ## Completed!
+    ## Time difference of 1.709277 mins
 
-### Planned Updates
+``` r
+# close our connection
+dbDisconnect(conn01)
+```
 
-SynExtend currently has an extensive TODO list that includes:
-1. Parsing communities of predicted pairs.
-2. User friendly accessor functions to help with printing and plotting data.
+[Exolabel](https://ahl27.com/posts/2025/04/exolabel-full/) is a
+clustering routine that performs out of memory fast label propogation.
+It is performant and implemented largely in C. Alternatively users could
+substitute with [MCL](https://micans.org/mcl/) if they’re more familiar
+with it. It is currently in the submission process for publication.
 
-If users have specific requests I would love to incorporate them.
+``` r
+tmp_pairs <- tempfile()
 
-## Reporting Bugs and Errors
+write.table(x = p02[, c(1, 2, 13)],
+            sep = "\t",
+            quote = FALSE,
+            append = FALSE,
+            col.names = FALSE,
+            row.names = FALSE,
+            file = tmp_pairs)
 
-Feel free to email me at npc19@pitt.edu or submit issues here on GitHub. Questions related to `EvoWeaver` can be sent to ahl27@pitt.edu or submitted similarly on GitHub.
+res <- ExoLabel(edgelistfiles = tmp_pairs,
+                return_table = TRUE)
+
+clusts <- res$results
+
+clusts <- tapply(X = clusts$Vertex,
+                 INDEX = clusts$Cluster,
+                 FUN = c)
+# index names are meaningless here
+names(clusts) <- NULL
+unlink(tmp_pairs)
+
+# clusters *must* be single copy
+single_copy <- vapply(X = clusts,
+                      FUN = function(x) {
+                        y <- strsplit(x = x,
+                                      split = "_",
+                                      fixed = TRUE)
+                        y <- do.call(rbind,
+                                     y)
+                        nrow(y) == length(unique(y[, 1, drop = TRUE]))
+                      },
+                      FUN.VALUE = vector(mode = "logical",
+                                         length = 1))
+sc_clusts <- clusts[single_copy]
+```
+
+An adhoc plotting routine is included in example code
+[here](https://npcooley.github.io/projects/using_synextend.html) that
+relies on `gggenomes` for plotting; internal functions for plotting
+without external dependencies are coming soon(ish). `FindColocalSets`
+identifies where co-occuring clusters are co-localized within nucleotide
+distance set by the `max_gap` parameter.
+
+``` r
+colocals <- FindColocalSets(genecalls = genecalls,
+                            detected_sets = sc_clusts,
+                            max_gap = 5000)
+```
