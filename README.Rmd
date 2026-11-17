@@ -155,7 +155,7 @@ names(genecalls) <- seq(length(genecalls))
 
 `FindSynteny` can be called directly on a database to create synteny maps for the all-vs-all comparison for all of the identifiers added to it. It also accepts an `identifier` argument that can be used to subset the database contents if desired. Synteny objects are a matrix of `list`s with the upper and lower triangles filled with related but slightly different pieces of information.
 
-```{r synteny_object, results = "hold"}
+```{r synteny_object}
 syn <- FindSynteny(dbFile = conn01,
                    verbose = TRUE)
 
