@@ -8,7 +8,8 @@
 .Rproj.user
 *.Rproj
 *.Rhistory
-*.Rbuildignore
+# our build ignore file needs to travel anywhere the repo travels...
+# *.Rbuildignore
 .RData
 *.BiocCheck
 *.BiocCheck/*
